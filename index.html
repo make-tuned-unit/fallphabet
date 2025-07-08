@@ -146,7 +146,7 @@
         this.gridHeight = gridHeight;
         this.columns = columns;
         this.rows = rows;
-        this.tileSize = (this.gridWidth / this.columns) * 0.8; // Scrabble tile size with margin
+        this.tileSize = (this.gridWidth / this.columns) * 0.9; // Increased tile size from 0.8 to 0.9
         this.tileMargin = (this.gridWidth / this.columns - this.tileSize) / 2;
         this.tileSpacing = 10; // vertical gap between tiles (increased to 10px)
         this.fallSpeed = 90; // pixels/sec
@@ -626,7 +626,7 @@
         console.log('Creating GameScene...');
         
         // Calculate playfield dimensions
-        const playfieldWidth = 480;
+        const playfieldWidth = 640; // Increased from 480 to 640
         const playfieldHeight = 900;
         this.gridX = 50;
         this.gridY = 50;
