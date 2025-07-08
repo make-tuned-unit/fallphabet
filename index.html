@@ -602,6 +602,7 @@
         this.topWordScore = 0;
         this.highestChain = 1;
         this.gameOver = false;
+        this.scoredWords = [];
       }
       
       create() {
@@ -695,86 +696,73 @@
           }
         });
         
-        const isValid = await this.wordValidator.validate(word);
-        if (!isValid) {
+        if (!this.wordValidator.validate(word)) {
           this.showFlashMessage(`"${word}" - Invalid word!`, '#ff6b6b');
-          if (this.chainTracker) this.chainTracker.resetChain();
-          tiles.forEach(tile => {
-            // Remove from column tracking
-            if (tile && tile.col !== undefined && this.tileSpawner.columnsTiles[tile.col]) {
-              const colIndex = this.tileSpawner.columnsTiles[tile.col].indexOf(tile);
-              if (colIndex > -1) {
-                this.tileSpawner.columnsTiles[tile.col].splice(colIndex, 1);
-              }
-            }
-            // Animate and destroy (with safety checks)
-            this.tweens.add({
-              targets: [tile, tile.text, tile.shadow, tile.innerShadow],
-              scaleX: 0,
-              scaleY: 0,
-              alpha: 0,
-              duration: 200,
-              ease: 'Power2',
-              onComplete: () => {
-                if (tile && !tile.destroyed) tile.destroy();
-                if (tile.text && !tile.text.destroyed) tile.text.destroy();
-                if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
-                if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
-              }
-            });
-            setTimeout(() => {
-              if (tile && !tile.destroyed) tile.destroy();
-              if (tile.text && !tile.text.destroyed) tile.text.destroy();
-              if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
-              if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
-            }, 400);
-          });
           return;
         }
-        
-        const chainLevel = this.chainTracker.getChainLevel();
-        const score = this.scoreManager.calculateScore(word, chainLevel);
-        this.scoreManager.addScore(score);
-        this.wordsUsed++;
-        // Track top word
-        if (score > this.topWordScore) {
-          this.topWordScore = score;
-          this.topWord = word;
-        }
-        
-        // Chain logic: increase chain for NEXT word, current word uses current level
-        this.chainTracker.incrementOnNextWord();
-        
-        // Track highest chain after increasing it
-        const currentChainLevel = this.chainTracker.getChainLevel();
-        if (currentChainLevel > this.highestChain) {
-          this.highestChain = currentChainLevel;
-        }
-        
-        this.showFlashMessage(`"${word}" - ${score} pts (x${chainLevel} chain!)`, '#51cf66');
-        
-        // For valid words, animate and destroy tiles
-        tiles.forEach(tile => {
-          this.tweens.add({ 
-            targets: [tile, tile.text, tile.shadow, tile.innerShadow], 
-            scaleX: 0, 
-            scaleY: 0, 
-            duration: 300, 
-            ease: 'Power2', 
-            onComplete: () => { 
-              if (tile && !tile.destroyed) tile.destroy(); 
-              if (tile.text && !tile.text.destroyed) tile.text.destroy(); 
-              if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
-              if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
-            } 
+        // Dictionary API check for proper names
+        fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`)
+          .then(res => res.json())
+          .then(data => {
+            if (Array.isArray(data)) {
+              // Check all meanings for proper noun
+              const isProper = data.some(entry =>
+                entry.meanings && entry.meanings.some(meaning =>
+                  meaning.partOfSpeech && meaning.partOfSpeech.toLowerCase().includes('proper')
+                )
+              );
+              if (isProper) {
+                this.showFlashMessage(`"${word}" is a proper name. No proper names allowed!`, '#ff6b6b');
+                return;
+              }
+            }
+            // If not a proper noun, continue with scoring and animation
+            const chainLevel = this.chainTracker.getChainLevel();
+            const score = this.scoreManager.calculateScore(word, chainLevel);
+            this.scoreManager.addScore(score);
+            this.wordsUsed++;
+            this.chainTracker.incrementOnNextWord();
+            const chainText = chainLevel > 1 ? ` (x${chainLevel} chain!)` : '';
+            this.showFlashMessage(`"${word}" - ${score} pts${chainText}`, '#51cf66');
+            this.scoredWords.push({ word, score });
+            tiles.forEach(tile => {
+              this.tweens.add({
+                targets: [tile, tile.text],
+                scaleX: 0,
+                scaleY: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                  tile.destroy();
+                  if (tile.text) tile.text.destroy();
+                }
+              });
+            });
+          })
+          .catch(() => {
+            // If API fails, fallback to accepting the word
+            const chainLevel = this.chainTracker.getChainLevel();
+            const score = this.scoreManager.calculateScore(word, chainLevel);
+            this.scoreManager.addScore(score);
+            this.wordsUsed++;
+            this.chainTracker.incrementOnNextWord();
+            const chainText = chainLevel > 1 ? ` (x${chainLevel} chain!)` : '';
+            this.showFlashMessage(`"${word}" - ${score} pts${chainText}`, '#51cf66');
+            this.scoredWords.push({ word, score });
+            tiles.forEach(tile => {
+              this.tweens.add({
+                targets: [tile, tile.text],
+                scaleX: 0,
+                scaleY: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                  tile.destroy();
+                  if (tile.text) tile.text.destroy();
+                }
+              });
+            });
           });
-          setTimeout(() => {
-            if (tile && !tile.destroyed) tile.destroy();
-            if (tile.text && !tile.text.destroyed) tile.text.destroy();
-            if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
-            if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
-          }, 400);
-        });
 
         // Check for game over
         if (this.scoreManager.getTotalScore() >= 200) {
@@ -810,6 +798,33 @@
         // Check for game over immediately when score reaches 200
         if (this.scoreManager.getTotalScore() >= 200 && !this.gameOver) {
           this.endGame();
+        }
+
+        // Add a container for the word list
+        const modalStats = document.querySelector('.modal-stats');
+        let wordListDiv = document.getElementById('modal-word-list');
+        if (!wordListDiv) {
+          wordListDiv = document.createElement('div');
+          wordListDiv.id = 'modal-word-list';
+          wordListDiv.style.maxHeight = '160px';
+          wordListDiv.style.overflowY = 'auto';
+          wordListDiv.style.margin = '18px 0 0 0';
+          wordListDiv.style.textAlign = 'left';
+          wordListDiv.style.fontSize = '1.05rem';
+          wordListDiv.style.lineHeight = '1.4';
+          wordListDiv.style.background = '#fff9ef';
+          wordListDiv.style.border = '1px solid #e5c9a8';
+          wordListDiv.style.borderRadius = '8px';
+          wordListDiv.style.padding = '10px 12px';
+          modalStats.parentNode.insertBefore(wordListDiv, modalStats.nextSibling);
+        }
+        // Populate the list on win
+        if (this.scoredWords && this.scoredWords.length) {
+          wordListDiv.innerHTML = '<strong>Words you scored:</strong><ul style="margin:8px 0 0 0;padding:0;list-style:none;">' +
+            this.scoredWords.map(w => `<li style='display:flex;justify-content:space-between;'><span>${w.word}</span><span style='color:#7c3aed;font-weight:bold;'>${w.score} pts</span></li>`).join('') +
+            '</ul>';
+        } else {
+          wordListDiv.innerHTML = '';
         }
       }
 
