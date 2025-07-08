@@ -840,7 +840,7 @@
         const wordsUsed = this.wordsUsed;
         const topWord = this.topWord || '-';
         const topWordScore = this.topWordScore || 0;
-        const highestChain = this.highestChain || 1;
+        const highestChain = this.chainTracker && this.chainTracker.getHighestChain ? 'x' + this.chainTracker.getHighestChain() : '';
         if (this.scoreManager.getTotalScore() >= 200) {
           // Win condition
           if (title) title.textContent = 'You Did It!';
@@ -954,7 +954,7 @@
               if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
                 const scene = window.game.scene.keys['GameScene'];
                 wordsUsed = scene.wordsUsed || '';
-                highestChain = scene.highestChain ? 'x' + scene.highestChain : '';
+                highestChain = scene.chainTracker && scene.chainTracker.getHighestChain ? 'x' + scene.chainTracker.getHighestChain() : '';
                 topWord = scene.topWord || '';
                 topWordScore = scene.topWordScore || '';
               }
@@ -998,7 +998,7 @@
             if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
               const scene = window.game.scene.keys['GameScene'];
               wordsUsed = scene.wordsUsed || '';
-              highestChain = scene.highestChain ? 'x' + scene.highestChain : '';
+              highestChain = scene.chainTracker && scene.chainTracker.getHighestChain ? 'x' + scene.chainTracker.getHighestChain() : '';
             }
             // Fallback to DOM if needed
             if (!wordsUsed) {
