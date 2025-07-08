@@ -293,9 +293,9 @@
             this.buffer.push(tile.letter);
             this.highlightTile(tile, true);
             this.lastTile = tile;
-            // Notify chainTracker that a new word is being started
-            if (this.scene.chainTracker && this.scene.chainTracker.chainWindowActive) {
-              this.scene.chainTracker.armChain();
+            // If this is the first tile of a new word, extend the chain window
+            if (this.selectedTiles.length === 1 && this.scene.chainTracker) {
+              this.scene.chainTracker.startChainWindow();
             }
           }
         }
@@ -338,11 +338,11 @@
         if (highlight) {
           tile.setFillStyle(0x90EE90); // Light green
           tile.setStrokeStyle(3, 0x228B22); // Dark green border
-          if (tile.text) tile.text.setColor('#006400');
+          if (tile.text && !tile.text.destroyed) tile.text.setColor('#006400');
         } else {
           tile.setFillStyle(0xFFF5E1); // Original color
           tile.setStrokeStyle(3, 0xB8860B); // Original border
-          if (tile.text) tile.text.setColor('#222');
+          if (tile.text && !tile.text.destroyed) tile.text.setColor('#222');
         }
       }
       
@@ -361,7 +361,13 @@
       }
 
       clearBuffer() {
-        this.selectedTiles.forEach(tile => this.highlightTile(tile, false));
+        this.selectedTiles.forEach(tile => {
+          // Destroy tile and associated graphics if not already destroyed
+          if (tile && !tile.destroyed) tile.destroy();
+          if (tile.text && !tile.text.destroyed) tile.text.destroy();
+          if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
+          if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
+        });
         this.selectedTiles = [];
         this.buffer = [];
         this.lastTile = null;
@@ -448,16 +454,14 @@
       constructor() {
         this.chainLevel = 1;
         this.highestChain = 1;
-        this.chainWindowActive = false;
-        this.chainWindowTimeout = null;
+        this.lastWordTime = 0;
         this.chainWindowDuration = 1000; // 1 second
-        this.chainArmed = false;
+        this.chainWindowTimeout = null;
       }
       
       startChainWindow() {
         this.clearChainWindow();
-        this.chainWindowActive = true;
-        this.chainArmed = false;
+        this.lastWordTime = Date.now();
         this.chainWindowTimeout = setTimeout(() => {
           this.resetChain();
         }, this.chainWindowDuration);
@@ -468,15 +472,6 @@
           clearTimeout(this.chainWindowTimeout);
           this.chainWindowTimeout = null;
         }
-        this.chainWindowActive = false;
-        this.chainArmed = false;
-      }
-      
-      armChain() {
-        if (this.chainWindowActive) {
-          this.chainArmed = true;
-          this.clearChainWindow();
-        }
       }
       
       increaseChain() {
@@ -486,7 +481,6 @@
       
       resetChain() {
         this.chainLevel = 1;
-        this.chainArmed = false;
         this.clearChainWindow();
       }
       
@@ -612,7 +606,7 @@
                 this.tileSpawner.columnsTiles[tile.col].splice(colIndex, 1);
               }
             }
-            // Animate and destroy
+            // Animate and destroy (with safety checks)
             this.tweens.add({
               targets: [tile, tile.text, tile.shadow, tile.innerShadow],
               scaleX: 0,
@@ -646,25 +640,21 @@
           this.topWordScore = score;
           this.topWord = word;
         }
-        // Track highest chain
-        if (chainLevel > this.highestChain) {
-          this.highestChain = chainLevel;
-        }
-        // Chain logic:
-        if (this.chainTracker.chainArmed) {
-          this.chainTracker.increaseChain();
-        } else {
-          this.chainTracker.resetChain();
-        }
+        
+        // Chain logic: increase chain for NEXT word, current word uses current level
+        this.chainTracker.increaseChain();
         this.chainTracker.startChainWindow();
-        this.showFlashMessage(`"${word}" - ${score} pts`, '#51cf66');
+        
+        // Track highest chain after increasing it
+        const currentChainLevel = this.chainTracker.getChainLevel();
+        if (currentChainLevel > this.highestChain) {
+          this.highestChain = currentChainLevel;
+        }
+        
+        this.showFlashMessage(`"${word}" - ${score} pts (x${chainLevel} chain!)`, '#51cf66');
         
         // For valid words, animate and destroy tiles
         tiles.forEach(tile => {
-          // Remove green border/highlight before destroying
-          if (tile.setFillStyle) tile.setFillStyle(0xFFF5E1);
-          if (tile.setStrokeStyle) tile.setStrokeStyle(3, 0xB8860B);
-          if (tile.text && tile.text.setColor) tile.text.setColor('#222');
           this.tweens.add({ 
             targets: [tile, tile.text, tile.shadow, tile.innerShadow], 
             scaleX: 0, 
@@ -687,7 +677,7 @@
         });
 
         // Check for game over
-        if (this.scoreManager.getTotalScore() >= 100) {
+        if (this.scoreManager.getTotalScore() >= 200) {
           this.endGame();
         }
       }
@@ -707,6 +697,11 @@
         // Update HTML elements instead of Phaser text
         document.getElementById('score-display').textContent = this.scoreManager.getTotalScore();
         document.getElementById('chain-display').textContent = `x${this.chainTracker.getChainLevel()}`;
+        
+        // Check for game over immediately when score reaches 200
+        if (this.scoreManager.getTotalScore() >= 200 && !this.gameOver) {
+          this.endGame();
+        }
       }
 
       endGame() {
@@ -750,8 +745,27 @@
     window.addEventListener('DOMContentLoaded', () => {
       console.log('DOM loaded, creating Phaser game...');
       try {
-        const game = new Phaser.Game(config);
+        window.game = new Phaser.Game(config);
         console.log('Phaser game created successfully');
+        const restartBtn = document.getElementById('modal-restart-btn');
+        if (restartBtn) {
+          restartBtn.onclick = () => {
+            // Hide modal
+            const modal = document.getElementById('gameover-modal');
+            modal.style.display = 'none';
+            modal.classList.remove('show');
+            // Restart Phaser scene
+            if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+              window.game.scene.stop('GameScene');
+              window.game.scene.start('GameScene');
+            } else if (window.game && window.game.scene) {
+              window.game.scene.restart();
+            } else {
+              // Fallback: reload the page
+              window.location.reload();
+            }
+          };
+        }
       } catch (error) {
         console.error('Error creating Phaser game:', error);
       }
