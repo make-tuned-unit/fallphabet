@@ -72,6 +72,7 @@
   <!-- Game Over Modal -->
   <div id="gameover-modal" class="gameover-modal" style="display:none;">
     <div class="gameover-modal-content">
+      <button id="modal-close-btn" class="modal-close-btn" aria-label="Close">&times;</button>
       <h2 class="modal-title">Game Over!</h2>
       <div class="modal-stats">
         <div><strong>Words Used:</strong> <span id="modal-words-used">0</span></div>
@@ -1006,6 +1007,15 @@
             }
           };
         }
+
+        // Modal close button logic
+        const closeBtn = document.getElementById('modal-close-btn');
+        if (closeBtn) {
+          closeBtn.onclick = () => {
+            document.getElementById('gameover-modal').style.display = 'none';
+            document.getElementById('gameover-modal').classList.remove('show');
+          };
+        }
       } catch (error) {
         console.error('Error creating Phaser game:', error);
       }
@@ -1062,6 +1072,20 @@
       }
       this.chainTracker.startChainWindow();
     };
+
+    // Find the container width dynamically for gridWidth
+    const getPlayfieldWidth = () => {
+      const container = document.getElementById('playfield-container');
+      if (!container) return 480;
+      const style = window.getComputedStyle(container);
+      const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+      return container.clientWidth - padding;
+    };
+
+    // In the Phaser game config or GameScene, use getPlayfieldWidth() for gridWidth
+    // Example (pseudo):
+    // const gridWidth = getPlayfieldWidth();
+    // ... pass gridWidth to TileSpawner and grid drawing logic ...
   </script>
 </body>
 </html>
