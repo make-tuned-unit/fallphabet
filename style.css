@@ -24,8 +24,8 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  max-width: 480px;
   width: 100%;
+  height: 100vh;
   padding: 0;
   margin: 0;
   background: transparent;
@@ -91,11 +91,10 @@ body {
 
 /* Playfield Container */
 #playfield-container {
-  width: 100vw;
+  width: 100%;
+  height: 100%;
   max-width: 480px;
-  height: 100vh;
-  max-height: 900px;
-  aspect-ratio: 8/15;
+  max-height: calc(100vh - 200px);
   background: transparent;
   border: none;
   border-radius: 0;
@@ -133,20 +132,24 @@ body {
 /* Responsive Design */
 @media (max-width: 600px), (max-height: 900px) {
   #playfield-container {
-    width: 100vw;
-    max-width: 100vw;
-    height: 100vh;
-    max-height: 100vh;
-    aspect-ratio: 8/15;
+    width: 100%;
+    max-width: 100%;
+    height: calc(100vh - 180px);
+    max-height: calc(100vh - 180px);
   }
   #main-content {
-    max-width: 100vw;
+    width: 100%;
+    height: 100vh;
     padding: 0;
   }
   .game-title {
     font-size: 7vw !important;
     width: 100%;
     letter-spacing: 2vw;
+    margin: 20px 0 5px 0;
+  }
+  .game-stats {
+    margin-top: 5px;
   }
   .stat-label {
     font-size: 5vw;
@@ -162,6 +165,22 @@ body {
     bottom: 10px;
     font-size: 16px;
     min-width: 180px;
+  }
+}
+
+/* iPhone 14 Pro Max and similar tall screens */
+@media (min-height: 800px) and (max-width: 430px) {
+  #playfield-container {
+    height: calc(100vh - 160px);
+    max-height: calc(100vh - 160px);
+  }
+  .game-title {
+    font-size: 6vw !important;
+    margin: 15px 0 5px 0;
+  }
+  .game-stats {
+    margin-top: 5px;
+    gap: 20px;
   }
 }
 
