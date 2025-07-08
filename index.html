@@ -54,6 +54,22 @@
 
   <!-- Flash Message Area -->
   <div id="flash-message" class="flash-message"></div>
+
+  <!-- Game Over Modal -->
+  <div id="gameover-modal" class="gameover-modal" style="display:none;">
+    <div class="gameover-modal-content">
+      <h2 class="modal-title">Game Over!</h2>
+      <div class="modal-stats">
+        <div><strong>Words Used:</strong> <span id="modal-words-used">0</span></div>
+        <div><strong>Top Word:</strong> <span id="modal-top-word">-</span></div>
+        <div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x1</span></div>
+      </div>
+      <div class="modal-actions">
+        <button id="modal-share-btn" class="modal-btn">Share</button>
+        <button id="modal-restart-btn" class="modal-btn">Restart</button>
+      </div>
+    </div>
+  </div>
   
   <script>
     // TileSpawner Module
@@ -91,7 +107,8 @@
             const colTiles = this.columnsTiles[col];
             const lastTile = colTiles.length > 0 ? colTiles[colTiles.length - 1] : null;
             const spawnY = this.gridY - this.tileSize / 2;
-            if (lastTile && lastTile.y < spawnY + this.tileSize + this.tileSpacing) {
+            let requiredSpacing = this.tileSize + this.tileSpacing;
+            if (lastTile && lastTile.y < spawnY + requiredSpacing) {
               // Not enough space, retry soon
               this.columnTimers[col] = this.scene.time.addEvent({
                 delay: 100,
@@ -102,16 +119,21 @@
             }
             const tile = this.spawnTile(col, spawnY);
             this.columnsTiles[col].push(tile);
-            // Schedule the next spawn with a new random delay
+            // Schedule the next spawn with the same interval for all columns
+            let delay = Phaser.Math.Between(900, 1200);
             this.columnTimers[col] = this.scene.time.addEvent({
-              delay: Phaser.Math.Between(900, 1200),
+              delay: delay,
               callback: spawnNext,
               callbackScope: this
             });
           };
-          // Start the first spawn with a random initial delay per column
+          // Start the first spawn with a unique random initial delay per column
+          let initialDelay = Phaser.Math.Between(0, 800);
+          if (col === 0) initialDelay += 200; // Delay column 1 by 0.2s
+          if (col === 1) initialDelay = Math.max(0, initialDelay - 800); // Column 2 spawns 0.8s earlier
+          if (col === 3) initialDelay += 800; // Delay column 4 by 0.8s
           this.scene.time.addEvent({
-            delay: Phaser.Math.Between(0, 800),
+            delay: initialDelay,
             callback: spawnNext,
             callbackScope: this
           });
@@ -226,16 +248,21 @@
         this.buffer = [];
         this.isDragging = false;
         this.lastTile = null;
-        
+        this.lastTapTime = 0;
+        this.lastTappedTile = null;
+        this.autoClearTimeout = null;
         // Set up input events
         this.scene.input.on('pointerdown', this.onPointerDown, this);
         this.scene.input.on('pointermove', this.onPointerMove, this);
         this.scene.input.on('pointerup', this.onPointerUp, this);
+        // Also allow tap-to-select
+        this.scene.input.on('gameobjectdown', this.onTileTap, this);
       }
       
       onPointerDown(pointer) {
         this.isDragging = true;
-        this.clearBuffer();
+        // Only clear buffer if not already selecting
+        if (!this.selectedTiles.length) this.clearBuffer();
         this.selectTileAt(pointer.x, pointer.y);
       }
       
@@ -245,18 +272,42 @@
       }
       
       onPointerUp(pointer) {
-        if (this.isDragging && this.buffer.length > 0) {
-          this.submitWord();
-        }
         this.isDragging = false;
-        this.clearBuffer();
+        // Do not clear buffer here; let user tap to build words
+      }
+      
+      onTileTap(pointer, tile) {
+        if (!tile || !tile.isScrabbleTile) return;
+        const now = Date.now();
+        // Double-tap detection
+        if (this.lastTappedTile === tile && (now - this.lastTapTime) < 350) {
+          // Only submit if this tile is the last selected tile
+          if (this.selectedTiles.length && this.selectedTiles[this.selectedTiles.length - 1] === tile) {
+            this.submitWord();
+            this.clearAutoClearTimer();
+            return;
+          }
+        } else {
+          if (!this.selectedTiles.includes(tile)) {
+            this.selectedTiles.push(tile);
+            this.buffer.push(tile.letter);
+            this.highlightTile(tile, true);
+            this.lastTile = tile;
+            // Notify chainTracker that a new word is being started
+            if (this.scene.chainTracker && this.scene.chainTracker.chainWindowActive) {
+              this.scene.chainTracker.armChain();
+            }
+          }
+        }
+        this.lastTappedTile = tile;
+        this.lastTapTime = now;
+        this.resetAutoClearTimer();
       }
       
       selectTileAt(x, y) {
         const tiles = this.tileSpawner.getAllTiles();
         for (const tile of tiles) {
           if (!tile || tile.destroyed || !tile.isScrabbleTile) continue;
-          
           const distance = Phaser.Math.Distance.Between(x, y, tile.x, tile.y);
           if (distance <= tile.width / 2) {
             if (this.lastTile && tile !== this.lastTile) {
@@ -265,21 +316,17 @@
               const currentCol = tile.col;
               const lastIndex = this.tileSpawner.columnsTiles[lastCol].indexOf(this.lastTile);
               const currentIndex = this.tileSpawner.columnsTiles[currentCol].indexOf(tile);
-              
               const isAdjacent = (
                 (Math.abs(currentCol - lastCol) === 1 && Math.abs(currentIndex - lastIndex) <= 1) ||
                 (currentCol === lastCol && Math.abs(currentIndex - lastIndex) === 1)
               );
-              
               if (!isAdjacent) continue;
             }
-            
             if (!this.selectedTiles.includes(tile)) {
               this.selectedTiles.push(tile);
               this.buffer.push(tile.letter);
               this.highlightTile(tile, true);
             }
-            
             this.lastTile = tile;
             break;
           }
@@ -288,7 +335,6 @@
       
       highlightTile(tile, highlight) {
         if (!tile || tile.destroyed) return;
-        
         if (highlight) {
           tile.setFillStyle(0x90EE90); // Light green
           tile.setStrokeStyle(3, 0x228B22); // Dark green border
@@ -300,21 +346,36 @@
         }
       }
       
+      resetAutoClearTimer() {
+        this.clearAutoClearTimer();
+        this.autoClearTimeout = setTimeout(() => {
+          this.clearBuffer();
+        }, 1000); // 1 second
+      }
+
+      clearAutoClearTimer() {
+        if (this.autoClearTimeout) {
+          clearTimeout(this.autoClearTimeout);
+          this.autoClearTimeout = null;
+        }
+      }
+
       clearBuffer() {
         this.selectedTiles.forEach(tile => this.highlightTile(tile, false));
         this.selectedTiles = [];
         this.buffer = [];
         this.lastTile = null;
+        this.clearAutoClearTimer();
       }
       
       submitWord() {
         if (this.buffer.length < 2) return;
-        
         const word = this.buffer.join('');
         this.scene.events.emit('wordSubmitted', {
           word: word,
           tiles: [...this.selectedTiles]
         });
+        this.clearBuffer();
       }
       
       update() {
@@ -386,34 +447,54 @@
     class ChainTracker {
       constructor() {
         this.chainLevel = 1;
-        this.chainTimer = 0;
-        this.chainDuration = 5000; // 5 seconds
-        this.awaitingNextWord = false;
+        this.highestChain = 1;
+        this.chainWindowActive = false;
+        this.chainWindowTimeout = null;
+        this.chainWindowDuration = 1000; // 1 second
+        this.chainArmed = false;
+      }
+      
+      startChainWindow() {
+        this.clearChainWindow();
+        this.chainWindowActive = true;
+        this.chainArmed = false;
+        this.chainWindowTimeout = setTimeout(() => {
+          this.resetChain();
+        }, this.chainWindowDuration);
+      }
+      
+      clearChainWindow() {
+        if (this.chainWindowTimeout) {
+          clearTimeout(this.chainWindowTimeout);
+          this.chainWindowTimeout = null;
+        }
+        this.chainWindowActive = false;
+        this.chainArmed = false;
+      }
+      
+      armChain() {
+        if (this.chainWindowActive) {
+          this.chainArmed = true;
+          this.clearChainWindow();
+        }
       }
       
       increaseChain() {
         this.chainLevel++;
-        this.chainTimer = this.chainDuration;
-        this.awaitingNextWord = false;
-      }
-      
-      update() {
-        if (this.chainTimer > 0) {
-          this.chainTimer -= 16; // Assuming 60fps
-          if (this.chainTimer <= 0) {
-            this.resetChain();
-          }
-        }
+        if (this.chainLevel > this.highestChain) this.highestChain = this.chainLevel;
       }
       
       resetChain() {
         this.chainLevel = 1;
-        this.chainTimer = 0;
-        this.awaitingNextWord = false;
+        this.chainArmed = false;
+        this.clearChainWindow();
       }
       
       getChainLevel() {
         return this.chainLevel;
+      }
+      getHighestChain() {
+        return this.highestChain;
       }
     }
 
@@ -423,6 +504,11 @@
         super({ key: 'GameScene' });
         this.columns = 4;
         this.rows = 12;
+        this.wordsUsed = 0;
+        this.topWord = '';
+        this.topWordScore = 0;
+        this.highestChain = 1;
+        this.gameOver = false;
       }
       
       create() {
@@ -471,6 +557,10 @@
         
         // Game state
         this.wordsUsed = 0;
+        this.topWord = '';
+        this.topWordScore = 0;
+        this.highestChain = 1;
+        this.gameOver = false;
         
         // Listen for word submissions
         this.events.on('wordSubmitted', this.handleWordSubmission, this);
@@ -489,16 +579,16 @@
       }
 
       update(time, delta) {
+        if (this.gameOver) return;
         const dt = delta / 1000;
         this.tileSpawner.update(dt);
-        this.chainTracker.update();
         this.inputHandler.update();
         this.updateUI();
       }
       
       async handleWordSubmission(data) {
+        if (this.gameOver) return;
         const { word, tiles } = data;
-        if (this.inputHandler) this.inputHandler.clearBuffer();
         
         // Always clean up tiles from spawner tracking, regardless of validation result
         tiles.forEach(tile => {
@@ -513,7 +603,7 @@
         const isValid = await this.wordValidator.validate(word);
         if (!isValid) {
           this.showFlashMessage(`"${word}" - Invalid word!`, '#ff6b6b');
-          if (this.chainTracker) this.chainTracker.awaitingNextWord = false;
+          if (this.chainTracker) this.chainTracker.resetChain();
           tiles.forEach(tile => {
             // Remove from column tracking
             if (tile && tile.col !== undefined && this.tileSpawner.columnsTiles[tile.col]) {
@@ -551,7 +641,22 @@
         const score = this.scoreManager.calculateScore(word, chainLevel);
         this.scoreManager.addScore(score);
         this.wordsUsed++;
-        this.chainTracker.increaseChain();
+        // Track top word
+        if (score > this.topWordScore) {
+          this.topWordScore = score;
+          this.topWord = word;
+        }
+        // Track highest chain
+        if (chainLevel > this.highestChain) {
+          this.highestChain = chainLevel;
+        }
+        // Chain logic:
+        if (this.chainTracker.chainArmed) {
+          this.chainTracker.increaseChain();
+        } else {
+          this.chainTracker.resetChain();
+        }
+        this.chainTracker.startChainWindow();
         this.showFlashMessage(`"${word}" - ${score} pts`, '#51cf66');
         
         // For valid words, animate and destroy tiles
@@ -580,6 +685,11 @@
             if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
           }, 400);
         });
+
+        // Check for game over
+        if (this.scoreManager.getTotalScore() >= 100) {
+          this.endGame();
+        }
       }
       
       showFlashMessage(message, color = '#fff') {
@@ -597,6 +707,21 @@
         // Update HTML elements instead of Phaser text
         document.getElementById('score-display').textContent = this.scoreManager.getTotalScore();
         document.getElementById('chain-display').textContent = `x${this.chainTracker.getChainLevel()}`;
+      }
+
+      endGame() {
+        this.gameOver = true;
+        // Stop all timers in tileSpawner
+        if (this.tileSpawner && this.tileSpawner.columnTimers) {
+          this.tileSpawner.columnTimers.forEach(timer => { if (timer) timer.paused = true; });
+        }
+        // Show modal with stats
+        const modal = document.getElementById('gameover-modal');
+        document.getElementById('modal-words-used').textContent = this.wordsUsed;
+        document.getElementById('modal-top-word').textContent = this.topWord || '-';
+        document.getElementById('modal-highest-chain').textContent = 'x' + this.highestChain;
+        modal.style.display = 'flex';
+        setTimeout(() => { modal.classList.add('show'); }, 10); // trigger fade-in
       }
     }
 
