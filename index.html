@@ -81,7 +81,7 @@
       </div>
       <div class="modal-actions">
         <button id="modal-share-btn" class="modal-btn">Share</button>
-        <button id="modal-restart-btn" class="modal-btn">Restart</button>
+        <button id="modal-restart-btn" class="modal-btn">Try Again</button>
       </div>
     </div>
   </div>
@@ -721,6 +721,10 @@
             const score = this.scoreManager.calculateScore(word, chainLevel);
             this.scoreManager.addScore(score);
             this.wordsUsed++;
+            if (score > this.topWordScore) {
+              this.topWordScore = score;
+              this.topWord = word;
+            }
             this.chainTracker.incrementOnNextWord();
             const chainText = chainLevel > 1 ? ` (x${chainLevel} chain!)` : '';
             this.showFlashMessage(`"${word}" - ${score} pts${chainText}`, '#51cf66');
@@ -740,11 +744,19 @@
             });
           })
           .catch(() => {
-            // If API fails, fallback to accepting the word
+            if (!this.wordValidator.validate(word)) {
+              this.showFlashMessage(`"${word}" - Invalid word!`, '#ff6b6b');
+              return;
+            }
+            // If local validator passes, continue with scoring and animation
             const chainLevel = this.chainTracker.getChainLevel();
             const score = this.scoreManager.calculateScore(word, chainLevel);
             this.scoreManager.addScore(score);
             this.wordsUsed++;
+            if (score > this.topWordScore) {
+              this.topWordScore = score;
+              this.topWord = word;
+            }
             this.chainTracker.incrementOnNextWord();
             const chainText = chainLevel > 1 ? ` (x${chainLevel} chain!)` : '';
             this.showFlashMessage(`"${word}" - ${score} pts${chainText}`, '#51cf66');
