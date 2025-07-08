@@ -62,6 +62,14 @@
       </div>
     </header>
 
+    <!-- Top Menu Bar -->
+    <div id="top-menu" class="top-menu">
+      <button id="howto-btn" class="top-menu-btn" title="How to Play">?</button>
+      <button id="stats-btn" class="top-menu-btn" title="Your Stats">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="8"/><rect x="9" y="8" width="4" height="12"/><rect x="15" y="4" width="4" height="16"/></svg>
+      </button>
+    </div>
+
     <!-- Playfield Container (only one, centered) -->
     <div id="playfield-container"></div>
   </div>
@@ -86,10 +94,11 @@
     </div>
   </div>
 
-  <!-- Instructions Modal -->
-  <div id="instructions-modal" class="gameover-modal" style="display:none;">
-    <div class="gameover-modal-content instructions-content">
-      <h2 class="modal-title">How to Play</h2>
+  <!-- Slide-up How to Play Modal -->
+  <div id="howto-modal" class="slideup-modal">
+    <div class="slideup-modal-content">
+      <button class="slideup-close-btn" id="howto-close">&times;</button>
+      <h2>How to Play</h2>
       <div class="instructions-text">
         <h3>Forming Words</h3>
         <p>• Tap tiles in sequence to spell words</p>
@@ -112,8 +121,16 @@
         <p>• Reach 200 points to win!</p>
         <p>• Build long chains for massive scores</p>
       </div>
-      <div class="modal-actions">
-        <button id="instructions-close-btn" class="modal-btn">Got it!</button>
+    </div>
+  </div>
+
+  <!-- Slide-up Stats/History Modal -->
+  <div id="stats-modal" class="slideup-modal">
+    <div class="slideup-modal-content">
+      <button class="slideup-close-btn" id="stats-close">&times;</button>
+      <h2>Your Stats</h2>
+      <div id="stats-history-content">
+        <!-- Stats and history will be rendered here -->
       </div>
     </div>
   </div>
@@ -875,6 +892,8 @@
         } else {
           restartBtn.style.display = 'none';
         }
+        // Save game stats to localStorage
+        saveGameToHistory({ date: this.dailyChallenge.today, wordsUsed, topWord, topWordScore, highestChain });
       }
     }
 
@@ -1043,6 +1062,23 @@
             document.getElementById('gameover-modal').classList.remove('show');
           };
         }
+
+        // Top menu modal logic
+        const howtoBtn = document.getElementById('howto-btn');
+        const statsBtn = document.getElementById('stats-btn');
+        const howtoModal = document.getElementById('howto-modal');
+        const statsModal = document.getElementById('stats-modal');
+        const howtoClose = document.getElementById('howto-close');
+        const statsClose = document.getElementById('stats-close');
+        howtoBtn.onclick = () => { howtoModal.classList.add('show'); };
+        statsBtn.onclick = () => { statsModal.classList.add('show'); renderStatsHistory(); };
+        howtoClose.onclick = () => { howtoModal.classList.remove('show'); };
+        statsClose.onclick = () => { statsModal.classList.remove('show'); };
+        // Dismiss modals by clicking outside or swiping down
+        [howtoModal, statsModal].forEach(modal => {
+          modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
+          // Optional: add swipe down to close for mobile
+        });
       } catch (error) {
         console.error('Error creating Phaser game:', error);
       }
@@ -1113,6 +1149,42 @@
     // Example (pseudo):
     // const gridWidth = getPlayfieldWidth();
     // ... pass gridWidth to TileSpawner and grid drawing logic ...
+
+    function renderStatsHistory() {
+      const history = JSON.parse(localStorage.getItem('fallphabetHistory') || '[]');
+      const statsDiv = document.getElementById('stats-history-content');
+      if (!history.length) {
+        statsDiv.innerHTML = '<p>No games played yet.</p>';
+        return;
+      }
+      // Calculate best stats
+      const fewestWords = Math.min(...history.map(h => h.wordsUsed));
+      const highestScore = Math.max(...history.map(h => h.score));
+      let longestWord = '';
+      history.forEach(h => {
+        if (h.longestWord && h.longestWord.length > longestWord.length) longestWord = h.longestWord;
+      });
+      // Render summary
+      statsDiv.innerHTML = `
+        <div style='margin-bottom:18px;'>
+          <strong>Best (fewest) words to win:</strong> ${fewestWords}<br/>
+          <strong>Highest score:</strong> ${highestScore}<br/>
+          <strong>Longest word ever:</strong> <span style='color:#7c3aed;font-weight:bold;'>${longestWord || '-'}</span>
+        </div>
+        <div style='font-size:1.05rem;'><strong>Recent Games:</strong></div>
+        <ul style='margin:8px 0 0 0;padding:0;list-style:none;max-height:180px;overflow-y:auto;'>
+          ${history.slice(-10).reverse().map(h =>
+            `<li style='margin-bottom:8px;'><span style='color:#7c3aed;font-weight:bold;'>${h.date}</span>: ${h.wordsUsed} words, Top: ${h.topWord || '-'} (${h.topWordScore || 0} pts), Longest: ${h.longestWord || '-'}, Score: ${h.score}</li>`
+          ).join('')}
+        </ul>
+      `;
+    }
+
+    function saveGameToHistory(stats) {
+      const history = JSON.parse(localStorage.getItem('fallphabetHistory') || '[]');
+      history.push(stats);
+      localStorage.setItem('fallphabetHistory', JSON.stringify(history));
+    }
   </script>
 </body>
 </html>
