@@ -883,10 +883,15 @@
         }
         modal.style.display = 'flex';
         setTimeout(() => { modal.classList.add('show'); }, 10);
-        // Daily challenge logic for attempts/restart button remains unchanged
+        // Daily challenge logic for attempts/restart button
         this.dailyChallenge.incrementAttempt();
         const restartBtn = document.getElementById('modal-restart-btn');
-        if (this.dailyChallenge.attemptsLeft() > 0) {
+        if (this.scoreManager.getTotalScore() >= 200) {
+          // For wins, always show Try Again button
+          restartBtn.textContent = 'Try Again';
+          restartBtn.style.display = '';
+        } else if (this.dailyChallenge.attemptsLeft() > 0) {
+          // For losses, only show if attempts remain
           restartBtn.textContent = 'Try Again';
           restartBtn.style.display = '';
         } else {
@@ -950,7 +955,8 @@
         if (restartBtn) {
           restartBtn.onclick = () => {
             const scene = window.game.scene.keys['GameScene'];
-            if (scene.dailyChallenge && scene.dailyChallenge.attemptsLeft() > 0) {
+            // Allow restart for wins or if attempts remain
+            if (scene.scoreManager.getTotalScore() >= 200 || (scene.dailyChallenge && scene.dailyChallenge.attemptsLeft() > 0)) {
               // Hide modal
               document.getElementById('gameover-modal').style.display = 'none';
               document.getElementById('gameover-modal').classList.remove('show');
