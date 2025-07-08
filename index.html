@@ -985,9 +985,9 @@
               const modal = document.getElementById('gameover-modal');
               highestChain = modal.querySelector('#modal-highest-chain')?.textContent || '';
             }
-            const shareText = `It took me ${wordsUsed} words with a top chain of ${highestChain} to beat the Fallphabet today! Think you can beat me? https://fallphabet.com`;
             // Try Web Share API first
             if (navigator.share) {
+              const shareText = `It took me ${wordsUsed} words with a top chain of ${highestChain} to beat the Fallphabet today! Think you can beat me?`;
               navigator.share({
                 title: 'Fallphabet',
                 text: shareText,
@@ -995,6 +995,7 @@
               });
             } else {
               // Fallback: open iMessage/SMS if on iOS, else copy to clipboard
+              const shareText = `It took me ${wordsUsed} words with a top chain of ${highestChain} to beat the Fallphabet today! Think you can beat me? https://fallphabet.com`;
               const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
               if (isiOS) {
                 window.location.href = `sms:&body=${encodeURIComponent(shareText)}`;
