@@ -899,13 +899,27 @@
           };
         }
 
-        // --- Update Share button to trigger iMessage/SMS with custom text and link ---
+        // --- Fix Share button to always fill in numbers from game state ---
         const shareBtn = document.getElementById('modal-share-btn');
         if (shareBtn) {
           shareBtn.onclick = () => {
-            const modal = document.getElementById('gameover-modal');
-            const wordsUsed = modal.querySelector('#modal-words-used')?.textContent || '';
-            const highestChain = modal.querySelector('#modal-highest-chain')?.textContent || '';
+            let wordsUsed = '';
+            let highestChain = '';
+            // Try to get from GameScene if available
+            if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+              const scene = window.game.scene.keys['GameScene'];
+              wordsUsed = scene.wordsUsed || '';
+              highestChain = scene.highestChain ? 'x' + scene.highestChain : '';
+            }
+            // Fallback to DOM if needed
+            if (!wordsUsed) {
+              const modal = document.getElementById('gameover-modal');
+              wordsUsed = modal.querySelector('#modal-words-used')?.textContent || '';
+            }
+            if (!highestChain) {
+              const modal = document.getElementById('gameover-modal');
+              highestChain = modal.querySelector('#modal-highest-chain')?.textContent || '';
+            }
             const shareText = `It took me ${wordsUsed} words with a top chain of ${highestChain} to beat the Fallphabet today! Think you can beat me? https://fallphabet.com`;
             // Try Web Share API first
             if (navigator.share) {
