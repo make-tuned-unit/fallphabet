@@ -326,9 +326,10 @@
             this.buffer.push(tile.letter);
             this.highlightTile(tile, true);
             this.lastTile = tile;
-            // If this is the first tile of a new word, extend the chain window
-            if (this.selectedTiles.length === 1 && this.scene.chainTracker) {
-              this.scene.chainTracker.startChainWindow();
+            // If this is the first tile of a new word, handle chain increment
+            if (this.selectedTiles.length === 1 && this.scene.chainTracker && this.scene.chainTracker.chainWindowActive) {
+              this.scene.chainTracker.shouldIncrementChain = true;
+              this.scene.chainTracker.clearChainWindow();
             }
           }
         }
@@ -490,13 +491,22 @@
         this.lastWordTime = 0;
         this.chainWindowDuration = 1000; // 1 second
         this.chainWindowTimeout = null;
+        this.chainWindowActive = false;
+        this.shouldIncrementChain = false;
       }
       
       startChainWindow() {
         this.clearChainWindow();
-        this.lastWordTime = Date.now();
+        this.chainWindowActive = true;
+        this.shouldIncrementChain = false;
         this.chainWindowTimeout = setTimeout(() => {
           this.resetChain();
+          this.chainWindowActive = false;
+          this.shouldIncrementChain = false;
+          if (window && window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+            const scene = window.game.scene.keys['GameScene'];
+            if (scene.updateUI) scene.updateUI();
+          }
         }, this.chainWindowDuration);
       }
       
@@ -505,16 +515,22 @@
           clearTimeout(this.chainWindowTimeout);
           this.chainWindowTimeout = null;
         }
+        this.chainWindowActive = false;
       }
       
-      increaseChain() {
+      incrementOnNextWord() {
         this.chainLevel++;
         if (this.chainLevel > this.highestChain) this.highestChain = this.chainLevel;
+        this.clearChainWindow();
       }
       
       resetChain() {
         this.chainLevel = 1;
         this.clearChainWindow();
+        if (window && window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+          const scene = window.game.scene.keys['GameScene'];
+          if (scene.updateUI) scene.updateUI();
+        }
       }
       
       getChainLevel() {
@@ -522,6 +538,42 @@
       }
       getHighestChain() {
         return this.highestChain;
+      }
+    }
+
+    // --- Daily Challenge Manager ---
+    class DailyChallengeManager {
+      constructor() {
+        this.today = this.getTodayString();
+        this.load();
+      }
+      getTodayString() {
+        const now = new Date();
+        return `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
+      }
+      load() {
+        const data = JSON.parse(localStorage.getItem('fallphabet_daily') || '{}');
+        if (data.date !== this.today) {
+          this.attempts = 0;
+          this.save();
+        } else {
+          this.attempts = data.attempts || 0;
+        }
+      }
+      save() {
+        localStorage.setItem('fallphabet_daily', JSON.stringify({ date: this.today, attempts: this.attempts }));
+      }
+      incrementAttempt() {
+        this.attempts++;
+        this.save();
+      }
+      canRetry() {
+        this.load();
+        return this.attempts < 2;
+      }
+      attemptsLeft() {
+        this.load();
+        return Math.max(0, 2 - this.attempts);
       }
     }
 
@@ -603,6 +655,8 @@
           0x000000,
           1
         ).setOrigin(0, 0).setLineWidth(3).setDepth(100);
+
+        this.dailyChallenge = new DailyChallengeManager();
       }
 
       update(time, delta) {
@@ -675,8 +729,7 @@
         }
         
         // Chain logic: increase chain for NEXT word, current word uses current level
-        this.chainTracker.increaseChain();
-        this.chainTracker.startChainWindow();
+        this.chainTracker.incrementOnNextWord();
         
         // Track highest chain after increasing it
         const currentChainLevel = this.chainTracker.getChainLevel();
@@ -713,6 +766,9 @@
         if (this.scoreManager.getTotalScore() >= 200) {
           this.endGame();
         }
+
+        // Always start chain window after word submission
+        this.chainTracker.startChainWindow();
       }
       
       showFlashMessage(message, color = '#fff') {
@@ -749,13 +805,35 @@
         if (this.tileSpawner && this.tileSpawner.columnTimers) {
           this.tileSpawner.columnTimers.forEach(timer => { if (timer) timer.paused = true; });
         }
-        // Show modal with stats
         const modal = document.getElementById('gameover-modal');
-        document.getElementById('modal-words-used').textContent = this.wordsUsed;
-        document.getElementById('modal-top-word').textContent = this.topWord || '-';
-        document.getElementById('modal-highest-chain').textContent = 'x' + this.highestChain;
+        const title = modal.querySelector('.modal-title');
+        const stats = modal.querySelector('.modal-stats');
+        const wordsUsed = this.wordsUsed;
+        const topWord = this.topWord || '-';
+        const topWordScore = this.topWordScore || 0;
+        const highestChain = this.highestChain || 1;
+        if (this.scoreManager.getTotalScore() >= 200) {
+          // Win condition
+          if (title) title.textContent = 'You Did It!';
+          if (stats) stats.innerHTML = `<span style="font-family: Arial, Helvetica, sans-serif; font-size: 1.2rem; color: #222; display: block;">It took you <strong>${wordsUsed}</strong> words to hit 200 points today.<br><br>Your Top Word was <strong>${topWord}</strong> earning you <strong>${topWordScore}</strong> points.<br><br>You chained <strong>x${highestChain}</strong> together today!<br><br>Come back tomorrow to see if you can beat your score.<br><br>Share with friends to see who can beat the Fallphabet with the fewest words.</span>`;
+        } else {
+          // Normal game over
+          if (title) title.textContent = 'Game Over!';
+          if (stats) {
+            stats.innerHTML = `<div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x${highestChain}</span></div>`;
+          }
+        }
         modal.style.display = 'flex';
-        setTimeout(() => { modal.classList.add('show'); }, 10); // trigger fade-in
+        setTimeout(() => { modal.classList.add('show'); }, 10);
+        // Daily challenge logic for attempts/restart button remains unchanged
+        this.dailyChallenge.incrementAttempt();
+        const restartBtn = document.getElementById('modal-restart-btn');
+        if (this.dailyChallenge.attemptsLeft() > 0) {
+          restartBtn.textContent = 'Try Again';
+          restartBtn.style.display = '';
+        } else {
+          restartBtn.style.display = 'none';
+        }
       }
     }
 
@@ -811,19 +889,40 @@
         const restartBtn = document.getElementById('modal-restart-btn');
         if (restartBtn) {
           restartBtn.onclick = () => {
-            // Hide modal
-            const modal = document.getElementById('gameover-modal');
-            modal.style.display = 'none';
-            modal.classList.remove('show');
-            // Restart Phaser scene
-            if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
-              window.game.scene.stop('GameScene');
-              window.game.scene.start('GameScene');
-            } else if (window.game && window.game.scene) {
+            const scene = window.game.scene.keys['GameScene'];
+            if (scene.dailyChallenge && scene.dailyChallenge.attemptsLeft() > 0) {
+              // Hide modal
+              document.getElementById('gameover-modal').style.display = 'none';
+              document.getElementById('gameover-modal').classList.remove('show');
               window.game.scene.restart();
+            }
+          };
+        }
+
+        // --- Update Share button to trigger iMessage/SMS with custom text and link ---
+        const shareBtn = document.getElementById('modal-share-btn');
+        if (shareBtn) {
+          shareBtn.onclick = () => {
+            const modal = document.getElementById('gameover-modal');
+            const wordsUsed = modal.querySelector('#modal-words-used')?.textContent || '';
+            const highestChain = modal.querySelector('#modal-highest-chain')?.textContent || '';
+            const shareText = `It took me ${wordsUsed} words with a top chain of ${highestChain} to beat the Fallphabet today! Think you can beat me? https://fallphabet.com`;
+            // Try Web Share API first
+            if (navigator.share) {
+              navigator.share({
+                title: 'Fallphabet',
+                text: shareText,
+                url: 'https://fallphabet.com'
+              });
             } else {
-              // Fallback: reload the page
-              window.location.reload();
+              // Fallback: open iMessage/SMS if on iOS, else copy to clipboard
+              const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+              if (isiOS) {
+                window.location.href = `sms:&body=${encodeURIComponent(shareText)}`;
+              } else {
+                navigator.clipboard.writeText(shareText);
+                alert('Share text copied to clipboard!');
+              }
             }
           };
         }
@@ -831,6 +930,58 @@
         console.error('Error creating Phaser game:', error);
       }
     });
+
+    // --- Clean, robust chain logic for unlimited chaining ---
+    // Patch ChainTracker.resetChain to always set chainLevel = 1 and update UI
+    ChainTracker.prototype.resetChain = function() {
+      this.chainLevel = 1;
+      this.clearChainWindow();
+      if (window && window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+        const scene = window.game.scene.keys['GameScene'];
+        if (scene.updateUI) scene.updateUI();
+      }
+    };
+    // Patch ChainTracker.startChainWindow to always reset flag and start timer
+    ChainTracker.prototype.startChainWindow = function() {
+      this.clearChainWindow();
+      this.chainWindowActive = true;
+      this.shouldIncrementChain = false;
+      this.chainWindowTimeout = setTimeout(() => {
+        this.resetChain();
+        this.chainWindowActive = false;
+        this.shouldIncrementChain = false;
+      }, this.chainWindowDuration);
+    };
+    // Patch ChainTracker.clearChainWindow to always clear timer and active state
+    ChainTracker.prototype.clearChainWindow = function() {
+      if (this.chainWindowTimeout) {
+        clearTimeout(this.chainWindowTimeout);
+        this.chainWindowTimeout = null;
+      }
+      this.chainWindowActive = false;
+    };
+    // Patch InputHandler.onTileTap to set flag and clear timer on first tile of new word
+    const origOnTileTapFinal = InputHandler.prototype.onTileTap;
+    InputHandler.prototype.onTileTap = function(pointer, tile) {
+      if (!tile || !tile.isScrabbleTile) return origOnTileTapFinal.call(this, pointer, tile);
+      if (this.selectedTiles.length === 0 && this.scene.chainTracker && this.scene.chainTracker.chainWindowActive) {
+        this.scene.chainTracker.shouldIncrementChain = true;
+        this.scene.chainTracker.clearChainWindow();
+      }
+      return origOnTileTapFinal.call(this, pointer, tile);
+    };
+    // Patch GameScene.handleWordSubmission to increment chain if flag is set, always clear flag, always start new window
+    const origHandleWordSubmissionFinal = GameScene.prototype.handleWordSubmission;
+    GameScene.prototype.handleWordSubmission = async function(data) {
+      if (this.gameOver) return;
+      await origHandleWordSubmissionFinal.call(this, data);
+      if (this.chainTracker.shouldIncrementChain) {
+        this.chainTracker.chainLevel++;
+        if (this.chainTracker.chainLevel > this.chainTracker.highestChain) this.chainTracker.highestChain = this.chainTracker.chainLevel;
+        this.chainTracker.shouldIncrementChain = false;
+      }
+      this.chainTracker.startChainWindow();
+    };
   </script>
 </body>
 </html>
