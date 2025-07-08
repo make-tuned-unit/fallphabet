@@ -36,7 +36,7 @@
       <h1 class="game-title">FALLPHABET</h1>
       <div class="game-stats">
         <div class="stat-item">
-          <span class="stat-label">Points:</span>
+          <span class="stat-label" style="font-family: 'Arial', 'Helvetica', sans-serif;">Points:</span>
           <span id="score-display" class="stat-value">0</span>
         </div>
         <div class="stat-item">
@@ -45,6 +45,7 @@
           </span>
           <span id="chain-display" class="stat-value">x1</span>
         </div>
+        <button id="help-btn" class="help-btn" title="How to Play">?</button>
       </div>
     </header>
 
@@ -67,6 +68,38 @@
       <div class="modal-actions">
         <button id="modal-share-btn" class="modal-btn">Share</button>
         <button id="modal-restart-btn" class="modal-btn">Restart</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Instructions Modal -->
+  <div id="instructions-modal" class="gameover-modal" style="display:none;">
+    <div class="gameover-modal-content instructions-content">
+      <h2 class="modal-title">How to Play</h2>
+      <div class="instructions-text">
+        <h3>Forming Words</h3>
+        <p>• Tap tiles in sequence to spell words</p>
+        <p>• Tiles must be adjacent (side by side or diagonal)</p>
+        <p>• Double-tap the last letter to submit your word</p>
+        <p>• Selection clears after 1 second of inactivity</p>
+        
+        <h3>Scoring</h3>
+        <p>• Each letter has a point value (like Scrabble)</p>
+        <p>• Longer words = more points</p>
+        <p>• Chain multiplier increases with rapid play</p>
+        
+        <h3>Chain Multiplier</h3>
+        <p>• Start a new word within 1 second of submitting</p>
+        <p>• Each word in a chain gets a higher multiplier</p>
+        <p>• 2nd word: x2, 3rd word: x3, 4th word: x4, etc.</p>
+        <p>• Miss the 1-second window = chain resets to x1</p>
+        
+        <h3>Goal</h3>
+        <p>• Reach 200 points to win!</p>
+        <p>• Build long chains for massive scores</p>
+      </div>
+      <div class="modal-actions">
+        <button id="instructions-close-btn" class="modal-btn">Got it!</button>
       </div>
     </div>
   </div>
@@ -695,8 +728,14 @@
       
       updateUI() {
         // Update HTML elements instead of Phaser text
-        document.getElementById('score-display').textContent = this.scoreManager.getTotalScore();
-        document.getElementById('chain-display').textContent = `x${this.chainTracker.getChainLevel()}`;
+        const scoreDisplay = document.getElementById('score-display');
+        const chainDisplay = document.getElementById('chain-display');
+        
+        scoreDisplay.textContent = this.scoreManager.getTotalScore();
+        scoreDisplay.style.fontFamily = 'Arial, Helvetica, sans-serif';
+        
+        chainDisplay.textContent = `x${this.chainTracker.getChainLevel()}`;
+        chainDisplay.style.fontFamily = 'Arial, Helvetica, sans-serif';
         
         // Check for game over immediately when score reaches 200
         if (this.scoreManager.getTotalScore() >= 200 && !this.gameOver) {
@@ -747,6 +786,28 @@
       try {
         window.game = new Phaser.Game(config);
         console.log('Phaser game created successfully');
+        
+        // Help button functionality
+        const helpBtn = document.getElementById('help-btn');
+        if (helpBtn) {
+          helpBtn.onclick = () => {
+            const modal = document.getElementById('instructions-modal');
+            modal.style.display = 'flex';
+            setTimeout(() => { modal.classList.add('show'); }, 10);
+          };
+        }
+        
+        // Instructions modal close button
+        const instructionsCloseBtn = document.getElementById('instructions-close-btn');
+        if (instructionsCloseBtn) {
+          instructionsCloseBtn.onclick = () => {
+            const modal = document.getElementById('instructions-modal');
+            modal.style.display = 'none';
+            modal.classList.remove('show');
+          };
+        }
+        
+        // Restart button functionality
         const restartBtn = document.getElementById('modal-restart-btn');
         if (restartBtn) {
           restartBtn.onclick = () => {

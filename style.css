@@ -71,14 +71,14 @@ body {
 }
 
 .stat-label {
-  font-family: 'Roboto Slab', sans-serif;
+  font-family: 'Arial', 'Helvetica', sans-serif;
   font-size: 22.5px;
   font-weight: 700;
   color: #000;
 }
 
 .stat-value {
-  font-family: 'Roboto Slab', sans-serif;
+  font-family: 'Arial', 'Helvetica', sans-serif;
   font-size: 25px;
   font-weight: 700;
   color: #000;
@@ -228,5 +228,55 @@ body {
 }
 .gameover-modal[style*="display: block"], .gameover-modal.show {
   animation: modalFadeIn 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* Help Button */
+.help-btn {
+  background: #7c3aed;
+  color: #fff5e1;
+  border: 2px solid #7c3aed;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+  font-weight: bold;
+  font-family: 'Arial', 'Helvetica', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 15px;
+  transition: background 0.15s, color 0.15s;
+}
+.help-btn:hover, .help-btn:focus {
+  background: #fff5e1;
+  color: #7c3aed;
+  outline: none;
+}
+
+/* Instructions Modal */
+.instructions-content {
+  max-width: 500px;
+  text-align: left;
+}
+.instructions-text {
+  font-size: 1rem;
+  color: #222;
+  margin-bottom: 22px;
+  line-height: 1.5;
+}
+.instructions-text h3 {
+  color: #7c3aed;
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin: 16px 0 8px 0;
+  font-family: 'Montserrat', sans-serif;
+}
+.instructions-text h3:first-child {
+  margin-top: 0;
+}
+.instructions-text p {
+  margin: 6px 0;
+  font-family: 'Arial', 'Helvetica', sans-serif;
 }
 
