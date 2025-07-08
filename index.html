@@ -58,7 +58,6 @@
           </span>
           <span id="chain-display" class="stat-value">x1</span>
         </div>
-        <button id="help-btn" class="help-btn" title="How to Play">?</button>
       </div>
     </header>
 
@@ -898,7 +897,7 @@
           restartBtn.style.display = 'none';
         }
         // Save game stats to localStorage
-        saveGameToHistory({ date: this.dailyChallenge.today, wordsUsed, topWord, topWordScore, highestChain });
+        saveGameToHistory({ date: this.dailyChallenge.today, wordsUsed, topWord, topWordScore, highestChain, score: this.scoreManager.getTotalScore(), longestWord: this.topWord });
       }
     }
 
@@ -1165,7 +1164,7 @@
       }
       // Calculate best stats
       const fewestWords = Math.min(...history.map(h => h.wordsUsed));
-      const highestScore = Math.max(...history.map(h => h.score));
+      const highestScore = Math.max(...history.map(h => h.score ?? 0));
       let longestWord = '';
       history.forEach(h => {
         if (h.longestWord && h.longestWord.length > longestWord.length) longestWord = h.longestWord;
@@ -1180,7 +1179,7 @@
         <div style='font-size:1.05rem;'><strong>Recent Games:</strong></div>
         <ul style='margin:8px 0 0 0;padding:0;list-style:none;max-height:180px;overflow-y:auto;'>
           ${history.slice(-10).reverse().map(h =>
-            `<li style='margin-bottom:8px;'><span style='color:#7c3aed;font-weight:bold;'>${h.date}</span>: ${h.wordsUsed} words, Top: ${h.topWord || '-'} (${h.topWordScore || 0} pts), Longest: ${h.longestWord || '-'}, Score: ${h.score}</li>`
+            `<li style='margin-bottom:8px;'><span style='color:#7c3aed;font-weight:bold;'>${h.date}</span>: ${h.wordsUsed} words, Top: ${h.topWord || '-'} (${h.topWordScore || 0} pts), Longest: ${h.longestWord || '-'}, Score: ${h.score ?? 0}</li>`
           ).join('')}
         </ul>
       `;
