@@ -701,7 +701,6 @@
       async handleWordSubmission(data) {
         if (this.gameOver) return;
         const { word, tiles } = data;
-        
         // Always clean up tiles from spawner tracking, regardless of validation result
         tiles.forEach(tile => {
           if (tile && tile.col !== undefined && this.tileSpawner.columnsTiles[tile.col]) {
@@ -711,92 +710,65 @@
             }
           }
         });
-        
-        if (!this.wordValidator.validate(word)) {
-          this.showFlashMessage(`"${word}" - Invalid word!`, '#ff6b6b');
-          return;
-        }
-        // Dictionary API check for proper names
-        fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`)
-          .then(res => res.json())
-          .then(data => {
+        // Strict English word validation
+        let isValid = false;
+        let isProper = false;
+        try {
+          const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
+          if (res.ok) {
+            const data = await res.json();
             if (Array.isArray(data)) {
               // Check all meanings for proper noun
-              const isProper = data.some(entry =>
+              isProper = data.some(entry =>
                 entry.meanings && entry.meanings.some(meaning =>
                   meaning.partOfSpeech && meaning.partOfSpeech.toLowerCase().includes('proper')
                 )
               );
-              if (isProper) {
-                this.showFlashMessage(`"${word}" is a proper name. No proper names allowed!`, '#ff6b6b');
-                return;
-              }
+              isValid = true;
             }
-            // If not a proper noun, continue with scoring and animation
-            const chainLevel = this.chainTracker.getChainLevel();
-            const score = this.scoreManager.calculateScore(word, chainLevel);
-            this.scoreManager.addScore(score);
-            this.wordsUsed++;
-            if (score > this.topWordScore) {
-              this.topWordScore = score;
-              this.topWord = word;
+          }
+        } catch (e) {
+          // API failed, fallback to local dictionary
+          isValid = await this.wordValidator.validate(word);
+        }
+        if (!isValid) {
+          this.showFlashMessage(`"${word}" - Not a valid English word!`, '#ff6b6b');
+          return;
+        }
+        if (isProper) {
+          this.showFlashMessage(`"${word}" is a proper name. No proper names allowed!`, '#ff6b6b');
+          return;
+        }
+        // If valid and not a proper noun, continue with scoring and animation
+        const chainLevel = this.chainTracker.getChainLevel();
+        const score = this.scoreManager.calculateScore(word, chainLevel);
+        this.scoreManager.addScore(score);
+        this.wordsUsed++;
+        if (score > this.topWordScore) {
+          this.topWordScore = score;
+          this.topWord = word;
+        }
+        this.chainTracker.incrementOnNextWord();
+        const chainText = chainLevel > 1 ? ` (x${chainLevel} chain!)` : '';
+        this.showFlashMessage(`"${word}" - ${score} pts${chainText}`, '#51cf66');
+        this.scoredWords.push({ word, score });
+        tiles.forEach(tile => {
+          this.tweens.add({
+            targets: [tile, tile.text],
+            scaleX: 0,
+            scaleY: 0,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+              tile.destroy();
+              if (tile.text) tile.text.destroy();
             }
-            this.chainTracker.incrementOnNextWord();
-            const chainText = chainLevel > 1 ? ` (x${chainLevel} chain!)` : '';
-            this.showFlashMessage(`"${word}" - ${score} pts${chainText}`, '#51cf66');
-            this.scoredWords.push({ word, score });
-            tiles.forEach(tile => {
-              this.tweens.add({
-                targets: [tile, tile.text],
-                scaleX: 0,
-                scaleY: 0,
-                duration: 300,
-                ease: 'Power2',
-                onComplete: () => {
-                  tile.destroy();
-                  if (tile.text) tile.text.destroy();
-                }
-              });
-            });
-          })
-          .catch(() => {
-            if (!this.wordValidator.validate(word)) {
-              this.showFlashMessage(`"${word}" - Invalid word!`, '#ff6b6b');
-              return;
-            }
-            // If local validator passes, continue with scoring and animation
-            const chainLevel = this.chainTracker.getChainLevel();
-            const score = this.scoreManager.calculateScore(word, chainLevel);
-            this.scoreManager.addScore(score);
-            this.wordsUsed++;
-            if (score > this.topWordScore) {
-              this.topWordScore = score;
-              this.topWord = word;
-            }
-            this.chainTracker.incrementOnNextWord();
-            const chainText = chainLevel > 1 ? ` (x${chainLevel} chain!)` : '';
-            this.showFlashMessage(`"${word}" - ${score} pts${chainText}`, '#51cf66');
-            this.scoredWords.push({ word, score });
-            tiles.forEach(tile => {
-              this.tweens.add({
-                targets: [tile, tile.text],
-                scaleX: 0,
-                scaleY: 0,
-                duration: 300,
-                ease: 'Power2',
-                onComplete: () => {
-                  tile.destroy();
-                  if (tile.text) tile.text.destroy();
-                }
-              });
-            });
           });
-
+        });
         // Check for game over
         if (this.scoreManager.getTotalScore() >= 200) {
           this.endGame();
         }
-
         // Always start chain window after word submission
         this.chainTracker.startChainWindow();
       }
