@@ -626,7 +626,7 @@
         
         // Calculate playfield dimensions
         const playfieldWidth = 800; // Match Phaser config and container
-        const playfieldHeight = 900;
+        const playfieldHeight = 1000; // Match Phaser config height
         this.gridX = 50;
         this.gridY = 50;
         this.gridWidth = playfieldWidth - 100;
@@ -905,7 +905,7 @@
     const config = {
       type: Phaser.AUTO,
       width: 800,
-      height: 900,
+      height: 1000,
       backgroundColor: '#ffe5d9',
       parent: 'playfield-container',
       scene: [GameScene],
