@@ -385,7 +385,7 @@ body {
   left: 0;
   width: 100vw;
   height: 48px;
-  background: #fff5e1;
+  background: #ffe5d9; /* Changed to match the pale peach background */
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -472,6 +472,7 @@ body {
   .top-menu {
     height: 44px;
     padding: 0 4px;
+    justify-content: center; /* Center menu icons on mobile */
   }
 }
 
