@@ -171,16 +171,34 @@ body {
 /* iPhone 14 Pro Max and similar tall screens */
 @media (min-height: 800px) and (max-width: 430px) {
   #playfield-container {
-    height: calc(100vh - 160px);
-    max-height: calc(100vh - 160px);
+    height: calc(100vh - 140px);
+    max-height: calc(100vh - 140px);
+    min-height: 400px;
   }
   .game-title {
     font-size: 6vw !important;
-    margin: 15px 0 5px 0;
+    margin: 10px 0 5px 0;
   }
   .game-stats {
     margin-top: 5px;
     gap: 20px;
+  }
+}
+
+/* Force playfield visibility on all devices */
+@media (max-height: 700px) {
+  #playfield-container {
+    height: calc(100vh - 120px);
+    max-height: calc(100vh - 120px);
+    min-height: 350px;
+  }
+  .game-title {
+    font-size: 5vw !important;
+    margin: 8px 0 3px 0;
+  }
+  .game-stats {
+    margin-top: 3px;
+    gap: 15px;
   }
 }
 
