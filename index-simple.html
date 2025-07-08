@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>FALLPHABET</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js"></script>
+  <style>
+    body { background: #C97C1F; margin: 0; }
+  </style>
+</head>
+<body>
+  <!-- Removed extra game-container -->
+  
+  <script>
+    // TileSpawner Module
+    class TileSpawner {
+      constructor(scene, gridY, gridHeight) {
+        this.scene = scene;
+        this.gridY = gridY;
+        this.gridHeight = gridHeight;
+        this.columns = 4;
+        this.columnWidth = 80;
+        this.spawnInterval = 800; // Faster spawning to keep grid full
+        this.lastSpawnTime = 0;
+        
+        this.letters = {
+          'E': 12, 'A': 9, 'I': 9, 'N': 6, 'O': 8, 'R': 6, 'T': 6, 'L': 4, 'S': 4, 'U': 4,
+          'D': 4, 'P': 2, 'M': 2, 'H': 2, 'G': 3, 'B': 2, 'F': 2, 'Y': 2, 'W': 2, 'K': 1,
+          'V': 2, 'X': 1, 'Z': 1, 'J': 1, 'Q': 1
+        };
+        
+        this.letterPool = [];
+        this.buildLetterPool();
+        
+        this.tiles = this.scene.physics.add.group();
+        
+        this.columnPositions = [];
+        for (let i = 0; i < this.columns; i++) {
+          this.columnPositions.push(60 + (i * this.columnWidth));
+        }
+        
+        // Spawn initial tiles in all columns
+        this.spawnInitialTiles();
+      }
+      
+      buildLetterPool() {
+        for (const [letter, frequency] of Object.entries(this.letters)) {
+          for (let i = 0; i < frequency; i++) {
+            this.letterPool.push(letter);
+          }
+        }
+      }
+      
+      getRandomLetter() {
+        const index = Math.floor(Math.random() * this.letterPool.length);
+        return this.letterPool[index];
+      }
+      
+      spawnInitialTiles() {
+        // Spawn tiles in all columns with staggered starting positions
+        for (let col = 0; col < this.columns; col++) {
+          for (let i = 0; i < 3; i++) { // Spawn 3 tiles per column initially
+            const y = this.gridY - 50 - (i * 120); // Stagger them vertically
+            this.spawnTileAtPosition(col, y);
+          }
+        }
+      }
+      
+      spawnTile(column) {
+        const y = this.gridY - 50;
+        return this.spawnTileAtPosition(column, y);
+      }
+      
+      spawnTileAtPosition(column, y) {
+        const letter = this.getRandomLetter();
+        const x = this.columnPositions[column];
+        
+        // Create tile as a rectangle with text
+        const tile = this.scene.add.rectangle(x, y, 60, 60, 0xFFF5E1);
+        tile.setStrokeStyle(2, 0x000000);
+        tile.setInteractive();
+        
+        // Add letter text on top of the tile
+        const text = this.scene.add.text(x, y, letter, {
+          fontFamily: 'Roboto Slab',
+          fontSize: '24px',
+          color: '#000',
+          fontStyle: 'bold',
+        }).setOrigin(0.5);
+        
+        // Store letter data
+        tile.letter = letter;
+        tile.text = text;
+        tile.column = column;
+        
+        // Add physics with slower falling speed
+        this.scene.physics.add.existing(tile);
+        tile.body.setVelocityY(60); // Slower falling speed
+        
+        // Add to group
+        this.tiles.add(tile);
+        
+        // Add bounce animation
+        this.scene.tweens.add({
+          targets: tile,
+          scaleX: 1.1,
+          scaleY: 1.1,
+          duration: 100,
+          yoyo: true,
+          ease: 'Power2'
+        });
+        
+        return tile;
+      }
+      
+      update(time) {
+        // Spawn new tiles at intervals in random columns
+        if (time > this.lastSpawnTime + this.spawnInterval) {
+          const randomColumn = Math.floor(Math.random() * this.columns);
+          this.spawnTile(randomColumn);
+          this.lastSpawnTime = time;
+        }
+        
+        // Remove tiles that fall below the grid
+        this.tiles.children.entries.forEach(tile => {
+          if (tile.y > this.gridY + this.gridHeight + 100) {
+            tile.destroy();
+            if (tile.text) tile.text.destroy();
+          }
+        });
+      }
+    }
+
+    // InputHandler Module
+    class InputHandler {
+      constructor(scene) {
+        this.scene = scene;
+        this.wordBuffer = '';
+        this.selectedTiles = [];
+        this.holdTimer = null;
+        this.holdThreshold = 500;
+        
+        this.setupInputEvents();
+      }
+      
+      setupInputEvents() {
+        this.scene.input.on('gameobjectdown', (pointer, tile) => {
+          this.handleTileDown(pointer, tile);
+        });
+        
+        this.scene.input.on('gameobjectup', (pointer, tile) => {
+          this.handleTileUp(pointer, tile);
+        });
+      }
+      
+      handleTileDown(pointer, tile) {
+        if (!tile.letter) return;
+        
+        this.holdTimer = this.scene.time.delayedCall(this.holdThreshold, () => {
+          this.handleHold(tile);
+        });
+        
+        this.scene.tweens.add({
+          targets: [tile, tile.text],
+          scaleX: 0.9,
+          scaleY: 0.9,
+          duration: 100,
+          yoyo: true,
+          ease: 'Power2'
+        });
+      }
+      
+      handleTileUp(pointer, tile) {
+        if (!tile.letter) return;
+        
+        if (this.holdTimer) {
+          this.holdTimer.destroy();
+          this.holdTimer = null;
+        }
+        
+        this.handleTap(tile);
+      }
+      
+      handleTap(tile) {
+        if (!tile.letter || this.selectedTiles.includes(tile)) return;
+        
+        this.wordBuffer += tile.letter;
+        this.selectedTiles.push(tile);
+        
+        tile.setFillStyle(0x90EE90);
+        tile.text.setColor('#006400');
+        
+        this.scene.tweens.add({
+          targets: [tile, tile.text],
+          scaleX: 1.2,
+          scaleY: 1.2,
+          duration: 200,
+          yoyo: true,
+          ease: 'Back.easeOut'
+        });
+        
+        console.log('Tile tapped:', tile.letter, 'Buffer:', this.wordBuffer);
+      }
+      
+      handleHold(tile) {
+        if (this.wordBuffer.length === 0) return;
+        
+        const word = this.wordBuffer;
+        this.submitWord(word);
+        this.clearBuffer();
+      }
+      
+      submitWord(word) {
+        this.scene.events.emit('wordSubmitted', {
+          word: word,
+          tiles: [...this.selectedTiles]
+        });
+        
+        console.log('Word submitted:', word);
+      }
+      
+      clearBuffer() {
+        this.selectedTiles.forEach(tile => {
+          tile.setFillStyle(0xFFF5E1);
+          tile.text.setColor('#000');
+        });
+        
+        this.wordBuffer = '';
+        this.selectedTiles = [];
+      }
+    }
+
+    // WordValidator Module
+    class WordValidator {
+      constructor() {
+        this.wordList = new Set([
+          'CAT', 'DOG', 'BAT', 'HAT', 'RAT', 'MAT', 'SAT', 'FAT', 'PAT', 'VAT',
+          'BIG', 'PIG', 'DIG', 'WIG', 'JIG', 'RIG', 'FIG', 'ZIG', 'HUG', 'BUG',
+          'RUN', 'FUN', 'SUN', 'BUN', 'GUN', 'NUN', 'PUN', 'TUN', 'RED', 'BED',
+          'FED', 'LED', 'WED', 'TED', 'ZED', 'HOT', 'COT', 'DOT', 'GOT', 'JOT',
+          'LOT', 'NOT', 'POT', 'ROT', 'TOT', 'WET', 'GET', 'JET', 'LET', 'MET',
+          'NET', 'PET', 'SET', 'VET', 'YET', 'BOX', 'FOX', 'POX', 'SOX', 'TOX',
+          'BOY', 'COY', 'JOY', 'SOY', 'TOY', 'DAY', 'GAY', 'HAY', 'JAY', 'LAY',
+          'MAY', 'PAY', 'RAY', 'SAY', 'WAY', 'KEY', 'EYE', 'DYE', 'RYE', 'BYE',
+          'GLOVE', 'BRAVE', 'SHARE', 'SPARE', 'STARE', 'SCARE', 'SNARE', 'SWARE',
+          'THERE', 'WHERE', 'THERE', 'THESE', 'THOSE', 'THEIR', 'THEME', 'THING',
+          'THINK', 'THIRD', 'THROW', 'THREE', 'THROW', 'THUMB', 'THUND', 'THANK',
+          'WORLD', 'WORDS', 'WORKS', 'WORTH', 'WOUND', 'WOUND', 'WRITE', 'WRONG',
+          'YIELD', 'YOUNG', 'YOUTH', 'YELLOW', 'YESTER', 'YEARLY', 'YEARLY', 'YEARLY'
+        ]);
+      }
+
+      validate(word) {
+        return this.wordList.has(word.toUpperCase());
+      }
+    }
+
+    // ScoreManager Module
+    class ScoreManager {
+      constructor() {
+        this.totalScore = 0;
+        
+        this.letterValues = {
+          'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4, 'G': 2, 'H': 4, 'I': 1,
+          'J': 8, 'K': 5, 'L': 1, 'M': 3, 'N': 1, 'O': 1, 'P': 3, 'Q': 10, 'R': 1,
+          'S': 1, 'T': 1, 'U': 1, 'V': 4, 'W': 4, 'X': 8, 'Y': 4, 'Z': 10
+        };
+      }
+
+      calculateScore(word, chainMultiplier = 1) {
+        let score = 0;
+        
+        for (const letter of word.toUpperCase()) {
+          score += this.letterValues[letter] || 0;
+        }
+        
+        score *= chainMultiplier;
+        return score;
+      }
+      
+      addScore(score) {
+        this.totalScore += score;
+        return this.totalScore;
+      }
+      
+      getTotalScore() {
+        return this.totalScore;
+      }
+    }
+
+    // ChainTracker Module
+    class ChainTracker {
+      constructor() {
+        this.chainLevel = 1;
+        this.maxChainLevel = 1;
+        this.lastWordTime = 0;
+        this.chainTimeout = 3000;
+        this.missedTilesThreshold = 5;
+        this.missedTilesCount = 0;
+      }
+
+      getChainLevel() {
+        return this.chainLevel;
+      }
+      
+      getMaxChainLevel() {
+        return this.maxChainLevel;
+      }
+
+      increaseChain() {
+        this.chainLevel++;
+        if (this.chainLevel > this.maxChainLevel) {
+          this.maxChainLevel = this.chainLevel;
+        }
+        this.lastWordTime = Date.now();
+        this.missedTilesCount = 0;
+      }
+
+      resetChain() {
+        this.chainLevel = 1;
+        this.missedTilesCount = 0;
+      }
+      
+      update() {
+        if (this.chainLevel > 1 && Date.now() - this.lastWordTime > this.chainTimeout) {
+          this.resetChain();
+        }
+      }
+    }
+
+    // GameScene
+    class GameScene extends Phaser.Scene {
+      constructor() {
+        super({ key: 'GameScene' });
+        console.log('GameScene constructor called');
+      }
+
+      create() {
+        console.log('GameScene create called');
+        
+        // Title
+        this.titleText = this.add.text(200, 40, 'FALLPHABET', {
+          fontFamily: 'Roboto Slab',
+          fontSize: '32px',
+          color: '#fff',
+          fontStyle: 'bold',
+          align: 'center',
+          stroke: '#000',
+          strokeThickness: 4,
+        }).setOrigin(0.5, 0.5);
+
+        // Score (top-right)
+        this.scoreText = this.add.text(390, 30, '0 pts', {
+          fontFamily: 'Roboto Slab',
+          fontSize: '20px',
+          color: '#fff',
+          align: 'right',
+          stroke: '#000',
+          strokeThickness: 3,
+        }).setOrigin(1, 0.5);
+
+        // Chain indicator (below score)
+        this.chainText = this.add.text(390, 60, '🔗 x1', {
+          fontFamily: 'Roboto Slab',
+          fontSize: '18px',
+          color: '#fff',
+          align: 'right',
+          stroke: '#000',
+          strokeThickness: 2,
+        }).setOrigin(1, 0.5);
+
+        // Falling grid area (centered)
+        this.gridY = 120;
+        this.gridHeight = 520;
+        this.grid = this.add.rectangle(200, this.gridY + this.gridHeight/2, 320, this.gridHeight, 0xFFF5E1, 0.15);
+
+        // Flash message area (bottom)
+        this.flashText = this.add.text(200, 670, '', {
+          fontFamily: 'Roboto Slab',
+          fontSize: '22px',
+          color: '#fff',
+          align: 'center',
+          stroke: '#000',
+          strokeThickness: 3,
+        }).setOrigin(0.5, 1);
+
+        // Initialize modules
+        console.log('Initializing modules...');
+        this.tileSpawner = new TileSpawner(this, this.gridY, this.gridHeight);
+        this.inputHandler = new InputHandler(this);
+        this.wordValidator = new WordValidator();
+        this.scoreManager = new ScoreManager();
+        this.chainTracker = new ChainTracker();
+        
+        // Game state
+        this.wordsUsed = 0;
+        
+        // Listen for word submissions
+        this.events.on('wordSubmitted', this.handleWordSubmission, this);
+        
+        console.log('GameScene create completed');
+      }
+
+      update(time, delta) {
+        this.tileSpawner.update(time);
+        this.chainTracker.update();
+        this.updateUI();
+      }
+      
+      handleWordSubmission(data) {
+        const { word, tiles } = data;
+        
+        if (!this.wordValidator.validate(word)) {
+          this.showFlashMessage(`"${word}" - Invalid word!`, '#ff6b6b');
+          return;
+        }
+        
+        const chainLevel = this.chainTracker.getChainLevel();
+        const score = this.scoreManager.calculateScore(word, chainLevel);
+        this.scoreManager.addScore(score);
+        this.wordsUsed++;
+        
+        this.chainTracker.increaseChain();
+        
+        const chainText = chainLevel > 1 ? ` (x${chainLevel} chain!)` : '';
+        this.showFlashMessage(`"${word}" - ${score} pts${chainText}`, '#51cf66');
+        
+        tiles.forEach(tile => {
+          this.tweens.add({
+            targets: [tile, tile.text],
+            scaleX: 0,
+            scaleY: 0,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+              tile.destroy();
+              if (tile.text) tile.text.destroy();
+            }
+          });
+        });
+      }
+      
+      showFlashMessage(message, color = '#fff') {
+        this.flashText.setText(message);
+        this.flashText.setColor(color);
+        
+        this.time.delayedCall(2000, () => {
+          this.flashText.setText('');
+        });
+      }
+      
+      updateUI() {
+        this.scoreText.setText(`${this.scoreManager.getTotalScore()} pts`);
+        
+        const chainLevel = this.chainTracker.getChainLevel();
+        this.chainText.setText(`🔗 x${chainLevel}`);
+        
+        if (chainLevel > 1) {
+          this.chainText.setColor('#ffd700');
+        } else {
+          this.chainText.setColor('#fff');
+        }
+      }
+    }
+
+    // Game Configuration
+    const config = {
+      type: Phaser.AUTO,
+      width: 400,
+      height: 700,
+      backgroundColor: '#C97C1F',
+      parent: 'playfield-container',
+      scene: [GameScene],
+      scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+      },
+      physics: {
+        default: 'arcade',
+        arcade: {
+          gravity: { y: 0 }, // Disable gravity, we'll control velocity manually
+          debug: false,
+        },
+      },
+    };
+
+    // Start the game
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('DOM loaded, creating Phaser game...');
+      try {
+        const game = new Phaser.Game(config);
+        console.log('Phaser game created successfully');
+      } catch (error) {
+        console.error('Error creating Phaser game:', error);
+      }
+    });
+  </script>
+</body>
+</html> 

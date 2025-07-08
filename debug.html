@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Letter Debug</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js"></script>
+</head>
+<body>
+    <div id="debug-container"></div>
+    <script>
+        class DebugScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'DebugScene' });
+            }
+
+            create() {
+                console.log('Debug scene created');
+                
+                // Test letter creation
+                const letter = 'A';
+                const x = 200;
+                const y = 200;
+                
+                // Create tile
+                const tile = this.add.rectangle(x, y, 60, 60, 0xFFF5E1);
+                tile.setStrokeStyle(2, 0x000000);
+                
+                // Create text
+                const text = this.add.text(x, y, letter, {
+                    fontFamily: 'Arial',
+                    fontSize: '32px',
+                    color: '#000',
+                    fontStyle: 'bold',
+                }).setOrigin(0.5);
+                
+                console.log('Tile created:', tile);
+                console.log('Text created:', text);
+                console.log('Text visible:', text.visible);
+                console.log('Text alpha:', text.alpha);
+                
+                // Add some more test letters
+                const letters = ['B', 'C', 'D', 'E'];
+                letters.forEach((l, i) => {
+                    const tileX = 100 + (i * 80);
+                    const tileY = 100;
+                    
+                    const testTile = this.add.rectangle(tileX, tileY, 60, 60, 0xFFF5E1);
+                    testTile.setStrokeStyle(2, 0x000000);
+                    
+                    const testText = this.add.text(tileX, tileY, l, {
+                        fontFamily: 'Arial',
+                        fontSize: '24px',
+                        color: '#000',
+                        fontStyle: 'bold',
+                    }).setOrigin(0.5);
+                    
+                    console.log(`Created tile ${l}:`, testTile, testText);
+                });
+            }
+        }
+
+        const config = {
+            type: Phaser.AUTO,
+            width: 400,
+            height: 300,
+            backgroundColor: '#C97C1F',
+            parent: 'debug-container',
+            scene: [DebugScene]
+        };
+
+        const game = new Phaser.Game(config);
+    </script>
+</body>
+</html> 

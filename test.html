@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Phaser Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js"></script>
+</head>
+<body>
+    <div id="test-container"></div>
+    <script>
+        console.log('Phaser version:', Phaser.VERSION);
+        
+        const config = {
+            type: Phaser.AUTO,
+            width: 400,
+            height: 300,
+            backgroundColor: '#ff0000',
+            parent: 'test-container',
+            scene: {
+                create: function() {
+                    console.log('Test scene created!');
+                    this.add.text(200, 150, 'PHASER WORKS!', {
+                        fontSize: '32px',
+                        color: '#fff'
+                    }).setOrigin(0.5);
+                }
+            }
+        };
+        
+        const game = new Phaser.Game(config);
+    </script>
+</body>
+</html> 
