@@ -91,13 +91,16 @@ body {
 
 /* Playfield Container */
 #playfield-container {
-  width: 480px;
-  height: 900px;
+  width: 100vw;
+  max-width: 480px;
+  height: 100vh;
+  max-height: 900px;
+  aspect-ratio: 8/15;
   background: transparent;
   border: none;
   border-radius: 0;
   box-shadow: none;
-  overflow: visible;
+  overflow: hidden;
   position: relative;
   display: flex;
   align-items: center;
@@ -105,7 +108,7 @@ body {
   flex-shrink: 0;
   box-sizing: border-box;
   padding: 0;
-  margin: 0;
+  margin: 0 auto;
 }
 
 /* Flash Message */
@@ -128,12 +131,13 @@ body {
 }
 
 /* Responsive Design */
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-height: 900px) {
   #playfield-container {
-    width: 98vw;
-    max-width: 480px;
-    height: 170vw;
-    max-height: 900px;
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    aspect-ratio: 8/15;
   }
   #main-content {
     max-width: 100vw;

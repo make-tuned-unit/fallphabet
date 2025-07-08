@@ -912,10 +912,62 @@
           };
         }
 
-        // --- Fix Share button to always fill in numbers from game state ---
+        // --- Enhanced Share button with Instagram Story support ---
         const shareBtn = document.getElementById('modal-share-btn');
         if (shareBtn) {
-          shareBtn.onclick = () => {
+          shareBtn.onclick = async () => {
+            // Check if user is on Instagram
+            const isInstagram = /Instagram/.test(navigator.userAgent) || 
+                               window.location.hostname.includes('instagram.com') ||
+                               document.referrer.includes('instagram.com');
+            
+            if (isInstagram) {
+              // Generate and download Instagram Story image
+              let wordsUsed = '';
+              let highestChain = '';
+              let topWord = '';
+              let topWordScore = '';
+              if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+                const scene = window.game.scene.keys['GameScene'];
+                wordsUsed = scene.wordsUsed || '';
+                highestChain = scene.highestChain ? 'x' + scene.highestChain : '';
+                topWord = scene.topWord || '';
+                topWordScore = scene.topWordScore || '';
+              }
+              // Create canvas
+              const bg = new Image();
+              bg.src = 'fallphabet-og.png';
+              await new Promise(res => { bg.onload = res; });
+              const canvas = document.createElement('canvas');
+              canvas.width = 1080;
+              canvas.height = 1920;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
+              ctx.font = 'bold 90px Montserrat, Arial, sans-serif';
+              ctx.fillStyle = '#7c3aed';
+              ctx.textAlign = 'center';
+              ctx.fillText('FALLPHABET', canvas.width/2, 350);
+              ctx.font = '48px Arial, Helvetica, sans-serif';
+              ctx.fillStyle = '#222';
+              ctx.fillText(`It took me ${wordsUsed} words`, canvas.width/2, 600);
+              ctx.fillText(`Top word: ${topWord} (${topWordScore} pts)`, canvas.width/2, 700);
+              ctx.fillText(`Top chain: ${highestChain}`, canvas.width/2, 800);
+              ctx.font = '40px Arial, Helvetica, sans-serif';
+              ctx.fillStyle = '#7c3aed';
+              ctx.fillText('fallphabet.com', canvas.width/2, 1800);
+              // Download image
+              const url = canvas.toDataURL('image/png');
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'fallphabet-story.png';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              alert('Image downloaded! Open Instagram, swipe up to add a story, and select the image from your camera roll.');
+              return;
+            }
+            
+            // Regular sharing logic
             let wordsUsed = '';
             let highestChain = '';
             // Try to get from GameScene if available
