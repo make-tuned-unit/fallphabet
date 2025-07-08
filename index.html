@@ -268,7 +268,7 @@
           for (let i = 0; i < colTiles.length; i++) {
             const tile = colTiles[i];
             if (!tile.falling) continue;
-            tile.y += 50 * dt;
+            tile.y += this.fallSpeed * dt;
             tile.text.y = tile.y;
             if (tile.shadow) tile.shadow.y = tile.y + 6;
             if (tile.innerShadow) tile.innerShadow.y = tile.y;
