@@ -40,9 +40,7 @@ body {
 /* Mode Selector */
 .mode-selector {
   display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 8px;
   z-index: 102;
   position: relative;
 }
@@ -50,15 +48,16 @@ body {
 .mode-btn {
   background: #fff9ef;
   border: 2px solid #e5c9a8;
-  border-radius: 25px;
-  padding: 12px 24px;
+  border-radius: 20px;
+  padding: 8px 16px;
   font-family: 'Inter', Arial, sans-serif;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
   color: #7c3aed;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
 }
 
 .mode-btn:hover {
@@ -246,13 +245,7 @@ body {
   .game-header {
     margin-top: 30px;
   }
-  .mode-selector {
-    margin-bottom: 15px;
-  }
-  .mode-btn {
-    padding: 10px 20px;
-    font-size: 14px;
-  }
+
   #playfield-container {
     min-height: 400px;
     height: auto;
@@ -281,9 +274,7 @@ body {
   .game-header {
     margin-top: 30px;
   }
-  .mode-selector {
-    margin-bottom: 15px;
-  }
+
   #playfield-container {
     min-height: 400px;
     height: auto;
@@ -436,16 +427,21 @@ body {
   top: 0;
   left: 0;
   width: 100vw;
-  height: 40px !important;
-  min-height: 40px !important;
+  height: 50px !important;
+  min-height: 50px !important;
   background: #ffe5d9; /* Changed to match the pale peach background */
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   z-index: 2000;
   box-shadow: none !important;
   padding: 0 12px !important;
+}
+
+.menu-buttons {
+  display: flex;
   gap: 10px;
+  align-items: center;
 }
 .top-menu-btn {
   background: none;
@@ -536,9 +532,22 @@ body {
     padding: 24px 8px 18px 8px;
   }
   .top-menu {
-    height: 44px;
-    padding: 0 4px;
-    justify-content: center; /* Center menu icons on mobile */
+    height: 50px;
+    padding: 0 8px;
+    justify-content: space-between; /* Space between mode selector and menu buttons */
+  }
+  
+  .mode-selector {
+    gap: 6px;
+  }
+  
+  .mode-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  .menu-buttons {
+    gap: 8px;
   }
 }
 

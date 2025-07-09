@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=55">
+      <link rel="stylesheet" href="style.css?v=56">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <!-- Open Graph and Twitter Card for social sharing -->
   <meta property="og:title" content="Fallphabet" />
@@ -45,12 +45,6 @@
 </head>
 <body>
   <div id="main-content">
-    <!-- Mode Selector -->
-    <div id="mode-selector" class="mode-selector">
-      <button id="daily-mode-btn" class="mode-btn active" data-mode="daily">Daily Challenge</button>
-      <button id="taptile-mode-btn" class="mode-btn" data-mode="taptile">Fallphabet Taptile</button>
-    </div>
-
     <!-- Header Section -->
     <header class="game-header">
       <h1 class="game-title">FALLPHABET</h1>
@@ -81,13 +75,21 @@
 
     <!-- Top Menu Bar -->
     <div id="top-menu" class="top-menu">
-      <button id="howto-btn" class="top-menu-btn" title="How to Play">?</button>
-      <button id="stats-btn" class="top-menu-btn" title="Your Stats">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="8"/><rect x="9" y="8" width="4" height="12"/><rect x="15" y="4" width="4" height="16"/></svg>
-      </button>
-      <button id="leaderboard-btn" class="top-menu-btn" title="Global Leaderboard" style="display: none;">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M6 2v10"/><path d="M6 20h1.5a2.5 2.5 0 0 0 0-5H6"/><path d="M6 12v8"/><path d="M14 9h1.5a2.5 2.5 0 0 0 0-5H14"/><path d="M14 2v10"/><path d="M14 20h1.5a2.5 2.5 0 0 1 0-5H14"/><path d="M14 12v8"/><path d="M22 9h-1.5a2.5 2.5 0 0 1 0-5H22"/><path d="M22 2v10"/><path d="M22 20h-1.5a2.5 2.5 0 0 0 0-5H22"/><path d="M22 12v8"/></svg>
-      </button>
+      <!-- Mode Selector -->
+      <div id="mode-selector" class="mode-selector">
+        <button id="daily-mode-btn" class="mode-btn active" data-mode="daily">Daily</button>
+        <button id="taptile-mode-btn" class="mode-btn" data-mode="taptile">Taptile</button>
+      </div>
+      
+      <div class="menu-buttons">
+        <button id="howto-btn" class="top-menu-btn" title="How to Play">?</button>
+        <button id="stats-btn" class="top-menu-btn" title="Your Stats">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="8"/><rect x="9" y="8" width="4" height="12"/><rect x="15" y="4" width="4" height="16"/></svg>
+        </button>
+        <button id="leaderboard-btn" class="top-menu-btn" title="Global Leaderboard" style="display: none;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M6 2v10"/><path d="M6 20h1.5a2.5 2.5 0 0 0 0-5H6"/><path d="M6 12v8"/><path d="M14 9h1.5a2.5 2.5 0 0 0 0-5H14"/><path d="M14 2v10"/><path d="M14 20h1.5a2.5 2.5 0 0 1 0-5H14"/><path d="M14 12v8"/><path d="M22 9h-1.5a2.5 2.5 0 0 1 0-5H22"/><path d="M22 2v10"/><path d="M22 20h-1.5a2.5 2.5 0 0 0 0-5H22"/><path d="M22 12v8"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Playfield Container (only one, centered) -->
