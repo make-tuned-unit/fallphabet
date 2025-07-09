@@ -409,6 +409,115 @@ class GlobalLeaderboardManager {
       }
     });
   }
+
+  // Check if player has already attempted daily challenge today
+  async hasDailyAttemptToday(playerName) {
+    if (!this.isConnected) {
+      console.warn('Supabase not connected, cannot check daily attempt');
+      return { success: false, error: 'Not connected' };
+    }
+
+    try {
+      const { data, error } = await this.supabase
+        .rpc('has_daily_attempt_today', {
+          player_name_param: playerName
+        });
+
+      if (error) {
+        console.error('Error checking daily attempt:', error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, hasAttempted: data.has_attempted };
+    } catch (err) {
+      console.error('Error checking daily attempt:', err);
+      return { success: false, error: err.message };
+    }
+  }
+
+  // Get player's today's daily challenge score if they've already played
+  async getTodaysDailyScore(playerName) {
+    if (!this.isConnected) {
+      console.warn('Supabase not connected, cannot get today\'s score');
+      return { success: false, error: 'Not connected' };
+    }
+
+    try {
+      const { data, error } = await this.supabase
+        .from('leaderboard')
+        .select('*')
+        .eq('player_name', playerName)
+        .eq('game_mode', 'daily_challenge')
+        .gte('created_at', new Date().toISOString().split('T')[0] + 'T00:00:00')
+        .lte('created_at', new Date().toISOString().split('T')[0] + 'T23:59:59')
+        .order('score', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error('Error getting today\'s score:', error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, data: data[0] || null };
+    } catch (err) {
+      console.error('Error getting today\'s score:', err);
+      return { success: false, error: err.message };
+    }
+  }
+
+  // Show daily challenge already attempted modal
+  showDailyAlreadyAttemptedModal(todaysScore) {
+    const modal = document.createElement('div');
+    modal.className = 'daily-attempted-modal';
+    modal.innerHTML = `
+      <div class="daily-attempted-content">
+        <h3>Daily Challenge Already Completed!</h3>
+        <p>Come back tomorrow to try to beat your daily best!</p>
+        ${todaysScore ? `
+          <div class="todays-score">
+            <p>Today's Score: <strong>${todaysScore.score}</strong> points</p>
+            <p>Top Word: "${this.escapeHtml(todaysScore.top_word || 'N/A')}" (${todaysScore.top_word_score || 0} pts)</p>
+          </div>
+        ` : ''}
+        <p>Want to keep playing? Click here to try Fallphabet Taptile and go for your ultimate high score!</p>
+        <div class="modal-actions">
+          <button id="play-taptile-btn" class="modal-btn primary">Play Fallphabet Taptile</button>
+          <button id="view-leaderboard-btn" class="modal-btn">View Daily Leaderboard</button>
+          <button id="close-modal-btn" class="modal-btn">Close</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const playTaptileBtn = modal.querySelector('#play-taptile-btn');
+    const viewLeaderboardBtn = modal.querySelector('#view-leaderboard-btn');
+    const closeBtn = modal.querySelector('#close-modal-btn');
+
+    // Event listeners
+    playTaptileBtn.addEventListener('click', () => {
+      if (modal && modal.parentNode) {
+        document.body.removeChild(modal);
+      }
+      // Switch to Taptile mode
+      if (window.switchToTaptileMode) {
+        window.switchToTaptileMode();
+      }
+    });
+
+    viewLeaderboardBtn.addEventListener('click', () => {
+      if (modal && modal.parentNode) {
+        document.body.removeChild(modal);
+      }
+      this.showLeaderboardModal('daily_challenge');
+    });
+
+    closeBtn.addEventListener('click', () => {
+      if (modal && modal.parentNode) {
+        document.body.removeChild(modal);
+      }
+    });
+  }
 }
 
 // Initialize global leaderboard manager

@@ -1449,11 +1449,28 @@
     window.addEventListener('DOMContentLoaded', () => {
       console.log('DOM loaded, creating Phaser game...');
       
-      // Initialize global game mode manager
-      window.gameModeManager = new GameModeManager();
-      
-      // After creating the GameModeManager and before creating the game, update the UI to reflect the restored mode
-      window.gameModeManager.updateUI();
+              // Initialize global game mode manager
+        window.gameModeManager = new GameModeManager();
+        
+        // Global function to switch to Taptile mode (used by modals)
+        window.switchToTaptileMode = () => {
+          console.log('Switching to Taptile mode from modal');
+          window.gameModeManager.setMode('taptile');
+          // Force UI update after a small delay to ensure DOM is ready
+          setTimeout(() => {
+            window.gameModeManager.updateUI();
+          }, 100);
+          // Restart game with new mode and reset all state
+          if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+            // Full reset: destroy and recreate the scene to clear all state
+            window.game.scene.stop('GameScene');
+            window.game.scene.remove('GameScene');
+            window.game.scene.add('GameScene', GameScene, true);
+          }
+        };
+        
+        // After creating the GameModeManager and before creating the game, update the UI to reflect the restored mode
+        window.gameModeManager.updateUI();
       
       try {
         window.game = new Phaser.Game(config);
@@ -1462,9 +1479,24 @@
         // Mode switching functionality
         const modeButtons = document.querySelectorAll('.mode-btn');
         modeButtons.forEach(btn => {
-          btn.addEventListener('click', () => {
+          btn.addEventListener('click', async () => {
             const mode = btn.getAttribute('data-mode');
             console.log('Switching to mode:', mode);
+            
+            // Check if switching to Daily Challenge and player has already attempted today
+            if (mode === 'daily') {
+              const playerName = window.globalLeaderboard ? window.globalLeaderboard.getPlayerName() : null;
+              if (playerName && window.globalLeaderboard) {
+                const attemptCheck = await window.globalLeaderboard.hasDailyAttemptToday(playerName);
+                if (attemptCheck.success && attemptCheck.hasAttempted) {
+                  // Player has already attempted today, show modal
+                  const todaysScore = await window.globalLeaderboard.getTodaysDailyScore(playerName);
+                  window.globalLeaderboard.showDailyAlreadyAttemptedModal(todaysScore.success ? todaysScore.data : null);
+                  return; // Don't switch modes
+                }
+              }
+            }
+            
             window.gameModeManager.setMode(mode);
             // Remove restart button if switching to Daily Challenge mode
             if (mode === 'daily') {

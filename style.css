@@ -789,3 +789,137 @@ body {
   cursor: not-allowed;
 }
 
+/* Daily Challenge Already Attempted Modal */
+.daily-attempted-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.daily-attempted-content {
+  background: #fff9ef;
+  border: 3px solid #e5c9a8;
+  border-radius: 20px;
+  padding: 30px;
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: slideUpIn 0.3s ease-out;
+}
+
+.daily-attempted-content h3 {
+  font-family: 'Inter', Arial, sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #7c3aed;
+  margin: 0 0 15px 0;
+}
+
+.daily-attempted-content p {
+  font-family: 'Inter', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #333;
+  margin: 0 0 15px 0;
+}
+
+.todays-score {
+  background: #f3e8d7;
+  border: 2px solid #e5c9a8;
+  border-radius: 12px;
+  padding: 15px;
+  margin: 15px 0;
+}
+
+.todays-score p {
+  margin: 5px 0;
+  font-weight: 500;
+}
+
+.todays-score strong {
+  color: #7c3aed;
+}
+
+.daily-attempted-content .modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.daily-attempted-content .modal-btn {
+  background: #fff;
+  border: 2px solid #e5c9a8;
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-family: 'Inter', Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.daily-attempted-content .modal-btn:hover {
+  background: #f3e8d7;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.daily-attempted-content .modal-btn.primary {
+  background: #7c3aed;
+  color: white;
+  border-color: #7c3aed;
+}
+
+.daily-attempted-content .modal-btn.primary:hover {
+  background: #6d28d9;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUpIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 600px) {
+  .daily-attempted-content {
+    padding: 20px;
+    margin: 20px;
+  }
+  
+  .daily-attempted-content h3 {
+    font-size: 20px;
+  }
+  
+  .daily-attempted-content p {
+    font-size: 14px;
+  }
+  
+  .daily-attempted-content .modal-actions {
+    flex-direction: column;
+  }
+}
+

@@ -50,6 +50,8 @@ RETURNS TABLE (
   player_name VARCHAR,
   score INTEGER,
   words_used INTEGER,
+  top_word VARCHAR,
+  top_word_score INTEGER,
   max_chain_multiplier INTEGER,
   created_at TIMESTAMP WITH TIME ZONE
 ) AS $$
@@ -60,6 +62,8 @@ BEGIN
     l.player_name,
     l.score,
     l.words_used,
+    l.top_word,
+    l.top_word_score,
     l.max_chain_multiplier,
     l.created_at
   FROM leaderboard l
@@ -74,6 +78,8 @@ CREATE OR REPLACE FUNCTION submit_daily_challenge_score(
   player_name_param VARCHAR,
   score_param INTEGER,
   words_used_param INTEGER,
+  top_word_param VARCHAR,
+  top_word_score_param INTEGER,
   max_chain_multiplier_param INTEGER
 )
 RETURNS JSON AS $$
@@ -97,6 +103,8 @@ BEGIN
     player_name, 
     score, 
     words_used, 
+    top_word,
+    top_word_score,
     game_mode, 
     max_chain_multiplier, 
     attempt_date,
@@ -105,6 +113,8 @@ BEGIN
     player_name_param, 
     score_param, 
     words_used_param, 
+    top_word_param,
+    top_word_score_param,
     'daily_challenge', 
     max_chain_multiplier_param, 
     CURRENT_DATE,
@@ -146,6 +156,8 @@ SELECT
   player_name,
   score,
   words_used,
+  top_word,
+  top_word_score,
   max_chain_multiplier,
   created_at
 FROM leaderboard
@@ -156,7 +168,7 @@ ORDER BY score DESC, words_used ASC, created_at ASC;
 -- Grant necessary permissions
 GRANT SELECT ON daily_challenge_today TO anon;
 GRANT EXECUTE ON FUNCTION get_daily_challenge_leaderboard() TO anon;
-GRANT EXECUTE ON FUNCTION submit_daily_challenge_score(VARCHAR, INTEGER, INTEGER, INTEGER) TO anon;
+GRANT EXECUTE ON FUNCTION submit_daily_challenge_score(VARCHAR, INTEGER, INTEGER, VARCHAR, INTEGER, INTEGER) TO anon;
 GRANT EXECUTE ON FUNCTION has_daily_attempt_today(VARCHAR) TO anon;
 GRANT EXECUTE ON FUNCTION get_daily_seed() TO anon;
 
@@ -166,4 +178,4 @@ COMMENT ON COLUMN leaderboard.attempt_date IS 'Date of the attempt (for daily ch
 COMMENT ON COLUMN leaderboard.daily_seed IS 'Seed used for daily challenge tile generation';
 COMMENT ON FUNCTION get_daily_seed() IS 'Returns consistent seed for daily challenges';
 COMMENT ON FUNCTION has_daily_attempt_today(VARCHAR) IS 'Checks if player has already attempted today''s daily challenge';
-COMMENT ON FUNCTION submit_daily_challenge_score(VARCHAR, INTEGER, INTEGER, INTEGER) IS 'Submits daily challenge score with one attempt per day limit'; 
+COMMENT ON FUNCTION submit_daily_challenge_score(VARCHAR, INTEGER, INTEGER, VARCHAR, INTEGER, INTEGER) IS 'Submits daily challenge score with one attempt per day limit'; 
