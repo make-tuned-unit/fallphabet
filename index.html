@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=80">
+      <link rel="stylesheet" href="style.css?v=81">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -214,7 +214,9 @@
     // Game Mode Manager
     class GameModeManager {
       constructor() {
-        this.currentMode = 'daily';
+        // Restore last selected mode from localStorage, default to 'daily'
+        const savedMode = localStorage.getItem('fallphabet_selected_mode');
+        this.currentMode = savedMode === 'taptile' ? 'taptile' : 'daily';
         this.modes = {
           daily: {
             name: 'Daily Challenge',
@@ -235,6 +237,8 @@
       
       setMode(mode) {
         this.currentMode = mode;
+        // Save selected mode to localStorage
+        localStorage.setItem('fallphabet_selected_mode', mode);
         this.updateUI();
       }
       
@@ -820,24 +824,20 @@
     class GameScene extends Phaser.Scene {
       constructor() {
         super({ key: 'GameScene' });
-        // Change columns to 5 for a 5-column grid
-        this.columns = 5;
-        // Recalculate tile size and margin for 5 columns, keeping the same margin formula
-        this.tileSize = (this.gridWidth / this.columns) * 0.75; // Keep the same 75% sizing
-        this.tileMargin = (this.gridWidth / this.columns - this.tileSize) / 2;
-        // Recalculate column positions for 5 columns
-        this.columnX = [];
-        for (let i = 0; i < this.columns; i++) {
-          this.columnX.push(this.gridX + (i + 0.5) * (this.gridWidth / this.columns));
-        }
-        this.rows = 12;
+        // Reset all game state for the new mode
+        this.scoreManager = new ScoreManager();
+        this.chainTracker = new ChainTracker();
+        this.inputHandler = null;
+        this.tileSpawner = null;
+        this.taptileSpeedManager = null;
+        this.leaderboardManager = null;
         this.wordsUsed = 0;
         this.topWord = '';
         this.topWordScore = 0;
         this.highestChain = 1;
         this.gameOver = false;
+        this.gameStartTime = Date.now();
         this.scoredWords = [];
-        this.gameStartTime = 0;
       }
       
       create() {
@@ -915,6 +915,17 @@
           0x000000,
           1
         ).setOrigin(0, 0).setLineWidth(3).setDepth(100);
+
+        // In GameScene create() or init(), reset the score and chain display
+        const scoreDisplay = document.getElementById('score-display');
+        if (scoreDisplay) scoreDisplay.textContent = '0';
+        const chainDisplay = document.getElementById('chain-display');
+        if (chainDisplay) chainDisplay.textContent = 'x1';
+
+        // In GameScene create() or init(), clear any word buffer and selected tiles
+        if (this.inputHandler) {
+          this.inputHandler.clearBuffer();
+        }
       }
 
       update(time, delta) {
@@ -1385,10 +1396,8 @@
       // Initialize global game mode manager
       window.gameModeManager = new GameModeManager();
       
-      // Force initial UI update to ensure leaderboard button is visible
-      setTimeout(() => {
-        window.gameModeManager.updateUI();
-      }, 50);
+      // After creating the GameModeManager and before creating the game, update the UI to reflect the restored mode
+      window.gameModeManager.updateUI();
       
       try {
         window.game = new Phaser.Game(config);
@@ -1407,9 +1416,12 @@
               window.gameModeManager.updateUI();
             }, 100);
             
-            // Restart game with new mode
+            // Restart game with new mode and reset all state
             if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
-              window.game.scene.restart();
+              // Full reset: destroy and recreate the scene to clear all state
+              window.game.scene.stop('GameScene');
+              window.game.scene.remove('GameScene');
+              window.game.scene.add('GameScene', GameScene, true);
             }
           });
         });
@@ -1699,7 +1711,6 @@
     function renderStatsHistory() {
       const currentMode = window.gameModeManager ? window.gameModeManager.getCurrentMode() : { speedIncrease: false };
       const statsDiv = document.getElementById('stats-history-content');
-      
       if (currentMode.speedIncrease) {
         // Taptile mode - show continuous run stats
         renderTaptileStats(statsDiv);
