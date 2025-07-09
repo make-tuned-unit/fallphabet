@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=107">
+      <link rel="stylesheet" href="style.css?v=108">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -1378,33 +1378,55 @@
             // Show confetti and high score modal
             this.showConfetti();
             this.showHighScoreModal(finalScore, timeSurvived, taptileStats.maxSpeed, wordsUsed, topWord, topWordScore, highestChain);
-          }
-          
-          // Only submit to leaderboard if it's a new high score
-          if (isNewHighScore && this.leaderboardManager) {
-            const scoreData = {
-              score: finalScore,
-              gameMode: 'fallphabet_taptile',
-              wordsUsed: wordsUsed,
-              gameDurationSeconds: timeSurvived,
-              maxChainMultiplier: taptileStats.maxSpeed
-            };
             
-            // Check if player name exists, if not show name input modal
-            const playerName = this.leaderboardManager.getPlayerName();
-            if (playerName) {
-              // Player name exists, submit directly
-              this.leaderboardManager.submitScore({
-                playerName: playerName,
-                ...scoreData
-              }).then(result => {
-                console.log('Taptile high score submission result:', result);
-              });
-            } else {
-              // No player name, show name input modal
-              this.leaderboardManager.showNameInputModal(scoreData, (result, submissionData) => {
-                console.log('Taptile high score name input result:', result);
-              });
+            // Only submit to leaderboard if it's a new high score
+            if (this.leaderboardManager) {
+              const scoreData = {
+                score: finalScore,
+                gameMode: 'fallphabet_taptile',
+                wordsUsed: wordsUsed,
+                gameDurationSeconds: timeSurvived,
+                maxChainMultiplier: taptileStats.maxSpeed
+              };
+              
+              // Check if player name exists, if not show name input modal
+              const playerName = this.leaderboardManager.getPlayerName();
+              if (playerName) {
+                // Player name exists, submit directly
+                this.leaderboardManager.submitScore({
+                  playerName: playerName,
+                  ...scoreData
+                }).then(result => {
+                  console.log('Taptile high score submission result:', result);
+                });
+              } else {
+                // No player name, show name input modal
+                this.leaderboardManager.showNameInputModal(scoreData, (result, submissionData) => {
+                  console.log('Taptile high score name input result:', result);
+                });
+              }
+            }
+          } else {
+            // Not a new high score - just show regular game over with Try Again
+            if (title) title.textContent = 'Game Over!';
+            if (stats) {
+              stats.innerHTML = `<div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x${highestChain}</span></div>`;
+            }
+            
+            // Show taptile specific stats
+            const taptileModalStats = document.getElementById('taptile-modal-stats');
+            if (taptileModalStats) {
+              taptileModalStats.style.display = 'block';
+              document.getElementById('modal-final-score').textContent = finalScore;
+              document.getElementById('modal-max-speed').textContent = `${taptileStats.maxSpeed.toFixed(1)}x`;
+              document.getElementById('modal-time-survived').textContent = `${timeSurvived.toFixed(1)}s`;
+            }
+            
+            // Always show restart for taptile mode
+            const restartBtn = document.getElementById('modal-restart-btn');
+            if (restartBtn) {
+              restartBtn.textContent = 'Try Again';
+              restartBtn.style.display = '';
             }
           }
           
