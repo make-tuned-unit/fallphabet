@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=71">
+      <link rel="stylesheet" href="style.css?v=73">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -1322,17 +1322,14 @@
           }
           
           // Save game stats to localStorage
-          saveGameToHistory({ date: this.dailyChallenge.today, wordsUsed, topWord, topWordScore, highestChain, score: finalScore, longestWord: this.topWord });
+          const today = new Date().toLocaleDateString();
+          saveGameToHistory({ date: today, wordsUsed, topWord, topWordScore, highestChain, score: finalScore, longestWord: this.topWord });
         }
         
-        console.log('Showing modal, current classes:', modal.className);
         // Ensure modal is visible and properly positioned
         modal.style.display = 'flex';
         modal.style.zIndex = '3000';
         modal.classList.add('show');
-        console.log('Modal classes after adding show:', modal.className);
-        console.log('Modal display style:', modal.style.display);
-        console.log('Modal computed display:', window.getComputedStyle(modal).display);
       }
     }
 
