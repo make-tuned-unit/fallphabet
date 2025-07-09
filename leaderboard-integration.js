@@ -46,6 +46,8 @@ class GlobalLeaderboardManager {
             player_name_param: scoreData.playerName,
             score_param: scoreData.score,
             words_used_param: scoreData.wordsUsed,
+            top_word_param: scoreData.topWord || '',
+            top_word_score_param: scoreData.topWordScore || 0,
             max_chain_multiplier_param: scoreData.maxChainMultiplier
           });
 
@@ -207,6 +209,8 @@ class GlobalLeaderboardManager {
         player_name: scoreData.playerName,
         score: scoreData.score,
         words_used: scoreData.wordsUsed,
+        top_word: scoreData.topWord || '',
+        top_word_score: scoreData.topWordScore || 0,
         game_mode: scoreData.gameMode,
         game_duration_seconds: scoreData.gameDurationSeconds,
         max_chain_multiplier: scoreData.maxChainMultiplier,
@@ -281,7 +285,7 @@ class GlobalLeaderboardManager {
       }
       const leaderboardHTML = `
         <div class="leaderboard-header">
-          <h3>Top ${gameMode === 'fallphabet_taptile' ? 'Taptile' : 'Daily Challenge'} ${gameMode === 'daily_challenge' ? 'Words Used' : 'Scores'}</h3>
+          <h3>Top ${gameMode === 'fallphabet_taptile' ? 'Taptile' : 'Daily Challenge'} ${gameMode === 'daily_challenge' ? 'Top Words' : 'Scores'}</h3>
         </div>
         <div class="leaderboard-list">
           ${result.data.map((entry, index) => `
@@ -291,12 +295,12 @@ class GlobalLeaderboardManager {
                 <div class="player-name">${this.escapeHtml(entry.player_name)}</div>
                 <div class="player-stats">
                   ${gameMode === 'daily_challenge' ? 
-                    `Words: ${entry.words_used} • Top Word: ${this.escapeHtml(entry.top_word || 'N/A')}` :
+                    `Top Word: "${this.escapeHtml(entry.top_word || 'N/A')}" (${entry.top_word_score || 0} pts) • Words Used: ${entry.words_used}` :
                     `Speed: ${entry.max_chain_multiplier}x • Time: ${entry.game_duration_seconds}s`
                   }
                 </div>
               </div>
-              ${gameMode === 'daily_challenge' ? '' : `<div class="score">${entry.score}</div>`}
+              ${gameMode === 'daily_challenge' ? `<div class="score">${entry.score}</div>` : `<div class="score">${entry.score}</div>`}
             </div>
           `).join('')}
         </div>
