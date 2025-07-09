@@ -437,7 +437,7 @@
         this.clearAutoClearTimer();
         this.autoClearTimeout = setTimeout(() => {
           this.clearBuffer();
-        }, 1000); // 1 second
+        }, 1250); // 1.25 seconds
       }
 
       clearAutoClearTimer() {
@@ -528,7 +528,7 @@
         this.chainLevel = 1;
         this.highestChain = 1;
         this.lastWordTime = 0;
-        this.chainWindowDuration = 1000; // 1 second
+        this.chainWindowDuration = 1250; // 1.25 seconds
         this.chainWindowTimeout = null;
         this.chainWindowActive = false;
         this.shouldIncrementChain = false;
@@ -737,7 +737,9 @@
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
           
-          const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
+          const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`, {
+            signal: controller.signal
+          });
           clearTimeout(timeoutId);
           
           if (res.ok) {
