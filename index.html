@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=54">
+      <link rel="stylesheet" href="style.css?v=55">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <!-- Open Graph and Twitter Card for social sharing -->
   <meta property="og:title" content="Fallphabet" />
@@ -45,6 +45,12 @@
 </head>
 <body>
   <div id="main-content">
+    <!-- Mode Selector -->
+    <div id="mode-selector" class="mode-selector">
+      <button id="daily-mode-btn" class="mode-btn active" data-mode="daily">Daily Challenge</button>
+      <button id="taptile-mode-btn" class="mode-btn" data-mode="taptile">Fallphabet Taptile</button>
+    </div>
+
     <!-- Header Section -->
     <header class="game-header">
       <h1 class="game-title">FALLPHABET</h1>
@@ -59,6 +65,17 @@
           </span>
           <span id="chain-display" class="stat-value">x1</span>
         </div>
+        <!-- Taptile mode specific stats -->
+        <div id="taptile-stats" class="taptile-stats" style="display: none;">
+          <div class="stat-item">
+            <span class="stat-label" style="font-family: 'Arial', 'Helvetica', sans-serif;">Speed:</span>
+            <span id="speed-display" class="stat-value">1x</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label" style="font-family: 'Arial', 'Helvetica', sans-serif;">Time:</span>
+            <span id="time-display" class="stat-value">5.0s</span>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -67,6 +84,9 @@
       <button id="howto-btn" class="top-menu-btn" title="How to Play">?</button>
       <button id="stats-btn" class="top-menu-btn" title="Your Stats">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="8"/><rect x="9" y="8" width="4" height="12"/><rect x="15" y="4" width="4" height="16"/></svg>
+      </button>
+      <button id="leaderboard-btn" class="top-menu-btn" title="Global Leaderboard" style="display: none;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M6 2v10"/><path d="M6 20h1.5a2.5 2.5 0 0 0 0-5H6"/><path d="M6 12v8"/><path d="M14 9h1.5a2.5 2.5 0 0 0 0-5H14"/><path d="M14 2v10"/><path d="M14 20h1.5a2.5 2.5 0 0 1 0-5H14"/><path d="M14 12v8"/><path d="M22 9h-1.5a2.5 2.5 0 0 1 0-5H22"/><path d="M22 2v10"/><path d="M22 20h-1.5a2.5 2.5 0 0 0 0-5H22"/><path d="M22 12v8"/></svg>
       </button>
     </div>
 
@@ -86,6 +106,12 @@
         <div><strong>Words Used:</strong> <span id="modal-words-used">0</span></div>
         <div><strong>Top Word:</strong> <span id="modal-top-word">-</span></div>
         <div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x1</span></div>
+        <!-- Taptile mode specific stats -->
+        <div id="taptile-modal-stats" style="display: none;">
+          <div><strong>Final Score:</strong> <span id="modal-final-score">0</span></div>
+          <div><strong>Max Speed:</strong> <span id="modal-max-speed">1x</span></div>
+          <div><strong>Time Survived:</strong> <span id="modal-time-survived">0s</span></div>
+        </div>
       </div>
       <div class="modal-actions">
         <button id="modal-share-btn" class="modal-btn">Share</button>
@@ -113,9 +139,17 @@
         <p>• Chain multiplier: 2nd word x2, 3rd word x3, etc.</p>
         <p>• Miss timing = chain resets to x1</p>
         
-        <h3>Goal</h3>
-        <p>• Reach 200 points with fewest words possible</p>
-        <p>• No time limit - make words as long as possible</p>
+        <h3 id="goal-title">Goal</h3>
+        <div id="daily-goal">
+          <p>• Reach 200 points with fewest words possible</p>
+          <p>• No time limit - make words as long as possible</p>
+        </div>
+        <div id="taptile-goal" style="display: none;">
+          <p>• Survive as long as possible with increasing speed</p>
+          <p>• Make a new word within the time window or lose</p>
+          <p>• Time window shrinks as speed increases</p>
+          <p>• Go for the highest score on the global leaderboard!</p>
+        </div>
       </div>
     </div>
   </div>
@@ -130,8 +164,245 @@
       </div>
     </div>
   </div>
+
+  <!-- Global Leaderboard Modal -->
+  <div id="leaderboard-modal" class="slideup-modal">
+    <div class="slideup-modal-content">
+      <button class="slideup-close-btn" id="leaderboard-close">&times;</button>
+      <h2>Global Leaderboard</h2>
+      <div id="leaderboard-content">
+        <div class="loading">Loading leaderboard...</div>
+      </div>
+    </div>
+  </div>
   
   <script>
+    // Game Mode Manager
+    class GameModeManager {
+      constructor() {
+        this.currentMode = 'daily';
+        this.modes = {
+          daily: {
+            name: 'Daily Challenge',
+            goal: 200,
+            timeLimit: null,
+            speedIncrease: false,
+            leaderboard: false
+          },
+          taptile: {
+            name: 'Fallphabet Taptile',
+            goal: null,
+            timeLimit: 5.0,
+            speedIncrease: true,
+            leaderboard: true
+          }
+        };
+      }
+      
+      setMode(mode) {
+        this.currentMode = mode;
+        this.updateUI();
+      }
+      
+      getCurrentMode() {
+        return this.modes[this.currentMode];
+      }
+      
+      updateUI() {
+        // Update mode buttons
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        document.querySelector(`[data-mode="${this.currentMode}"]`).classList.add('active');
+        
+        // Update stats display
+        const taptileStats = document.getElementById('taptile-stats');
+        const leaderboardBtn = document.getElementById('leaderboard-btn');
+        
+        if (this.currentMode === 'taptile') {
+          taptileStats.style.display = 'flex';
+          leaderboardBtn.style.display = 'block';
+        } else {
+          taptileStats.style.display = 'none';
+          leaderboardBtn.style.display = 'none';
+        }
+        
+        // Update instructions
+        const dailyGoal = document.getElementById('daily-goal');
+        const taptileGoal = document.getElementById('taptile-goal');
+        
+        if (this.currentMode === 'taptile') {
+          dailyGoal.style.display = 'none';
+          taptileGoal.style.display = 'block';
+        } else {
+          dailyGoal.style.display = 'block';
+          taptileGoal.style.display = 'none';
+        }
+      }
+    }
+
+    // Taptile Speed Manager
+    class TaptileSpeedManager {
+      constructor() {
+        this.baseSpeed = 150;
+        this.currentSpeed = this.baseSpeed;
+        this.speedMultiplier = 1.0;
+        this.timeWindow = 5.0;
+        this.lastWordTime = 0;
+        this.speedIncreaseInterval = 30; // Increase speed every 30 seconds
+        this.speedIncreaseAmount = 0.2; // 20% increase
+        this.timeWindowDecrease = 0.5; // 0.5 second decrease
+        this.minTimeWindow = 1.0; // Minimum 1 second
+        this.maxSpeedMultiplier = 5.0; // Maximum 5x speed
+        this.speedTimer = null;
+      }
+      
+      start() {
+        this.currentSpeed = this.baseSpeed;
+        this.speedMultiplier = 1.0;
+        this.timeWindow = 5.0;
+        this.lastWordTime = Date.now();
+        this.startSpeedTimer();
+        this.updateUI();
+      }
+      
+      startSpeedTimer() {
+        this.speedTimer = setInterval(() => {
+          this.increaseSpeed();
+        }, this.speedIncreaseInterval * 1000);
+      }
+      
+      increaseSpeed() {
+        this.speedMultiplier = Math.min(this.speedMultiplier + this.speedIncreaseAmount, this.maxSpeedMultiplier);
+        this.currentSpeed = this.baseSpeed * this.speedMultiplier;
+        this.timeWindow = Math.max(this.timeWindow - this.timeWindowDecrease, this.minTimeWindow);
+        this.updateUI();
+      }
+      
+      onWordSubmitted() {
+        this.lastWordTime = Date.now();
+      }
+      
+      checkTimeWindow() {
+        const now = Date.now();
+        const timeSinceLastWord = (now - this.lastWordTime) / 1000;
+        return timeSinceLastWord <= this.timeWindow;
+      }
+      
+      getCurrentSpeed() {
+        return this.currentSpeed;
+      }
+      
+      getSpeedMultiplier() {
+        return this.speedMultiplier;
+      }
+      
+      getTimeWindow() {
+        return this.timeWindow;
+      }
+      
+      updateUI() {
+        const speedDisplay = document.getElementById('speed-display');
+        const timeDisplay = document.getElementById('time-display');
+        
+        if (speedDisplay) {
+          speedDisplay.textContent = `${this.speedMultiplier.toFixed(1)}x`;
+        }
+        if (timeDisplay) {
+          timeDisplay.textContent = `${this.timeWindow.toFixed(1)}s`;
+        }
+      }
+      
+      stop() {
+        if (this.speedTimer) {
+          clearInterval(this.speedTimer);
+          this.speedTimer = null;
+        }
+      }
+      
+      getStats() {
+        return {
+          maxSpeed: this.speedMultiplier,
+          timeSurvived: (Date.now() - this.lastWordTime) / 1000
+        };
+      }
+    }
+
+    // Global Leaderboard Manager
+    class LeaderboardManager {
+      constructor() {
+        this.apiUrl = 'https://api.jsonbin.io/v3/b/your-leaderboard-bin-id'; // Replace with actual API
+        this.apiKey = 'your-api-key'; // Replace with actual API key
+      }
+      
+      async submitScore(score, timeSurvived, maxSpeed) {
+        try {
+          const playerName = this.getPlayerName();
+          const entry = {
+            name: playerName,
+            score: score,
+            timeSurvived: timeSurvived,
+            maxSpeed: maxSpeed,
+            timestamp: Date.now()
+          };
+          
+          // For now, store locally and simulate API call
+          const leaderboard = this.getLocalLeaderboard();
+          leaderboard.push(entry);
+          leaderboard.sort((a, b) => b.score - a.score);
+          leaderboard.splice(10); // Keep only top 10
+          localStorage.setItem('fallphabet_leaderboard', JSON.stringify(leaderboard));
+          
+          return true;
+        } catch (error) {
+          console.error('Failed to submit score:', error);
+          return false;
+        }
+      }
+      
+      async getLeaderboard() {
+        try {
+          // For now, return local leaderboard
+          return this.getLocalLeaderboard();
+        } catch (error) {
+          console.error('Failed to get leaderboard:', error);
+          return [];
+        }
+      }
+      
+      getLocalLeaderboard() {
+        return JSON.parse(localStorage.getItem('fallphabet_leaderboard') || '[]');
+      }
+      
+      getPlayerName() {
+        let name = localStorage.getItem('fallphabet_player_name');
+        if (!name) {
+          name = prompt('Enter your name for the leaderboard:') || 'Anonymous';
+          localStorage.setItem('fallphabet_player_name', name);
+        }
+        return name;
+      }
+      
+      renderLeaderboard() {
+        const content = document.getElementById('leaderboard-content');
+        this.getLeaderboard().then(leaderboard => {
+          if (leaderboard.length === 0) {
+            content.innerHTML = '<div class="loading">No scores yet. Be the first!</div>';
+            return;
+          }
+          
+          content.innerHTML = leaderboard.map((entry, index) => 
+            '<div class="leaderboard-entry">' +
+              '<div class="leaderboard-rank">#' + (index + 1) + '</div>' +
+              '<div class="leaderboard-name">' + entry.name + '</div>' +
+              '<div class="leaderboard-score">' + entry.score + '</div>' +
+              '<div class="leaderboard-time">' + entry.maxSpeed.toFixed(1) + 'x</div>' +
+            '</div>'
+          ).join('');
+        });
+      }
+    }
+
     // TileSpawner Module
     class TileSpawner {
       constructor(scene, gridX, gridY, gridWidth, gridHeight, columns, rows) {
@@ -271,6 +542,11 @@
       }
       
       update(dt) {
+        // Update fall speed based on current mode
+        if (this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease) {
+          this.fallSpeed = this.scene.taptileSpeedManager.getCurrentSpeed();
+        }
+        
         for (let col = 0; col < this.columns; col++) {
           let colTiles = this.columnsTiles[col];
           for (let i = 0; i < colTiles.length; i++) {
@@ -647,6 +923,7 @@
         this.highestChain = 1;
         this.gameOver = false;
         this.scoredWords = [];
+        this.gameStartTime = 0;
       }
       
       create() {
@@ -693,12 +970,23 @@
         this.scoreManager = new ScoreManager();
         this.chainTracker = new ChainTracker();
         
+        // Initialize mode managers
+        this.gameModeManager = window.gameModeManager || new GameModeManager();
+        this.taptileSpeedManager = new TaptileSpeedManager();
+        this.leaderboardManager = new LeaderboardManager();
+        
         // Game state
         this.wordsUsed = 0;
         this.topWord = '';
         this.topWordScore = 0;
         this.highestChain = 1;
         this.gameOver = false;
+        this.gameStartTime = Date.now();
+        
+        // Start taptile mode if active
+        if (this.gameModeManager.getCurrentMode().speedIncrease) {
+          this.taptileSpeedManager.start();
+        }
         
         // Listen for word submissions
         this.events.on('wordSubmitted', this.handleWordSubmission, this);
@@ -723,6 +1011,15 @@
         const dt = delta / 1000;
         this.tileSpawner.update(dt);
         this.inputHandler.update();
+        
+        // Check taptile time window
+        if (this.gameModeManager && this.gameModeManager.getCurrentMode().speedIncrease) {
+          if (!this.taptileSpeedManager.checkTimeWindow() && this.wordsUsed > 0) {
+            this.endGame();
+            return;
+          }
+        }
+        
         this.updateUI();
       }
       
@@ -829,10 +1126,17 @@
             }
           });
         });
-        // Check for game over
-        if (this.scoreManager.getTotalScore() >= 200) {
+        // Check for game over based on mode
+        const currentMode = this.gameModeManager.getCurrentMode();
+        if (currentMode.goal && this.scoreManager.getTotalScore() >= currentMode.goal) {
           this.endGame();
         }
+        
+        // Update taptile speed manager
+        if (currentMode.speedIncrease) {
+          this.taptileSpeedManager.onWordSubmitted();
+        }
+        
         // Always start chain window after word submission
         this.chainTracker.startChainWindow();
       }
@@ -899,45 +1203,98 @@
 
       endGame() {
         this.gameOver = true;
+        
+        // Stop taptile speed manager
+        if (this.taptileSpeedManager) {
+          this.taptileSpeedManager.stop();
+        }
+        
         // Stop all timers in tileSpawner
         if (this.tileSpawner && this.tileSpawner.columnTimers) {
           this.tileSpawner.columnTimers.forEach(timer => { if (timer) timer.paused = true; });
         }
+        
         const modal = document.getElementById('gameover-modal');
         const title = modal.querySelector('.modal-title');
         const stats = modal.querySelector('.modal-stats');
+        const taptileStats = document.getElementById('taptile-modal-stats');
         const wordsUsed = this.wordsUsed;
         const topWord = this.topWord || '-';
         const topWordScore = this.topWordScore || 0;
         const highestChain = this.chainTracker && this.chainTracker.getHighestChain ? 'x' + this.chainTracker.getHighestChain() : '';
-        if (this.scoreManager.getTotalScore() >= 200) {
-          // Win condition
-          if (title) title.textContent = 'You Did It!';
-          if (stats) stats.innerHTML = `<span style="font-family: Arial, Helvetica, sans-serif; font-size: 1.2rem; color: #222; display: block;">It took you <strong>${wordsUsed}</strong> words to hit 200 points today.<br><br>Your Top Word was <strong>${topWord}</strong> earning you <strong>${topWordScore}</strong> points.<br><br>You chained <strong>${highestChain}</strong> words together today!<br><br>Come back tomorrow to see if you can beat your score.<br><br>Share with friends to see who can beat the Fallphabet with the fewest words.</span>`;
-        } else {
-          // Normal game over
+        const finalScore = this.scoreManager.getTotalScore();
+        
+        const currentMode = this.gameModeManager.getCurrentMode();
+        
+        if (currentMode.speedIncrease) {
+          // Taptile mode
+          const taptileStats = this.taptileSpeedManager.getStats();
+          const timeSurvived = (Date.now() - this.gameStartTime) / 1000;
+          
           if (title) title.textContent = 'Game Over!';
           if (stats) {
             stats.innerHTML = `<div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x${highestChain}</span></div>`;
           }
-        }
-        modal.classList.add('show');
-        // Daily challenge logic for attempts/restart button
-        this.dailyChallenge.incrementAttempt();
-        const restartBtn = document.getElementById('modal-restart-btn');
-        if (this.scoreManager.getTotalScore() >= 200) {
-          // For wins, always show Try Again button
+          
+          // Show taptile specific stats
+          const taptileModalStats = document.getElementById('taptile-modal-stats');
+          if (taptileModalStats) {
+            taptileModalStats.style.display = 'block';
+            document.getElementById('modal-final-score').textContent = finalScore;
+            document.getElementById('modal-max-speed').textContent = `${taptileStats.maxSpeed.toFixed(1)}x`;
+            document.getElementById('modal-time-survived').textContent = `${timeSurvived.toFixed(1)}s`;
+          }
+          
+          // Submit to leaderboard
+          if (this.leaderboardManager) {
+            this.leaderboardManager.submitScore(finalScore, timeSurvived, taptileStats.maxSpeed);
+          }
+          
+          // Always show restart for taptile mode
+          const restartBtn = document.getElementById('modal-restart-btn');
           restartBtn.textContent = 'Try Again';
           restartBtn.style.display = '';
-        } else if (this.dailyChallenge.attemptsLeft() > 0) {
-          // For losses, only show if attempts remain
-          restartBtn.textContent = 'Try Again';
-          restartBtn.style.display = '';
+          
         } else {
-          restartBtn.style.display = 'none';
+          // Daily challenge mode
+          if (finalScore >= 200) {
+            // Win condition
+            if (title) title.textContent = 'You Did It!';
+            if (stats) stats.innerHTML = `<span style="font-family: Arial, Helvetica, sans-serif; font-size: 1.2rem; color: #222; display: block;">It took you <strong>${wordsUsed}</strong> words to hit 200 points today.<br><br>Your Top Word was <strong>${topWord}</strong> earning you <strong>${topWordScore}</strong> points.<br><br>You chained <strong>${highestChain}</strong> words together today!<br><br>Come back tomorrow to see if you can beat your score.<br><br>Share with friends to see who can beat the Fallphabet with the fewest words.</span>`;
+          } else {
+            // Normal game over
+            if (title) title.textContent = 'Game Over!';
+            if (stats) {
+              stats.innerHTML = `<div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x${highestChain}</span></div>`;
+            }
+          }
+          
+          // Hide taptile stats
+          const taptileModalStats = document.getElementById('taptile-modal-stats');
+          if (taptileModalStats) {
+            taptileModalStats.style.display = 'none';
+          }
+          
+          // Daily challenge logic for attempts/restart button
+          this.dailyChallenge.incrementAttempt();
+          const restartBtn = document.getElementById('modal-restart-btn');
+          if (finalScore >= 200) {
+            // For wins, always show Try Again button
+            restartBtn.textContent = 'Try Again';
+            restartBtn.style.display = '';
+          } else if (this.dailyChallenge.attemptsLeft() > 0) {
+            // For losses, only show if attempts remain
+            restartBtn.textContent = 'Try Again';
+            restartBtn.style.display = '';
+          } else {
+            restartBtn.style.display = 'none';
+          }
+          
+          // Save game stats to localStorage
+          saveGameToHistory({ date: this.dailyChallenge.today, wordsUsed, topWord, topWordScore, highestChain, score: finalScore, longestWord: this.topWord });
         }
-        // Save game stats to localStorage
-        saveGameToHistory({ date: this.dailyChallenge.today, wordsUsed, topWord, topWordScore, highestChain, score: this.scoreManager.getTotalScore(), longestWord: this.topWord });
+        
+        modal.classList.add('show');
       }
     }
 
@@ -965,9 +1322,59 @@
     // Start the game
     window.addEventListener('DOMContentLoaded', () => {
       console.log('DOM loaded, creating Phaser game...');
+      
+      // Initialize global game mode manager
+      window.gameModeManager = new GameModeManager();
+      
       try {
         window.game = new Phaser.Game(config);
         console.log('Phaser game created successfully');
+        
+        // Mode switching functionality
+        const modeButtons = document.querySelectorAll('.mode-btn');
+        modeButtons.forEach(btn => {
+          btn.addEventListener('click', () => {
+            const mode = btn.getAttribute('data-mode');
+            window.gameModeManager.setMode(mode);
+            
+            // Restart game with new mode
+            if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+              window.game.scene.restart();
+            }
+          });
+        });
+        
+        // Leaderboard functionality
+        const leaderboardBtn = document.getElementById('leaderboard-btn');
+        const leaderboardModal = document.getElementById('leaderboard-modal');
+        const leaderboardClose = document.getElementById('leaderboard-close');
+        
+        if (leaderboardBtn) {
+          leaderboardBtn.addEventListener('click', () => {
+            leaderboardModal.classList.add('show');
+            if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+              const scene = window.game.scene.keys['GameScene'];
+              if (scene.leaderboardManager) {
+                scene.leaderboardManager.renderLeaderboard();
+              }
+            }
+          });
+        }
+        
+        if (leaderboardClose) {
+          leaderboardClose.addEventListener('click', () => {
+            leaderboardModal.classList.remove('show');
+          });
+        }
+        
+        // Dismiss leaderboard modal by clicking outside
+        if (leaderboardModal) {
+          leaderboardModal.addEventListener('click', e => {
+            if (e.target === leaderboardModal) {
+              leaderboardModal.classList.remove('show');
+            }
+          });
+        }
         
         // Help button functionality
         const helpBtn = document.getElementById('help-btn');
@@ -994,10 +1401,14 @@
         if (restartBtn) {
           restartBtn.onclick = () => {
             const scene = window.game.scene.keys['GameScene'];
-            // Allow restart for wins or if attempts remain
-            if (scene.scoreManager.getTotalScore() >= 200 || (scene.dailyChallenge && scene.dailyChallenge.attemptsLeft() > 0)) {
-                        // Hide modal
-          document.getElementById('gameover-modal').classList.remove('show');
+            const currentMode = window.gameModeManager.getCurrentMode();
+            
+            // Allow restart for taptile mode always, or for daily mode if conditions met
+            if (currentMode.speedIncrease || 
+                scene.scoreManager.getTotalScore() >= 200 || 
+                (scene.dailyChallenge && scene.dailyChallenge.attemptsLeft() > 0)) {
+              // Hide modal
+              document.getElementById('gameover-modal').classList.remove('show');
               window.game.scene.restart();
             }
           };
