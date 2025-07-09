@@ -4,7 +4,9 @@ html, body {
   padding: 0;
   box-sizing: border-box;
   width: 100vw;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 body {
@@ -13,10 +15,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  min-width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  width: 100vw;
   margin: 0;
   padding: 0;
+  overflow: hidden;
 }
 
 #main-content {
@@ -25,9 +29,9 @@ body {
   align-items: center;
   justify-content: flex-start;
   width: 100%;
-  height: calc(100vh - 80px);
-  height: calc(100dvh - 80px);
-  margin-top: 80px;
+  height: calc(100vh - 20px);
+  height: calc(100dvh - 20px);
+  margin-top: 20px;
   background: transparent;
   box-sizing: border-box;
   gap: 0;
@@ -49,7 +53,7 @@ body {
   font-size: 60px !important;
   font-weight: 900;
   color: #7c3aed;
-  margin: 35px 0 4px 0;
+  margin: 15px 0 4px 0;
   letter-spacing: 12px;
   text-shadow: none;
   border: none;
@@ -151,9 +155,9 @@ body {
   #main-content {
     width: 100vw !important;
     max-width: 100vw !important;
-    margin-top: 140px !important;
-    height: calc(100vh - 140px) !important;
-    height: calc(100dvh - 140px) !important;
+    margin-top: 40px !important;
+    height: calc(100vh - 40px) !important;
+    height: calc(100dvh - 40px) !important;
   }
   .game-title {
     font-size: 8vw !important;
@@ -184,9 +188,9 @@ body {
 /* iPhone 14 Pro Max and similar tall screens */
 @media (min-height: 800px) and (max-width: 430px) {
   #main-content {
-    margin-top: 140px !important;
-    height: calc(100vh - 140px) !important;
-    height: calc(100dvh - 140px) !important;
+    margin-top: 40px !important;
+    height: calc(100vh - 40px) !important;
+    height: calc(100dvh - 40px) !important;
   }
   #playfield-container {
     height: calc(100vh - 140px);
@@ -208,9 +212,9 @@ body {
 /* Force playfield visibility on all devices */
 @media (max-height: 700px) {
   #main-content {
-    margin-top: 120px !important;
-    height: calc(100vh - 120px) !important;
-    height: calc(100dvh - 120px) !important;
+    margin-top: 40px !important;
+    height: calc(100vh - 40px) !important;
+    height: calc(100dvh - 40px) !important;
   }
   #playfield-container {
     height: calc(100vh - 120px);
