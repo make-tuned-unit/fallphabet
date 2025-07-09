@@ -29,9 +29,9 @@ body {
   align-items: center;
   justify-content: flex-start;
   width: 100%;
-  height: calc(100vh - 20px);
-  height: calc(100dvh - 20px);
-  margin-top: 20px;
+  height: calc(100vh - 50px);
+  height: calc(100dvh - 50px);
+  margin-top: 50px;
   background: transparent;
   box-sizing: border-box;
   gap: 0;
@@ -76,7 +76,7 @@ body {
 /* Header Section */
 .game-header {
   text-align: center;
-  margin-top: 70px;
+  margin-top: 20px;
   margin-bottom: 0;
   background: none;
   border: none;
@@ -172,8 +172,8 @@ body {
   width: 100%;
   height: 100%;
   max-width: 800px; /* Increased to fit larger playfield and tiles */
-  max-height: calc(100vh - 200px);
-  max-height: calc(100dvh - 200px);
+  max-height: calc(100vh - 250px);
+  max-height: calc(100dvh - 250px);
   background: transparent;
   border: none;
   border-radius: 0;
@@ -263,19 +263,20 @@ body {
     height: 100%;
   }
   #main-content {
-    margin-top: 10px !important;
-    height: calc(100vh - 10px) !important;
-    height: calc(100dvh - 10px) !important;
+    margin-top: 50px !important;
+    height: calc(100vh - 50px) !important;
+    height: calc(100dvh - 50px) !important;
     overflow: visible !important;
   }
   .game-header {
-    margin-top: 60px;
+    margin-top: 10px;
   }
 
   #playfield-container {
-    min-height: 400px;
+    min-height: 350px;
     height: auto;
-    max-height: none;
+    max-height: calc(100vh - 200px);
+    max-height: calc(100dvh - 200px);
   }
   .game-title {
     font-size: 8vw !important;
@@ -299,18 +300,19 @@ body {
 
 @media (min-height: 800px) and (max-width: 430px) {
   #main-content {
-    margin-top: 10px !important;
-    height: calc(100vh - 10px) !important;
-    height: calc(100dvh - 10px) !important;
+    margin-top: 50px !important;
+    height: calc(100vh - 50px) !important;
+    height: calc(100dvh - 50px) !important;
   }
   .game-header {
-    margin-top: 60px;
+    margin-top: 10px;
   }
 
   #playfield-container {
-    min-height: 400px;
+    min-height: 350px;
     height: auto;
-    max-height: none;
+    max-height: calc(100vh - 200px);
+    max-height: calc(100dvh - 200px);
   }
   .game-title {
     font-size: 7vw !important;
@@ -322,16 +324,16 @@ body {
 /* Force playfield visibility on all devices */
 @media (max-height: 700px) {
   #main-content {
-    margin-top: 40px !important;
-    height: calc(100vh - 40px) !important;
-    height: calc(100dvh - 40px) !important;
+    margin-top: 50px !important;
+    height: calc(100vh - 50px) !important;
+    height: calc(100dvh - 50px) !important;
   }
   #playfield-container {
-    height: calc(100vh - 120px);
-    height: calc(100dvh - 120px);
-    max-height: calc(100vh - 120px);
-    max-height: calc(100dvh - 120px);
-    min-height: 350px;
+    height: calc(100vh - 150px);
+    height: calc(100dvh - 150px);
+    max-height: calc(100vh - 150px);
+    max-height: calc(100dvh - 150px);
+    min-height: 300px;
   }
   .game-title {
     font-size: 6vw !important;
@@ -347,12 +349,13 @@ body {
 /* Mobile Safari specific fixes */
 @supports (-webkit-touch-callout: none) {
   #main-content {
-    height: 100vh;
-    height: -webkit-fill-available;
+    height: calc(100vh - 50px);
+    height: calc(-webkit-fill-available - 50px);
+    margin-top: 50px;
   }
   #playfield-container {
-    max-height: calc(100vh - 200px);
-    max-height: calc(-webkit-fill-available - 200px);
+    max-height: calc(100vh - 250px);
+    max-height: calc(-webkit-fill-available - 250px);
   }
 }
 
