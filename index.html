@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=27">
+  <link rel="stylesheet" href="style.css?v=31">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <!-- Open Graph and Twitter Card for social sharing -->
   <meta property="og:title" content="Fallphabet" />
@@ -364,11 +364,16 @@
       
       onTileTap(pointer, tile) {
         if (!tile || !tile.isScrabbleTile) return;
+        
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        console.log(`Tile tap on ${isMobile ? 'mobile' : 'desktop'}:`, tile.letter, 'Buffer:', this.buffer.join(''));
+        
         const now = Date.now();
         // Double-tap detection
         if (this.lastTappedTile === tile && (now - this.lastTapTime) < 350) {
           // Only submit if this tile is the last selected tile
           if (this.selectedTiles.length && this.selectedTiles[this.selectedTiles.length - 1] === tile) {
+            console.log(`Double-tap detected, submitting word: ${this.buffer.join('')}`);
             this.submitWord();
             this.clearAutoClearTimer();
             return;
@@ -379,6 +384,7 @@
             this.buffer.push(tile.letter);
             this.highlightTile(tile, true);
             this.lastTile = tile;
+            console.log(`Added tile ${tile.letter}, buffer now: ${this.buffer.join('')}`);
             // If this is the first tile of a new word, handle chain increment
             if (this.selectedTiles.length === 1 && this.scene.chainTracker && this.scene.chainTracker.chainWindowActive) {
               this.scene.chainTracker.shouldIncrementChain = true;
@@ -449,11 +455,10 @@
 
       clearBuffer() {
         this.selectedTiles.forEach(tile => {
-          // Destroy tile and associated graphics if not already destroyed
-          if (tile && !tile.destroyed) tile.destroy();
-          if (tile.text && !tile.text.destroyed) tile.text.destroy();
-          if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
-          if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
+          // Only unhighlight tiles, don't destroy them
+          if (tile && !tile.destroyed) {
+            this.highlightTile(tile, false);
+          }
         });
         this.selectedTiles = [];
         this.buffer = [];
@@ -464,6 +469,8 @@
       submitWord() {
         if (this.buffer.length < 2) return;
         const word = this.buffer.join('');
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        console.log(`submitWord called on ${isMobile ? 'mobile' : 'desktop'}: "${word}" with ${this.selectedTiles.length} tiles`);
         this.scene.events.emit('wordSubmitted', {
           word: word,
           tiles: [...this.selectedTiles]
@@ -735,7 +742,12 @@
         
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+          // Longer timeout for mobile devices
+          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+          const timeout = isMobile ? 10000 : 5000; // 10 seconds on mobile, 5 on desktop
+          const timeoutId = setTimeout(() => controller.abort(), timeout);
+          
+          console.log(`Validating word "${word}" on ${isMobile ? 'mobile' : 'desktop'} with ${timeout}ms timeout`);
           
           const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`, {
             signal: controller.signal
@@ -752,11 +764,14 @@
                 )
               );
               isValid = true;
+              console.log(`Word "${word}" validated successfully`);
             }
           } else {
+            console.log(`API returned status ${res.status} for word "${word}"`);
             apiFailed = true;
           }
         } catch (e) {
+          console.log(`API call failed for "${word}":`, e.message);
           apiFailed = true;
         }
         
@@ -773,16 +788,21 @@
           return;
         }
         
-        // Haptic feedback for successful word submission
-        if ('vibrate' in navigator) {
-          navigator.vibrate(100); // Short vibration for success
-        }
+        // Haptic feedback for successful word submission (temporarily disabled for mobile debugging)
+        // if ('vibrate' in navigator) {
+        //   navigator.vibrate(100); // Short vibration for success
+        // }
         
         // If valid and not a proper noun, continue with scoring and animation
+        console.log(`Starting scoring process for word "${word}"`);
         const chainLevel = this.chainTracker.getChainLevel();
+        console.log(`Chain level: ${chainLevel}`);
         const score = this.scoreManager.calculateScore(word, chainLevel);
+        console.log(`Calculated score: ${score}`);
         this.scoreManager.addScore(score);
+        console.log(`Total score after adding: ${this.scoreManager.getTotalScore()}`);
         this.wordsUsed++;
+        console.log(`Words used: ${this.wordsUsed}`);
         if (score > this.topWordScore) {
           this.topWordScore = score;
           this.topWord = word;
@@ -828,10 +848,15 @@
         const scoreDisplay = document.getElementById('score-display');
         const chainDisplay = document.getElementById('chain-display');
         
-        scoreDisplay.textContent = this.scoreManager.getTotalScore();
+        const currentScore = this.scoreManager.getTotalScore();
+        const currentChain = this.chainTracker.getChainLevel();
+        
+        console.log(`updateUI called - Score: ${currentScore}, Chain: ${currentChain}`);
+        
+        scoreDisplay.textContent = currentScore;
         scoreDisplay.style.fontFamily = 'Arial, Helvetica, sans-serif';
         
-        chainDisplay.textContent = `x${this.chainTracker.getChainLevel()}`;
+        chainDisplay.textContent = `x${currentChain}`;
         chainDisplay.style.fontFamily = 'Arial, Helvetica, sans-serif';
         
         // Check for game over immediately when score reaches 200

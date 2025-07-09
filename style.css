@@ -25,9 +25,9 @@ body {
   align-items: center;
   justify-content: flex-start;
   width: 100%;
-  height: calc(100vh - 180px);
-  height: calc(100dvh - 180px);
-  margin-top: 180px;
+  height: calc(100vh - 140px);
+  height: calc(100dvh - 140px);
+  margin-top: 140px;
   background: transparent;
   box-sizing: border-box;
   gap: 0;
