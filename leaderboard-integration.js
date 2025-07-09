@@ -873,12 +873,13 @@ class GlobalLeaderboardManager {
     }
 
     try {
+      const limit = 20;
       const { data, error } = await this.supabase
         .from('leaderboard')
         .select('*')
         .eq('game_mode', 'fallphabet_taptile')
         .order('score', { ascending: false })
-        .limit(20);
+        .limit(limit);
 
       if (error) {
         console.error('Error loading Taptile leaderboard:', error);
@@ -887,32 +888,64 @@ class GlobalLeaderboardManager {
       }
 
       if (!data || data.length === 0) {
-        container.innerHTML = '<div class="no-scores">No Taptile scores yet! Be the first to play!</div>';
+        container.innerHTML = '<div class="no-scores">No scores yet! Be the first to play!</div>';
         return;
       }
 
       const playerIdentifier = this.getPlayerIdentifier();
+      // Find the player's highest score and rank
+      let playerBest = null;
+      let playerRank = null;
+      let seenPlayer = false;
       let html = '<div class="leaderboard-entries">';
-      
-      data.forEach((entry, index) => {
+      let rank = 1;
+      // Render top N, but only show player once
+      for (let i = 0; i < data.length; i++) {
+        const entry = data[i];
         const isCurrentPlayer = entry.player_name === playerIdentifier;
-        const rank = index + 1;
-        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
-        
+        if (isCurrentPlayer && !playerBest) {
+          playerBest = entry;
+          playerRank = rank;
+        }
+        // Only show the player in their highest position
+        if (isCurrentPlayer) {
+          if (seenPlayer) continue;
+          seenPlayer = true;
+        }
+        if (rank <= limit) {
+          const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
+          html += `
+            <div class="leaderboard-entry ${isCurrentPlayer ? 'current-player' : ''}">
+              <div class="rank">${medal} ${rank}</div>
+              <div class="player-name">${this.escapeHtml(entry.player_name)}</div>
+              <div class="score">${entry.score.toLocaleString()}</div>
+              <div class="details">
+                <span class="speed">${entry.max_chain_multiplier}x speed</span>
+                <span class="time">${entry.game_duration_seconds}s</span>
+              </div>
+            </div>
+          `;
+        }
+        rank++;
+      }
+      html += '</div>';
+
+      // If the player is not in the top N, show their best score at the bottom
+      if (playerBest && playerRank > limit) {
+        html += '<div class="leaderboard-entries" style="margin-top: 16px; border-top: 1px solid #eee; padding-top: 12px;">';
         html += `
-          <div class="leaderboard-entry ${isCurrentPlayer ? 'current-player' : ''}">
-            <div class="rank">${medal} ${rank}</div>
-            <div class="player-name">${this.escapeHtml(entry.player_name)}</div>
-            <div class="score">${entry.score.toLocaleString()}</div>
+          <div class="leaderboard-entry current-player">
+            <div class="rank">${playerRank}</div>
+            <div class="player-name">${this.escapeHtml(playerBest.player_name)}</div>
+            <div class="score">${playerBest.score.toLocaleString()}</div>
             <div class="details">
-              <span class="speed">${entry.max_chain_multiplier}x speed</span>
-              <span class="time">${entry.game_duration_seconds}s</span>
+              <span class="speed">${playerBest.max_chain_multiplier}x speed</span>
+              <span class="time">${playerBest.game_duration_seconds}s</span>
             </div>
           </div>
         `;
-      });
-      
-      html += '</div>';
+        html += '</div>';
+      }
       container.innerHTML = html;
     } catch (err) {
       console.error('Error rendering Taptile leaderboard:', err);
