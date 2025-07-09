@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=102">
+      <link rel="stylesheet" href="style.css?v=103">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -322,12 +322,17 @@
       }
       
       onWordSubmitted() {
-        this.lastWordTime = Date.now();
+        // Don't reset lastWordTime here - it should be reset when starting a new word
         // Add a small grace period to prevent immediate game over
         this.gracePeriod = true;
         setTimeout(() => {
           this.gracePeriod = false;
         }, 100); // 100ms grace period
+      }
+      
+      onWordStarted() {
+        // Reset the timer when player starts working on a new word
+        this.lastWordTime = Date.now();
       }
       
       checkTimeWindow() {
@@ -646,10 +651,16 @@
             this.buffer.push(tile.letter);
             this.highlightTile(tile, true);
             this.lastTile = tile;
-            // If this is the first tile of a new word, handle chain increment
-            if (this.selectedTiles.length === 1 && this.scene.chainTracker && this.scene.chainTracker.chainWindowActive) {
-              this.scene.chainTracker.shouldIncrementChain = true;
-              this.scene.chainTracker.clearChainWindow();
+            // If this is the first tile of a new word, handle chain increment and reset taptile timer
+            if (this.selectedTiles.length === 1) {
+              if (this.scene.chainTracker && this.scene.chainTracker.chainWindowActive) {
+                this.scene.chainTracker.shouldIncrementChain = true;
+                this.scene.chainTracker.clearChainWindow();
+              }
+              // Reset the taptile timer when starting a new word
+              if (this.scene.taptileSpeedManager) {
+                this.scene.taptileSpeedManager.onWordStarted();
+              }
             }
           }
         }
