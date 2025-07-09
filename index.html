@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=101">
+      <link rel="stylesheet" href="style.css?v=102">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -416,7 +416,7 @@
         }
         // Set up per-column spawn timers for natural cascade
         this.columnTimers = [];
-        this.fixedSpawnInterval = 1000; // ms, fixed interval after first tile
+        this.baseSpawnInterval = 1000; // ms, base interval for 1x speed
         for (let col = 0; col < this.columns; col++) {
           let isFirstSpawn = true;
           const spawnNext = () => {
@@ -436,14 +436,19 @@
             }
             const tile = this.spawnTile(col, spawnY);
             this.columnsTiles[col].push(tile);
-            // Schedule the next spawn
+            // Schedule the next spawn with dynamic interval based on speed
             let delay;
             if (isFirstSpawn) {
               // Only the first spawn is randomized
               delay = Phaser.Math.Between(900, 1200);
               isFirstSpawn = false;
             } else {
-              delay = this.fixedSpawnInterval;
+              // Calculate spawn interval based on current fall speed to maintain consistent spacing
+              const currentSpeed = this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease 
+                ? this.scene.taptileSpeedManager.getCurrentSpeed() 
+                : this.fallSpeed;
+              const speedMultiplier = currentSpeed / 150; // 150 is the base speed
+              delay = Math.max(100, this.baseSpawnInterval / speedMultiplier); // Ensure minimum 100ms delay
             }
             this.columnTimers[col] = this.scene.time.addEvent({
               delay: delay,
