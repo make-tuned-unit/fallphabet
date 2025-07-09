@@ -137,16 +137,22 @@ body {
 
 /* Responsive Design */
 @media (max-width: 600px), (max-height: 900px) {
-  body, #main-content {
-    margin: 0 !important;
-    padding: 0 !important;
-    box-sizing: border-box;
-    overflow-y: auto !important;
+  html, body {
+    overflow: hidden !important;
+    height: 100dvh;
+    height: 100vh;
+  }
+  #main-content {
+    height: 100dvh !important;
+    height: 100vh !important;
+    overflow: hidden !important;
   }
   #playfield-container {
-    min-height: 400px;
-    height: auto !important;
-    max-height: none !important;
+    height: 100dvh !important;
+    height: 100vh !important;
+    max-height: 100dvh !important;
+    max-height: 100vh !important;
+    min-height: unset !important;
   }
   #main-content {
     width: 100vw !important;
@@ -183,18 +189,22 @@ body {
 
 /* iPhone 14 Pro Max and similar tall screens */
 @media (min-height: 800px) and (max-width: 430px) {
-  body, #main-content {
-    overflow-y: auto !important;
+  html, body {
+    overflow: hidden !important;
+    height: 100dvh;
+    height: 100vh;
   }
   #main-content {
-    margin-top: 40px !important;
-    height: calc(100vh - 40px) !important;
-    height: calc(100dvh - 40px) !important;
+    height: 100dvh !important;
+    height: 100vh !important;
+    overflow: hidden !important;
   }
   #playfield-container {
-    min-height: 400px;
-    height: auto !important;
-    max-height: none !important;
+    height: 100dvh !important;
+    height: 100vh !important;
+    max-height: 100dvh !important;
+    max-height: 100vh !important;
+    min-height: unset !important;
   }
   .game-title {
     font-size: 7vw !important;
