@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=85">
+      <link rel="stylesheet" href="style.css?v=86">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -303,6 +303,7 @@
         this.speedMultiplier = 1.0;
         this.timeWindow = 5.0;
         this.lastWordTime = Date.now(); // Set to current time so first word has full time window
+        this.gracePeriod = false; // Initialize grace period
         this.startSpeedTimer();
         this.updateUI();
       }
@@ -322,10 +323,19 @@
       
       onWordSubmitted() {
         this.lastWordTime = Date.now();
+        // Add a small grace period to prevent immediate game over
+        this.gracePeriod = true;
+        setTimeout(() => {
+          this.gracePeriod = false;
+        }, 100); // 100ms grace period
       }
       
       checkTimeWindow() {
         // Always allow time window check since lastWordTime is set on start
+        // But respect grace period after word submission
+        if (this.gracePeriod) {
+          return true;
+        }
         const now = Date.now();
         const timeSinceLastWord = (now - this.lastWordTime) / 1000;
         return timeSinceLastWord <= this.timeWindow;
