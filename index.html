@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=65">
+      <link rel="stylesheet" href="style.css?v=67">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -260,7 +260,7 @@
           mainContent.classList.add('taptile-mode');
         } else {
           taptileStats.style.display = 'none';
-          leaderboardBtn.style.display = 'none';
+          leaderboardBtn.style.display = 'block'; // Show leaderboard for Daily Challenge too
           mainContent.classList.remove('taptile-mode');
         }
         
@@ -1353,28 +1353,33 @@
                     statsDiv.innerHTML += `<div style="margin-top: 15px; color: #7c3aed; font-weight: bold;">${rankText}</div>`;
                   }
                 }
+                
+                // For successful submissions, hide restart button (one attempt per day)
+                const restartBtn = document.getElementById('modal-restart-btn');
+                restartBtn.style.display = 'none';
+                
               } else if (result.error && result.error.includes('already completed')) {
                 // Player has already attempted today
                 const statsDiv = document.querySelector('.modal-stats');
                 if (statsDiv) {
                   statsDiv.innerHTML += `<div style="margin-top: 15px; color: #dc3545; font-weight: bold;">${result.error}</div>`;
                 }
+                
+                // Hide restart button for already completed attempts
+                const restartBtn = document.getElementById('modal-restart-btn');
+                restartBtn.style.display = 'none';
+                
+              } else {
+                // For other errors, allow retry
+                const restartBtn = document.getElementById('modal-restart-btn');
+                restartBtn.textContent = 'Try Again';
+                restartBtn.style.display = '';
               }
             });
-          }
-          
-          // Daily challenge logic for attempts/restart button
-          this.dailyChallenge.incrementAttempt();
-          const restartBtn = document.getElementById('modal-restart-btn');
-          if (finalScore >= 200) {
-            // For wins, always show Try Again button
-            restartBtn.textContent = 'Try Again';
-            restartBtn.style.display = '';
-          } else if (this.dailyChallenge.attemptsLeft() > 0) {
-            // For losses, only show if attempts remain
-            restartBtn.textContent = 'Try Again';
-            restartBtn.style.display = '';
           } else {
+            // Fallback for when leaderboard manager is not available
+            const restartBtn = document.getElementById('modal-restart-btn');
+            // Hide restart button for Daily Challenge mode (one attempt per day)
             restartBtn.style.display = 'none';
           }
           
@@ -1494,10 +1499,8 @@
             const scene = window.game.scene.keys['GameScene'];
             const currentMode = window.gameModeManager.getCurrentMode();
             
-            // Allow restart for taptile mode always, or for daily mode if conditions met
-            if (currentMode.speedIncrease || 
-                scene.scoreManager.getTotalScore() >= 200 || 
-                (scene.dailyChallenge && scene.dailyChallenge.attemptsLeft() > 0)) {
+            // Allow restart for taptile mode always (Daily Challenge is one attempt per day)
+            if (currentMode.speedIncrease) {
               // Hide modal
               document.getElementById('gameover-modal').classList.remove('show');
               window.game.scene.restart();
