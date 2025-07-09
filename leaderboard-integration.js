@@ -41,30 +41,12 @@ class GlobalLeaderboardManager {
 
       if (scoreData.gameMode === 'daily_challenge') {
         // Daily challenge with one attempt per day limit
-        // Ensure attempt_date and daily_seed are present
-        const today = new Date();
-        const attempt_date = scoreData.attemptDate || today.toISOString().slice(0, 10); // 'YYYY-MM-DD'
-        // Generate daily_seed using the same logic as backend (MD5 hash of date + salt, first 10 chars)
-        let daily_seed = scoreData.dailySeed;
-        if (!daily_seed) {
-          // Fallback JS implementation of backend's get_daily_seed
-          // MD5 implementation (simple, not cryptographically secure, but matches backend intent)
-          function md5(str) {
-            return CryptoJS.MD5(str).toString();
-          }
-          if (typeof CryptoJS !== 'undefined') {
-            daily_seed = md5(attempt_date + 'fallphabet_daily_2024').substring(0, 10);
-          } else {
-            // If CryptoJS is not available, fallback to a simple hash
-            daily_seed = btoa(attempt_date).substring(0, 10);
-          }
-        }
         const { data, error } = await this.supabase
           .rpc('submit_daily_challenge_score', {
-            player_name: scoreData.playerName,
-            score: scoreData.score,
-            attempt_date,
-            daily_seed
+            player_name_param: scoreData.playerName,
+            score_param: scoreData.score,
+            words_used_param: scoreData.wordsUsed,
+            max_chain_multiplier_param: scoreData.maxChainMultiplier
           });
 
         if (error) {
