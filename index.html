@@ -8,7 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=25">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <!-- Open Graph and Twitter Card for social sharing -->
   <meta property="og:title" content="Fallphabet" />
@@ -99,26 +100,22 @@
       <button class="slideup-close-btn" id="howto-close">&times;</button>
       <h2>How to Play</h2>
       <div class="instructions-text">
-        <h3>Forming Words</h3>
-        <p>• Select letters anywhere on the screen to build a word</p>
-        <p>• You can tap or drag to select tiles in sequence</p>
-        <p>• Double-tap the last letter to submit your word</p>
-        <p>• Selection clears after 1 second of inactivity</p>
+        <h3>How to Play</h3>
+        <p>• Tap tiles in sequence to build words</p>
+        <p>• Double-tap last letter to submit</p>
+        <p>• Tap outside grid to reset current word</p>
+        <p>• Selection auto-clears after 1.25 seconds</p>
         
-        <h3>Scoring</h3>
-        <p>• Each letter has a point value (like Scrabble)</p>
+        <h3>Scoring & Chains</h3>
+        <p>• Letters have point values (like Scrabble)</p>
         <p>• Longer words = more points</p>
-        <p>• Chain multiplier increases with rapid play</p>
-        
-        <h3>Chain Multiplier</h3>
-        <p>• Start a new word within 1 second of submitting</p>
-        <p>• Each word in a chain gets a higher multiplier</p>
-        <p>• 2nd word: x2, 3rd word: x3, 4th word: x4, etc.</p>
-        <p>• Miss the 1-second window = chain resets to x1</p>
+        <p>• Start new word within 1.25 seconds to build chain</p>
+        <p>• Chain multiplier: 2nd word x2, 3rd word x3, etc.</p>
+        <p>• Miss timing = chain resets to x1</p>
         
         <h3>Goal</h3>
-        <p>• Reach 200 points to win!</p>
-        <p>• Build long chains for massive scores</p>
+        <p>• Reach 200 points with fewest words possible</p>
+        <p>• No time limit - make words as long as possible</p>
       </div>
     </div>
   </div>
@@ -147,7 +144,8 @@
         this.rows = rows;
         this.tileSize = (this.gridWidth / this.columns) * 0.75; // Smaller tiles for more margin
         this.tileMargin = (this.gridWidth / this.columns - this.tileSize) / 2; // Larger margin
-        this.tileSpacing = 24; // vertical gap between tiles (increased for more top/bottom margin)
+        // Reduce the vertical gap between tiles
+        this.tileSpacing = 8; // Reduced from 24 to 8 for tighter vertical spacing
         this.fallSpeed = 150; // pixels/sec, smoother and more playable
         this.letters = {
           'E': 10, 'A': 8, 'I': 7, 'N': 6, 'O': 7, 'R': 6, 'T': 6, 'L': 5, 'S': 5, 'U': 4,
@@ -164,7 +162,9 @@
         }
         // Set up per-column spawn timers for natural cascade
         this.columnTimers = [];
+        this.fixedSpawnInterval = 1000; // ms, fixed interval after first tile
         for (let col = 0; col < this.columns; col++) {
+          let isFirstSpawn = true;
           const spawnNext = () => {
             // Only spawn if last tile is far enough down
             const colTiles = this.columnsTiles[col];
@@ -182,8 +182,15 @@
             }
             const tile = this.spawnTile(col, spawnY);
             this.columnsTiles[col].push(tile);
-            // Schedule the next spawn with the same interval for all columns
-            let delay = Phaser.Math.Between(900, 1200);
+            // Schedule the next spawn
+            let delay;
+            if (isFirstSpawn) {
+              // Only the first spawn is randomized
+              delay = Phaser.Math.Between(900, 1200);
+              isFirstSpawn = false;
+            } else {
+              delay = this.fixedSpawnInterval;
+            }
             this.columnTimers[col] = this.scene.time.addEvent({
               delay: delay,
               callback: spawnNext,
@@ -195,6 +202,7 @@
           if (col === 0) initialDelay += 200; // Delay column 1 by 0.2s
           if (col === 1) initialDelay = Math.max(0, initialDelay - 800); // Column 2 spawns 0.8s earlier
           if (col === 3) initialDelay += 800; // Delay column 4 by 0.8s
+          if (col === 4) initialDelay += 1200; // Delay column 5 by 1.2s
           this.scene.time.addEvent({
             delay: initialDelay,
             callback: spawnNext,
@@ -231,7 +239,7 @@
         innerShadow.setDepth(2);
         // Letter text
         const text = this.scene.add.text(x, y, letter, {
-          fontFamily: 'Roboto Slab', fontSize: '32px', color: '#222', fontStyle: 'bold',
+          fontFamily: 'Inter', fontSize: '64px', color: '#222', fontStyle: 'normal', fontWeight: '300',
         }).setOrigin(0.5);
         text.setDepth(3);
         text.setShadow(2, 3, '#B8860B', 2, false, true);
@@ -324,6 +332,21 @@
       
       onPointerDown(pointer) {
         this.isDragging = true;
+        
+        // Check if click is outside the grid area
+        const x = pointer.x;
+        const y = pointer.y;
+        const isOutsideGrid = x < this.scene.gridX || 
+                             x > this.scene.gridX + this.scene.gridWidth ||
+                             y < this.scene.gridY || 
+                             y > this.scene.gridY + this.scene.gridHeight;
+        
+        // If outside grid and we have selected tiles, clear the buffer
+        if (isOutsideGrid && this.selectedTiles.length > 0) {
+          this.clearBuffer();
+          return;
+        }
+        
         // Only clear buffer if not already selecting
         if (!this.selectedTiles.length) this.clearBuffer();
         this.selectTileAt(pointer.x, pointer.y);
@@ -611,7 +634,16 @@
     class GameScene extends Phaser.Scene {
       constructor() {
         super({ key: 'GameScene' });
-        this.columns = 4;
+        // Change columns to 5 for a 5-column grid
+        this.columns = 5;
+        // Recalculate tile size and margin for 5 columns, keeping the same margin formula
+        this.tileSize = (this.gridWidth / this.columns) * 0.75; // Keep the same 75% sizing
+        this.tileMargin = (this.gridWidth / this.columns - this.tileSize) / 2;
+        // Recalculate column positions for 5 columns
+        this.columnX = [];
+        for (let i = 0; i < this.columns; i++) {
+          this.columnX.push(this.gridX + (i + 0.5) * (this.gridWidth / this.columns));
+        }
         this.rows = 12;
         this.wordsUsed = 0;
         this.topWord = '';
@@ -739,6 +771,12 @@
           this.showFlashMessage(`"${word}" is a proper name. No proper names allowed!`, '#ff6b6b');
           return;
         }
+        
+        // Haptic feedback for successful word submission
+        if ('vibrate' in navigator) {
+          navigator.vibrate(100); // Short vibration for success
+        }
+        
         // If valid and not a proper noun, continue with scoring and animation
         const chainLevel = this.chainTracker.getChainLevel();
         const score = this.scoreManager.calculateScore(word, chainLevel);
