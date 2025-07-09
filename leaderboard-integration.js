@@ -390,9 +390,15 @@ class GlobalLeaderboardManager {
   // Show name input modal for score submission
   showNameInputModal(scoreData, callback) {
     const modal = document.createElement('div');
-    modal.className = 'name-input-modal';
+    modal.className = 'responsive-modal';
     modal.innerHTML = `
-      <div class="name-input-content">
+      <div class="responsive-modal-content compact">
+        <button class="responsive-close-btn" id="name-input-close">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
         <h3>Submit Your Score!</h3>
         <p>You scored <strong>${scoreData.score}</strong> points!</p>
         <div class="input-group">
@@ -407,61 +413,50 @@ class GlobalLeaderboardManager {
     `;
 
     document.body.appendChild(modal);
+    modal.classList.add('show');
 
     const nameInput = modal.querySelector('#player-name');
     const submitBtn = modal.querySelector('#submit-score-btn');
     const cancelBtn = modal.querySelector('#cancel-score-btn');
+    const closeBtn = modal.querySelector('#name-input-close');
 
     // Focus on input
     setTimeout(() => nameInput.focus(), 100);
 
-    // Handle submit
-    const handleSubmit = async () => {
-      const playerName = nameInput.value.trim();
-      if (!playerName) {
-        nameInput.focus();
-        return;
-      }
-
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Submitting...';
-
-      const submissionData = {
-        ...scoreData,
-        playerName: playerName
-      };
-
-      const result = await this.submitScore(submissionData);
-      // Only remove modal if it is still in the DOM
-      if (modal && modal.parentNode) {
-        document.body.removeChild(modal);
-      }
-      if (callback) {
-        callback(result, submissionData);
-      }
-      // Show leaderboard modal for the current mode after name submission
-      const gameMode = scoreData.gameMode;
-      this.showLeaderboardModal(gameMode);
-      // Disable input in the game scene if possible
-      if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
-        const scene = window.game.scene.keys['GameScene'];
-        if (scene.disableInput) scene.disableInput();
-      }
+    // Event listeners
+    const closeModal = () => {
+      modal.classList.remove('show');
+      setTimeout(() => {
+        if (modal.parentNode) {
+          document.body.removeChild(modal);
+        }
+      }, 300);
     };
 
-    // Event listeners
-    submitBtn.addEventListener('click', handleSubmit);
-    cancelBtn.addEventListener('click', () => {
-      // Only remove modal if it is still in the DOM
-      if (modal && modal.parentNode) {
-        document.body.removeChild(modal);
+    submitBtn.addEventListener('click', () => {
+      const playerName = nameInput.value.trim();
+      if (playerName) {
+        closeModal();
+        callback(playerName);
+      } else {
+        nameInput.focus();
       }
-      if (callback) callback({ success: false, cancelled: true });
     });
 
+    cancelBtn.addEventListener('click', closeModal);
+    closeBtn.addEventListener('click', closeModal);
+
+    // Close on outside click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+
+    // Submit on Enter key
     nameInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
-        handleSubmit();
+        submitBtn.click();
       }
     });
   }
@@ -533,9 +528,15 @@ class GlobalLeaderboardManager {
   // Show daily challenge already attempted modal
   showDailyAlreadyAttemptedModal(todaysScore) {
     const modal = document.createElement('div');
-    modal.className = 'daily-attempted-modal';
+    modal.className = 'responsive-modal';
     modal.innerHTML = `
-      <div class="daily-attempted-content">
+      <div class="responsive-modal-content standard">
+        <button class="responsive-close-btn" id="daily-attempted-close">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
         <h3>Daily Challenge Already Completed!</h3>
         <p>Come back tomorrow to try to beat your daily best!</p>
         ${todaysScore ? `
@@ -554,16 +555,25 @@ class GlobalLeaderboardManager {
     `;
 
     document.body.appendChild(modal);
+    modal.classList.add('show');
 
     const playTaptileBtn = modal.querySelector('#play-taptile-btn');
     const viewLeaderboardBtn = modal.querySelector('#view-leaderboard-btn');
     const closeBtn = modal.querySelector('#close-modal-btn');
+    const closeModalBtn = modal.querySelector('#close-modal-btn');
+
+    const closeModal = () => {
+      modal.classList.remove('show');
+      setTimeout(() => {
+        if (modal.parentNode) {
+          document.body.removeChild(modal);
+        }
+      }, 300);
+    };
 
     // Event listeners
     playTaptileBtn.addEventListener('click', () => {
-      if (modal && modal.parentNode) {
-        document.body.removeChild(modal);
-      }
+      closeModal();
       // Switch to Taptile mode
       if (window.switchToTaptileMode) {
         window.switchToTaptileMode();
@@ -596,16 +606,18 @@ class GlobalLeaderboardManager {
     });
 
     viewLeaderboardBtn.addEventListener('click', () => {
-      if (modal && modal.parentNode) {
-        document.body.removeChild(modal);
-      }
+      closeModal();
       // Show dedicated daily leaderboard view instead of slide-up modal
       this.showDailyLeaderboardView();
     });
 
-    closeBtn.addEventListener('click', () => {
-      if (modal && modal.parentNode) {
-        document.body.removeChild(modal);
+    closeBtn.addEventListener('click', closeModal);
+    closeModalBtn.addEventListener('click', closeModal);
+
+    // Close on outside click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
       }
     });
   }
@@ -613,19 +625,20 @@ class GlobalLeaderboardManager {
   // Show dedicated daily leaderboard view
   showDailyLeaderboardView() {
     const modal = document.createElement('div');
-    modal.className = 'daily-leaderboard-modal';
+    modal.className = 'responsive-modal';
     modal.innerHTML = `
-      <div class="daily-leaderboard-content">
-        <div class="daily-leaderboard-header">
-          <h3>Today's Daily Challenge Leaderboard</h3>
-          <button id="close-daily-leaderboard-btn" class="close-btn">&times;</button>
+      <div class="responsive-modal-content large">
+        <button class="responsive-close-btn" id="close-daily-leaderboard-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <h3>Today's Daily Challenge Leaderboard</h3>
+        <div id="daily-leaderboard-list" class="leaderboard-list">
+          <div class="loading">Loading today's leaderboard...</div>
         </div>
-        <div class="daily-leaderboard-body">
-          <div id="daily-leaderboard-list" class="leaderboard-list">
-            <div class="loading">Loading today's leaderboard...</div>
-          </div>
-        </div>
-        <div class="daily-leaderboard-footer">
+        <div class="modal-actions">
           <button id="play-taptile-from-leaderboard-btn" class="modal-btn primary">Play Fallphabet Taptile</button>
           <button id="close-daily-leaderboard-modal-btn" class="modal-btn">Close</button>
         </div>
@@ -633,6 +646,7 @@ class GlobalLeaderboardManager {
     `;
 
     document.body.appendChild(modal);
+    modal.classList.add('show');
 
     const closeBtn = modal.querySelector('#close-daily-leaderboard-btn');
     const closeModalBtn = modal.querySelector('#close-daily-leaderboard-modal-btn');
@@ -641,60 +655,40 @@ class GlobalLeaderboardManager {
     // Load and render daily leaderboard
     this.renderDailyLeaderboard(modal.querySelector('#daily-leaderboard-list'));
 
-    // Event listeners
-    closeBtn.addEventListener('click', () => {
-      if (modal && modal.parentNode) {
-        document.body.removeChild(modal);
-      }
-    });
+    const closeModal = () => {
+      modal.classList.remove('show');
+      setTimeout(() => {
+        if (modal.parentNode) {
+          document.body.removeChild(modal);
+        }
+      }, 300);
+    };
 
-    closeModalBtn.addEventListener('click', () => {
-      if (modal && modal.parentNode) {
-        document.body.removeChild(modal);
-      }
-    });
+    // Event listeners
+    closeBtn.addEventListener('click', closeModal);
+    closeModalBtn.addEventListener('click', closeModal);
 
     playTaptileBtn.addEventListener('click', () => {
-      if (modal && modal.parentNode) {
-        document.body.removeChild(modal);
-      }
+      closeModal();
       // Switch to Taptile mode
-      if (window.switchToTaptileMode) {
-        window.switchToTaptileMode();
-      } else {
-        // Fallback: manually switch mode
-        if (window.gameModeManager) {
-          window.gameModeManager.setMode('taptile');
-          setTimeout(() => {
-            window.gameModeManager.updateUI();
-            
-            // Create game if it doesn't exist (in case it was blocked by daily challenge check)
-            if (!window.game) {
-              console.log('Creating game for Taptile mode (fallback 2 - was previously blocked)');
-              try {
-                window.game = new Phaser.Game(config);
-                console.log('Phaser game created successfully for Taptile mode (fallback 2)');
-              } catch (error) {
-                console.error('Error creating game for Taptile mode (fallback 2):', error);
-              }
-            } else if (window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
-              // Game exists, restart with new mode
-              console.log('Restarting existing game for Taptile mode (fallback 2)');
-              window.game.scene.stop('GameScene');
-              window.game.scene.remove('GameScene');
-              window.game.scene.add('GameScene', GameScene, true);
-            }
-          }, 100);
-        }
+      if (window.gameModeManager) {
+        window.gameModeManager.setMode('taptile');
+        setTimeout(() => {
+          window.gameModeManager.updateUI();
+          // Restart game with new mode
+          if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+            window.game.scene.stop('GameScene');
+            window.game.scene.remove('GameScene');
+            window.game.scene.add('GameScene', GameScene, true);
+          }
+        }, 100);
       }
     });
 
     // Close modal when clicking outside
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
-        if (modal && modal.parentNode) {
-          document.body.removeChild(modal);
-        }
+        closeModal();
       }
     });
   }
@@ -702,19 +696,20 @@ class GlobalLeaderboardManager {
   // Show dedicated Taptile leaderboard view
   async showTaptileLeaderboardView() {
     const modal = document.createElement('div');
-    modal.className = 'daily-leaderboard-modal';
+    modal.className = 'responsive-modal';
     modal.innerHTML = `
-      <div class="daily-leaderboard-content">
-        <div class="daily-leaderboard-header">
-          <h3>Global Taptile Leaderboard</h3>
-          <button id="close-taptile-leaderboard-btn" class="close-btn">&times;</button>
+      <div class="responsive-modal-content large">
+        <button class="responsive-close-btn" id="close-taptile-leaderboard-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <h3>Global Taptile Leaderboard</h3>
+        <div id="taptile-leaderboard-list" class="leaderboard-list">
+          <div class="loading">Loading Taptile leaderboard...</div>
         </div>
-        <div class="daily-leaderboard-body">
-          <div id="taptile-leaderboard-list" class="leaderboard-list">
-            <div class="loading">Loading Taptile leaderboard...</div>
-          </div>
-        </div>
-        <div class="daily-leaderboard-footer">
+        <div class="modal-actions">
           <button id="play-daily-from-leaderboard-btn" class="modal-btn primary">Play Daily Challenge</button>
           <button id="try-again-taptile-btn" class="modal-btn primary" style="display:none;">Try Again</button>
           <button id="close-taptile-leaderboard-modal-btn" class="modal-btn">Close</button>
@@ -723,6 +718,7 @@ class GlobalLeaderboardManager {
     `;
 
     document.body.appendChild(modal);
+    modal.classList.add('show');
 
     const closeBtn = modal.querySelector('#close-taptile-leaderboard-btn');
     const closeModalBtn = modal.querySelector('#close-taptile-leaderboard-modal-btn');
@@ -746,23 +742,21 @@ class GlobalLeaderboardManager {
       }
     });
 
-    // Event listeners
-    closeBtn.addEventListener('click', () => {
-      if (modal && modal.parentNode) {
-        document.body.removeChild(modal);
-      }
-    });
+    const closeModal = () => {
+      modal.classList.remove('show');
+      setTimeout(() => {
+        if (modal.parentNode) {
+          document.body.removeChild(modal);
+        }
+      }, 300);
+    };
 
-    closeModalBtn.addEventListener('click', () => {
-      if (modal && modal.parentNode) {
-        document.body.removeChild(modal);
-      }
-    });
+    // Event listeners
+    closeBtn.addEventListener('click', closeModal);
+    closeModalBtn.addEventListener('click', closeModal);
 
     playDailyBtn.addEventListener('click', () => {
-      if (modal && modal.parentNode) {
-        document.body.removeChild(modal);
-      }
+      closeModal();
       // Switch to Daily Challenge mode
       if (window.gameModeManager) {
         window.gameModeManager.setMode('daily');
@@ -779,9 +773,7 @@ class GlobalLeaderboardManager {
     });
 
     tryAgainBtn.addEventListener('click', () => {
-      if (modal && modal.parentNode) {
-        document.body.removeChild(modal);
-      }
+      closeModal();
       // Restart Taptile mode
       if (window.gameModeManager) {
         window.gameModeManager.setMode('taptile');
@@ -799,9 +791,7 @@ class GlobalLeaderboardManager {
     // Close modal when clicking outside
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
-        if (modal && modal.parentNode) {
-          document.body.removeChild(modal);
-        }
+        closeModal();
       }
     });
   }

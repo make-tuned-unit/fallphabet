@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=111">
+      <link rel="stylesheet" href="style.css?v=73">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -112,9 +112,9 @@
   <div id="flash-message" class="flash-message"></div>
 
   <!-- Game Over Modal -->
-  <div id="gameover-modal" class="slideup-modal">
-    <div class="slideup-modal-content">
-      <button id="modal-close-btn" class="slideup-close-btn" aria-label="Close">
+  <div id="gameover-modal" class="responsive-modal">
+    <div class="responsive-modal-content standard">
+      <button id="modal-close-btn" class="responsive-close-btn" aria-label="Close">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -139,10 +139,10 @@
     </div>
   </div>
 
-  <!-- Slide-up How to Play Modal -->
-  <div id="howto-modal" class="slideup-modal">
-    <div class="slideup-modal-content">
-      <button class="slideup-close-btn" id="howto-close">
+  <!-- How to Play Modal -->
+  <div id="howto-modal" class="responsive-modal">
+    <div class="responsive-modal-content large">
+      <button class="responsive-close-btn" id="howto-close">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -182,10 +182,10 @@
     </div>
   </div>
 
-  <!-- Slide-up Stats/History Modal -->
-  <div id="stats-modal" class="slideup-modal">
-    <div class="slideup-modal-content">
-      <button class="slideup-close-btn" id="stats-close">
+  <!-- Stats/History Modal -->
+  <div id="stats-modal" class="responsive-modal">
+    <div class="responsive-modal-content large">
+      <button class="responsive-close-btn" id="stats-close">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -199,9 +199,9 @@
   </div>
 
   <!-- Global Leaderboard Modal -->
-  <div id="leaderboard-modal" class="slideup-modal">
-    <div class="slideup-modal-content">
-      <button class="slideup-close-btn" id="leaderboard-close">
+  <div id="leaderboard-modal" class="responsive-modal">
+    <div class="responsive-modal-content large">
+      <button class="responsive-close-btn" id="leaderboard-close">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -1286,9 +1286,15 @@
         this.updateTaptileHighScore(score);
         
         const modal = document.createElement('div');
-        modal.className = 'high-score-modal';
+        modal.className = 'responsive-modal';
         modal.innerHTML = `
-          <div class="high-score-content">
+          <div class="responsive-modal-content standard">
+            <button class="responsive-close-btn" id="close-high-score-btn">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
             <div class="high-score-header">
               <h2>🎉 New High Score! 🎉</h2>
               <div class="score-display">${score.toLocaleString()}</div>
@@ -1323,24 +1329,35 @@
         `;
         
         document.body.appendChild(modal);
+        modal.classList.add('show');
+        
+        const closeModal = () => {
+          modal.classList.remove('show');
+          setTimeout(() => {
+            if (modal.parentNode) {
+              document.body.removeChild(modal);
+            }
+          }, 300);
+        };
         
         // Event listeners
         const viewRankingsBtn = modal.querySelector('#view-rankings-btn');
-        const closeBtn = modal.querySelector('#close-high-score-btn');
+        const closeHighScoreBtn = modal.querySelector('#close-high-score-btn');
         
         viewRankingsBtn.addEventListener('click', () => {
-          if (modal.parentNode) {
-            modal.parentNode.removeChild(modal);
-          }
-          // Show global leaderboard
+          closeModal();
+          // Show Taptile leaderboard
           if (this.leaderboardManager) {
-            this.leaderboardManager.showLeaderboardModal('fallphabet_taptile');
+            this.leaderboardManager.showTaptileLeaderboardView();
           }
         });
         
-        closeBtn.addEventListener('click', () => {
-          if (modal.parentNode) {
-            modal.parentNode.removeChild(modal);
+        closeHighScoreBtn.addEventListener('click', closeModal);
+        
+        // Close on outside click
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            closeModal();
           }
         });
       }
@@ -1360,7 +1377,20 @@
           this.tileSpawner.columnTimers.forEach(timer => { if (timer) timer.paused = true; });
         }
         
+        // Show game over modal
         const modal = document.getElementById('gameover-modal');
+        if (modal) {
+          showResponsiveModal('gameover-modal', 'standard');
+          
+          // Also ensure the close button is properly set up
+          const closeBtn = document.getElementById('modal-close-btn');
+          if (closeBtn) {
+            closeBtn.onclick = () => {
+              hideResponsiveModal('gameover-modal');
+            };
+          }
+        }
+        
         const title = modal.querySelector('.modal-title');
         const stats = modal.querySelector('.modal-stats');
         const taptileStats = document.getElementById('taptile-modal-stats');
@@ -1911,92 +1941,99 @@
         const helpBtn = document.getElementById('help-btn');
         if (helpBtn) {
           helpBtn.onclick = () => {
-            const modal = document.getElementById('instructions-modal');
-            modal.style.display = 'flex';
-            setTimeout(() => { modal.classList.add('show'); }, 10);
+            showResponsiveModal('howto-modal', 'large');
           };
         }
         
         // Instructions modal close button
-        const instructionsCloseBtn = document.getElementById('instructions-close-btn');
+        const instructionsCloseBtn = document.getElementById('howto-close');
         if (instructionsCloseBtn) {
           instructionsCloseBtn.onclick = () => {
-            const modal = document.getElementById('instructions-modal');
-            modal.style.display = 'none';
-            modal.classList.remove('show');
+            hideResponsiveModal('howto-modal');
+          };
+        }
+        
+        // Stats modal close button
+        const statsCloseBtn = document.getElementById('stats-close');
+        if (statsCloseBtn) {
+          statsCloseBtn.onclick = () => {
+            hideResponsiveModal('stats-modal');
+          };
+        }
+        
+        // Leaderboard modal close button
+        const leaderboardCloseBtn = document.getElementById('leaderboard-close');
+        if (leaderboardCloseBtn) {
+          leaderboardCloseBtn.onclick = () => {
+            hideResponsiveModal('leaderboard-modal');
           };
         }
         
         // Restart button functionality
         const restartBtn = document.getElementById('modal-restart-btn');
         if (restartBtn) {
-          // Remove restart button if in Daily Challenge mode
-          if (window.gameModeManager && !window.gameModeManager.getCurrentMode().speedIncrease) {
-            restartBtn.parentNode.removeChild(restartBtn);
-          } else {
-            restartBtn.onclick = () => {
-              const currentMode = window.gameModeManager.getCurrentMode();
-              // Allow restart for taptile mode always (Daily Challenge is one attempt per day)
-              if (currentMode.speedIncrease) {
-                console.log('Restarting Taptile game...');
-                
-                // Hide modal immediately
-                const modal = document.getElementById('gameover-modal');
-                modal.classList.remove('show');
-                modal.style.display = 'none';
-                
-                // Clear any existing high score modals
-                const highScoreModal = document.querySelector('.high-score-modal');
-                if (highScoreModal && highScoreModal.parentNode) {
-                  highScoreModal.parentNode.removeChild(highScoreModal);
-                }
-                
-                // Clear any confetti
-                const confettiContainer = document.getElementById('confetti-container');
-                if (confettiContainer && confettiContainer.parentNode) {
-                  confettiContainer.parentNode.removeChild(confettiContainer);
-                }
-                
-                // Reset game state and restart scene
-                if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
-                  const scene = window.game.scene.keys['GameScene'];
-                  
-                  // Reset game state
-                  scene.gameOver = false;
-                  scene.wordsUsed = 0;
-                  scene.topWord = '';
-                  scene.topWordScore = 0;
-                  scene.scoredWords = [];
-                  scene.gameStartTime = Date.now();
-                  
-                  // Reset managers
-                  if (scene.scoreManager) scene.scoreManager.reset();
-                  if (scene.chainTracker) scene.chainTracker.resetChain();
-                  if (scene.taptileSpeedManager) scene.taptileSpeedManager.start();
-                  
-                  // Clear any existing tiles
-                  if (scene.tileSpawner) {
-                    scene.tileSpawner.clearAllTiles();
-                  }
-                  
-                  // Clear input buffer
-                  if (scene.inputHandler) {
-                    scene.inputHandler.clearBuffer();
-                  }
-                  
-                  // Clear inactivity timer
-                  if (scene.clearInactivityTimeout) scene.clearInactivityTimeout();
-                  
-                  // Restart the scene
-                  window.game.scene.restart('GameScene');
-                  
-                  console.log('Taptile game restarted successfully');
-                } else {
-                  console.error('Game scene not available for restart');
-                }
+          restartBtn.onclick = () => {
+            const currentMode = window.gameModeManager.getCurrentMode();
+            // Allow restart for taptile mode always (Daily Challenge is one attempt per day)
+            if (currentMode.speedIncrease) {
+              console.log('Restarting Taptile game...');
+              
+              // Hide modal immediately
+              const modal = document.getElementById('gameover-modal');
+              modal.classList.remove('show');
+              modal.style.display = 'none';
+              
+              // Clear any existing high score modals
+              const highScoreModal = document.querySelector('.high-score-modal');
+              if (highScoreModal && highScoreModal.parentNode) {
+                highScoreModal.parentNode.removeChild(highScoreModal);
               }
-            };
-          }
+              
+              // Clear any confetti
+              const confettiContainer = document.getElementById('confetti-container');
+              if (confettiContainer && confettiContainer.parentNode) {
+                confettiContainer.parentNode.removeChild(confettiContainer);
+              }
+              
+              // Reset game state and restart scene
+              if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+                const scene = window.game.scene.keys['GameScene'];
+                
+                // Reset game state
+                scene.gameOver = false;
+                scene.wordsUsed = 0;
+                scene.topWord = '';
+                scene.topWordScore = 0;
+                scene.scoredWords = [];
+                scene.gameStartTime = Date.now();
+                
+                // Reset managers
+                if (scene.scoreManager) scene.scoreManager.reset();
+                if (scene.chainTracker) scene.chainTracker.resetChain();
+                if (scene.taptileSpeedManager) scene.taptileSpeedManager.start();
+                
+                // Clear any existing tiles
+                if (scene.tileSpawner) {
+                  scene.tileSpawner.clearAllTiles();
+                }
+                
+                // Clear input buffer
+                if (scene.inputHandler) {
+                  scene.inputHandler.clearBuffer();
+                }
+                
+                // Clear inactivity timer
+                if (scene.clearInactivityTimeout) scene.clearInactivityTimeout();
+                
+                // Restart the scene
+                window.game.scene.restart('GameScene');
+                
+                console.log('Taptile game restarted successfully');
+              } else {
+                console.error('Game scene not available for restart');
+              }
+            }
+          };
         }
 
         // --- Enhanced Share button with Instagram Story support ---
@@ -2296,6 +2333,36 @@
         history.splice(0, history.length - 50);
       }
       localStorage.setItem('fallphabet_taptile_history', JSON.stringify(history));
+    }
+
+    // Utility function to show responsive modals
+    function showResponsiveModal(modalId, contentSize = 'standard') {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        const content = modal.querySelector('.responsive-modal-content');
+        if (content) {
+          // Remove existing size classes and add the new one
+          content.classList.remove('compact', 'standard', 'large');
+          content.classList.add(contentSize);
+        }
+        modal.classList.add('show');
+      }
+    }
+
+    function hideResponsiveModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.remove('show');
+      }
+    }
+
+    // Update existing modal show/hide functions
+    function showModal(modalId) {
+      showResponsiveModal(modalId);
+    }
+
+    function hideModal(modalId) {
+      hideResponsiveModal(modalId);
     }
   </script>
 </body>
