@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=74">
+      <link rel="stylesheet" href="style.css?v=75">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -514,18 +514,33 @@
         }).setOrigin(0.5);
         text.setDepth(3);
         text.setShadow(2, 3, '#B8860B', 2, false, true);
+        
+        // Make text interactive as well to improve tap responsiveness
+        text.setInteractive();
+        text.isScrabbleTile = true;
+        text.parentTile = tile;
+        
         // Apply the grid mask to all tile elements
         const mask = this.scene.gridMask;
         tile.setMask(mask);
         text.setMask(mask);
         shadow.setMask(mask);
         innerShadow.setMask(mask);
+        
         tile.letter = letter;
         tile.text = text;
         tile.col = col;
         tile.falling = true;
         tile.shadow = shadow;
         tile.innerShadow = innerShadow;
+        
+        // Store reference to parent tile in text for tap handling
+        text.letter = letter;
+        text.col = col;
+        text.falling = true;
+        text.shadow = shadow;
+        text.innerShadow = innerShadow;
+        
         // Add a subtle spawn animation
         tile.setScale(0.85);
         text.setScale(0.85);
@@ -554,6 +569,10 @@
             if (!tile.falling) continue;
             tile.y += this.fallSpeed * dt;
             tile.text.y = tile.y;
+            // Update text interactive area position
+            if (tile.text && tile.text.setInteractive) {
+              tile.text.setInteractive();
+            }
             if (tile.shadow) tile.shadow.y = tile.y + 6;
             if (tile.innerShadow) tile.innerShadow.y = tile.y;
           }
@@ -652,25 +671,32 @@
       }
       
       onTileTap(pointer, tile) {
-        if (!tile || !tile.isScrabbleTile) return;
+        // Handle taps on both tile rectangles and text elements
+        let actualTile = tile;
+        if (tile && tile.parentTile) {
+          // If tapped on text, use the parent tile
+          actualTile = tile.parentTile;
+        }
+        
+        if (!actualTile || !actualTile.isScrabbleTile) return;
         
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
         const now = Date.now();
         // Double-tap detection
-        if (this.lastTappedTile === tile && (now - this.lastTapTime) < 350) {
+        if (this.lastTappedTile === actualTile && (now - this.lastTapTime) < 350) {
           // Only submit if this tile is the last selected tile
-          if (this.selectedTiles.length && this.selectedTiles[this.selectedTiles.length - 1] === tile) {
+          if (this.selectedTiles.length && this.selectedTiles[this.selectedTiles.length - 1] === actualTile) {
             this.submitWord();
             this.clearAutoClearTimer();
             return;
           }
         } else {
-          if (!this.selectedTiles.includes(tile)) {
-            this.selectedTiles.push(tile);
-            this.buffer.push(tile.letter);
-            this.highlightTile(tile, true);
-            this.lastTile = tile;
+          if (!this.selectedTiles.includes(actualTile)) {
+            this.selectedTiles.push(actualTile);
+            this.buffer.push(actualTile.letter);
+            this.highlightTile(actualTile, true);
+            this.lastTile = actualTile;
             // If this is the first tile of a new word, handle chain increment and reset taptile timer
             if (this.selectedTiles.length === 1) {
               if (this.scene.chainTracker && this.scene.chainTracker.chainWindowActive) {
@@ -684,7 +710,7 @@
             }
           }
         }
-        this.lastTappedTile = tile;
+        this.lastTappedTile = actualTile;
         this.lastTapTime = now;
         this.resetAutoClearTimer();
       }
@@ -694,7 +720,9 @@
         for (const tile of tiles) {
           if (!tile || tile.destroyed || !tile.isScrabbleTile) continue;
           const distance = Phaser.Math.Distance.Between(x, y, tile.x, tile.y);
-          if (distance <= tile.width / 2) {
+          // Increase hit detection area by 20% for better touch responsiveness
+          const hitRadius = (tile.width / 2) * 1.2;
+          if (distance <= hitRadius) {
             if (this.lastTile && tile !== this.lastTile) {
               // Check if this tile is adjacent to the last selected tile
               const lastCol = this.lastTile.col;
