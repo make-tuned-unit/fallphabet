@@ -372,7 +372,10 @@ class GlobalLeaderboardManager {
       };
 
       const result = await this.submitScore(submissionData);
-      document.body.removeChild(modal);
+      // Only remove modal if it is still in the DOM
+      if (modal && modal.parentNode) {
+        document.body.removeChild(modal);
+      }
       if (callback) {
         callback(result, submissionData);
       }
@@ -389,7 +392,10 @@ class GlobalLeaderboardManager {
     // Event listeners
     submitBtn.addEventListener('click', handleSubmit);
     cancelBtn.addEventListener('click', () => {
-      document.body.removeChild(modal);
+      // Only remove modal if it is still in the DOM
+      if (modal && modal.parentNode) {
+        document.body.removeChild(modal);
+      }
       if (callback) callback({ success: false, cancelled: true });
     });
 

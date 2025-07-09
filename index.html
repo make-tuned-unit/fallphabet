@@ -1296,7 +1296,9 @@
                   
                   // For successful submissions, hide restart button (one attempt per day)
                   const restartBtn = document.getElementById('modal-restart-btn');
-                  restartBtn.style.display = 'none';
+                  if (restartBtn) {
+                    restartBtn.style.display = 'none';
+                  }
                   
                 } else if (result.error && result.error.includes('already completed')) {
                   // Player has already attempted today
@@ -1307,13 +1309,17 @@
                   
                   // Hide restart button for already completed attempts
                   const restartBtn = document.getElementById('modal-restart-btn');
-                  restartBtn.style.display = 'none';
+                  if (restartBtn) {
+                    restartBtn.style.display = 'none';
+                  }
                   
                 } else {
                   // For other errors, allow retry
                   const restartBtn = document.getElementById('modal-restart-btn');
-                  restartBtn.textContent = 'Try Again';
-                  restartBtn.style.display = '';
+                  if (restartBtn) {
+                    restartBtn.textContent = 'Try Again';
+                    restartBtn.style.display = '';
+                  }
                 }
               });
             } else {
@@ -1333,7 +1339,9 @@
                   
                   // For successful submissions, hide restart button (one attempt per day)
                   const restartBtn = document.getElementById('modal-restart-btn');
-                  restartBtn.style.display = 'none';
+                  if (restartBtn) {
+                    restartBtn.style.display = 'none';
+                  }
                   
                 } else if (result.error && result.error.includes('already completed')) {
                   // Player has already attempted today
@@ -1344,13 +1352,17 @@
                   
                   // Hide restart button for already completed attempts
                   const restartBtn = document.getElementById('modal-restart-btn');
-                  restartBtn.style.display = 'none';
+                  if (restartBtn) {
+                    restartBtn.style.display = 'none';
+                  }
                   
                 } else if (!result.cancelled) {
                   // For other errors, allow retry
                   const restartBtn = document.getElementById('modal-restart-btn');
-                  restartBtn.textContent = 'Try Again';
-                  restartBtn.style.display = '';
+                  if (restartBtn) {
+                    restartBtn.textContent = 'Try Again';
+                    restartBtn.style.display = '';
+                  }
                 }
               });
             }
@@ -1359,7 +1371,9 @@
             // Fallback for when leaderboard manager is not available
             const restartBtn = document.getElementById('modal-restart-btn');
             // Hide restart button for Daily Challenge mode (one attempt per day)
-            restartBtn.style.display = 'none';
+            if (restartBtn) {
+              restartBtn.style.display = 'none';
+            }
           }
           
           // Save game stats to localStorage
