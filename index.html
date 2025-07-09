@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=77">
+      <link rel="stylesheet" href="style.css?v=78">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -369,80 +369,7 @@
       }
     }
 
-    // Global Leaderboard Manager
-    class LeaderboardManager {
-      constructor() {
-        this.apiUrl = 'https://api.jsonbin.io/v3/b/your-leaderboard-bin-id'; // Replace with actual API
-        this.apiKey = 'your-api-key'; // Replace with actual API key
-      }
-      
-      async submitScore(score, timeSurvived, maxSpeed) {
-        try {
-          const playerName = this.getPlayerName();
-          const entry = {
-            name: playerName,
-            score: score,
-            timeSurvived: timeSurvived,
-            maxSpeed: maxSpeed,
-            timestamp: Date.now()
-          };
-          
-          // For now, store locally and simulate API call
-          const leaderboard = this.getLocalLeaderboard();
-          leaderboard.push(entry);
-          leaderboard.sort((a, b) => b.score - a.score);
-          leaderboard.splice(10); // Keep only top 10
-          localStorage.setItem('fallphabet_leaderboard', JSON.stringify(leaderboard));
-          
-          return true;
-        } catch (error) {
-          console.error('Failed to submit score:', error);
-          return false;
-        }
-      }
-      
-      async getLeaderboard() {
-        try {
-          // For now, return local leaderboard
-          return this.getLocalLeaderboard();
-        } catch (error) {
-          console.error('Failed to get leaderboard:', error);
-          return [];
-        }
-      }
-      
-      getLocalLeaderboard() {
-        return JSON.parse(localStorage.getItem('fallphabet_leaderboard') || '[]');
-      }
-      
-      getPlayerName() {
-        let name = localStorage.getItem('fallphabet_player_name');
-        if (!name) {
-          name = prompt('Enter your name for the leaderboard:') || 'Anonymous';
-          localStorage.setItem('fallphabet_player_name', name);
-        }
-        return name;
-      }
-      
-      renderLeaderboard() {
-        const content = document.getElementById('leaderboard-content');
-        this.getLeaderboard().then(leaderboard => {
-          if (leaderboard.length === 0) {
-            content.innerHTML = '<div class="loading">No scores yet. Be the first!</div>';
-            return;
-          }
-          
-          content.innerHTML = leaderboard.map((entry, index) => 
-            '<div class="leaderboard-entry">' +
-              '<div class="leaderboard-rank">#' + (index + 1) + '</div>' +
-              '<div class="leaderboard-name">' + entry.name + '</div>' +
-              '<div class="leaderboard-score">' + entry.score + '</div>' +
-              '<div class="leaderboard-time">' + entry.maxSpeed.toFixed(1) + 'x</div>' +
-            '</div>'
-          ).join('');
-        });
-      }
-    }
+
 
     // TileSpawner Module
     class TileSpawner {
@@ -959,7 +886,7 @@
         // Initialize mode managers
         this.gameModeManager = window.gameModeManager || new GameModeManager();
         this.taptileSpeedManager = new TaptileSpeedManager();
-        this.leaderboardManager = new LeaderboardManager();
+        this.leaderboardManager = new GlobalLeaderboardManager();
         
         // Game state
         this.wordsUsed = 0;
@@ -1245,11 +1172,13 @@
               this.leaderboardManager.submitScore({
                 playerName: playerName,
                 ...scoreData
+              }).then(result => {
+                console.log('Taptile score submission result:', result);
               });
             } else {
               // No player name, show name input modal
               this.leaderboardManager.showNameInputModal(scoreData, (result, submissionData) => {
-                // Handle result if needed
+                console.log('Taptile name input result:', result);
               });
             }
           }
@@ -1403,9 +1332,15 @@
         
         // Hide restart button for Daily Challenge mode (one attempt per day)
         const restartBtn = document.getElementById('modal-restart-btn');
-        if (restartBtn) {
+        if (restartBtn && !currentMode.speedIncrease) {
+          // Daily Challenge mode - hide restart button completely
           restartBtn.style.display = 'none';
           restartBtn.style.visibility = 'hidden';
+        } else if (restartBtn && currentMode.speedIncrease) {
+          // Taptile mode - show restart button
+          restartBtn.style.display = '';
+          restartBtn.style.visibility = 'visible';
+          restartBtn.textContent = 'Try Again';
         }
         
         // Also ensure the close button is properly set up
