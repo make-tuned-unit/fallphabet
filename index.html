@@ -9,8 +9,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=58">
+      <link rel="stylesheet" href="style.css?v=62">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="leaderboard-integration.js"></script>
   <!-- Open Graph and Twitter Card for social sharing -->
   <meta property="og:title" content="Fallphabet" />
   <meta property="og:description" content="Try to win with as few words as possible!" />
@@ -50,7 +53,7 @@
       <h1 class="game-title">FALLPHABET</h1>
       <div class="game-stats">
         <div class="stat-item">
-          <span class="stat-label" style="font-family: 'Arial', 'Helvetica', sans-serif;">Points:</span>
+          <span class="stat-label" style="font-family: 'Arial', 'Helvetica', sans-serif;">Pts:</span>
           <span id="score-display" class="stat-value">0</span>
         </div>
         <div class="stat-item">
@@ -66,7 +69,12 @@
             <span id="speed-display" class="stat-value">1x</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label" style="font-family: 'Arial', 'Helvetica', sans-serif;">Time:</span>
+            <span class="stat-label" style="font-family: 'Arial', 'Helvetica', sans-serif;">
+              <svg class="clock-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="vertical-align:middle;margin-right:2px;">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
             <span id="time-display" class="stat-value">5.0s</span>
           </div>
         </div>
@@ -102,7 +110,12 @@
   <!-- Game Over Modal -->
   <div id="gameover-modal" class="slideup-modal">
     <div class="slideup-modal-content">
-      <button id="modal-close-btn" class="slideup-close-btn" aria-label="Close">&times;</button>
+      <button id="modal-close-btn" class="slideup-close-btn" aria-label="Close">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
       <h2 class="modal-title">Game Over!</h2>
       <div class="modal-stats">
         <div><strong>Words Used:</strong> <span id="modal-words-used">0</span></div>
@@ -125,7 +138,12 @@
   <!-- Slide-up How to Play Modal -->
   <div id="howto-modal" class="slideup-modal">
     <div class="slideup-modal-content">
-      <button class="slideup-close-btn" id="howto-close">&times;</button>
+      <button class="slideup-close-btn" id="howto-close">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
       <h2>How to Play</h2>
       <div class="instructions-text">
         <h3>How to Play</h3>
@@ -159,7 +177,12 @@
   <!-- Slide-up Stats/History Modal -->
   <div id="stats-modal" class="slideup-modal">
     <div class="slideup-modal-content">
-      <button class="slideup-close-btn" id="stats-close">&times;</button>
+      <button class="slideup-close-btn" id="stats-close">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
       <h2>Your Stats</h2>
       <div id="stats-history-content">
         <!-- Stats and history will be rendered here -->
@@ -170,7 +193,12 @@
   <!-- Global Leaderboard Modal -->
   <div id="leaderboard-modal" class="slideup-modal">
     <div class="slideup-modal-content">
-      <button class="slideup-close-btn" id="leaderboard-close">&times;</button>
+      <button class="slideup-close-btn" id="leaderboard-close">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
       <h2>Global Leaderboard</h2>
       <div id="leaderboard-content">
         <div class="loading">Loading leaderboard...</div>
@@ -1249,7 +1277,14 @@
           
           // Submit to leaderboard
           if (this.leaderboardManager) {
-            this.leaderboardManager.submitScore(finalScore, timeSurvived, taptileStats.maxSpeed);
+            this.leaderboardManager.submitScore({
+              playerName: this.leaderboardManager.getPlayerName(),
+              score: finalScore,
+              gameMode: 'fallphabet_taptile',
+              wordsUsed: wordsUsed,
+              gameDurationSeconds: timeSurvived,
+              maxChainMultiplier: taptileStats.maxSpeed
+            });
           }
           
           // Always show restart for taptile mode
@@ -1275,6 +1310,34 @@
           const taptileModalStats = document.getElementById('taptile-modal-stats');
           if (taptileModalStats) {
             taptileModalStats.style.display = 'none';
+          }
+          
+          // Submit to Daily Challenge leaderboard
+          if (this.leaderboardManager && !this.gameModeManager.getCurrentMode().speedIncrease) {
+            this.leaderboardManager.submitScore({
+              playerName: this.leaderboardManager.getPlayerName(),
+              score: finalScore,
+              gameMode: 'daily_challenge',
+              wordsUsed: wordsUsed,
+              maxChainMultiplier: highestChain
+            }).then(result => {
+              if (result.success) {
+                // Show rank in modal
+                const rankText = result.rank ? `You ranked #${result.rank} out of ${result.totalParticipants} players today!` : '';
+                if (rankText) {
+                  const statsDiv = document.querySelector('.modal-stats');
+                  if (statsDiv) {
+                    statsDiv.innerHTML += `<div style="margin-top: 15px; color: #7c3aed; font-weight: bold;">${rankText}</div>`;
+                  }
+                }
+              } else if (result.error && result.error.includes('already completed')) {
+                // Player has already attempted today
+                const statsDiv = document.querySelector('.modal-stats');
+                if (statsDiv) {
+                  statsDiv.innerHTML += `<div style="margin-top: 15px; color: #dc3545; font-weight: bold;">${result.error}</div>`;
+                }
+              }
+            });
           }
           
           // Daily challenge logic for attempts/restart button
@@ -1357,7 +1420,10 @@
             if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
               const scene = window.game.scene.keys['GameScene'];
               if (scene.leaderboardManager) {
-                scene.leaderboardManager.renderLeaderboard();
+                // Show current mode's leaderboard
+                const currentMode = window.gameModeManager.getCurrentMode();
+                const gameMode = currentMode.speedIncrease ? 'fallphabet_taptile' : 'daily_challenge';
+                scene.leaderboardManager.renderLeaderboard(gameMode);
               }
             }
           });
