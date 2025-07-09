@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=81">
+      <link rel="stylesheet" href="style.css?v=82">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -1233,7 +1233,8 @@
           }
           
           // Submit to Daily Challenge leaderboard
-          if (this.leaderboardManager && !this.gameModeManager.getCurrentMode().speedIncrease) {
+          if (this.leaderboardManager) {
+            console.log('Daily Challenge: Leaderboard manager available');
             const scoreData = {
               score: finalScore,
               gameMode: 'daily_challenge',
@@ -1243,15 +1244,16 @@
             
             // Check if player name exists, if not show name input modal
             const playerName = this.leaderboardManager.getPlayerName();
+            console.log('Daily Challenge: Player name check:', playerName ? 'exists' : 'missing');
+            
             if (playerName) {
               // Player name exists, submit directly
+              console.log('Daily Challenge: Submitting with existing name:', playerName);
               this.leaderboardManager.submitScore({
                 playerName: playerName,
-                score: finalScore,
-                gameMode: 'daily_challenge',
-                wordsUsed: wordsUsed,
-                maxChainMultiplier: highestChain
-                            }).then(result => {
+                ...scoreData
+              }).then(result => {
+                console.log('Daily Challenge: Submission result:', result);
                 if (result.success) {
                   // Show rank in modal
                   const rankText = result.rank ? `You ranked #${result.rank} out of ${result.totalParticipants} players today!` : '';
@@ -1286,12 +1288,9 @@
               });
             } else {
               // No player name, show name input modal
-              this.leaderboardManager.showNameInputModal({
-                score: finalScore,
-                gameMode: 'daily_challenge',
-                wordsUsed: wordsUsed,
-                maxChainMultiplier: highestChain
-              }, (result, submissionData) => {
+              console.log('Daily Challenge: Showing name input modal');
+              this.leaderboardManager.showNameInputModal(scoreData, (result, submissionData) => {
+                console.log('Daily Challenge: Name input result:', result);
                 if (result.success) {
                   // Show rank in modal
                   const rankText = result.rank ? `You ranked #${result.rank} out of ${result.totalParticipants} players today!` : '';
@@ -1326,6 +1325,7 @@
               });
             }
           } else {
+            console.log('Daily Challenge: No leaderboard manager available');
             // Fallback for when leaderboard manager is not available
             const restartBtn = document.getElementById('modal-restart-btn');
             // Hide restart button for Daily Challenge mode (one attempt per day)

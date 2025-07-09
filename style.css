@@ -377,7 +377,9 @@ body {
   display: flex;
   gap: 18px;
   justify-content: center;
+  align-items: center;
   margin-top: 18px;
+  width: 100%;
 }
 .modal-btn {
   background: #ffe5d9;
