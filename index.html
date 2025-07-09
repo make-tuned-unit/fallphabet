@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=90">
+      <link rel="stylesheet" href="style.css?v=91">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -1481,6 +1481,45 @@
       try {
         window.game = new Phaser.Game(config);
         console.log('Phaser game created successfully');
+        
+        // Check if starting in Daily mode and player has already attempted today
+        const checkDailyAttemptOnStart = async () => {
+          const currentMode = window.gameModeManager.getCurrentMode();
+          if (!currentMode.speedIncrease) { // Daily Challenge mode
+            console.log('Starting in Daily Challenge mode, checking if already attempted today...');
+            
+            const playerName = window.globalLeaderboard ? window.globalLeaderboard.getPlayerName() : null;
+            console.log('Player name on start:', playerName);
+            
+            if (playerName && window.globalLeaderboard) {
+              console.log('Checking daily attempt on start for player:', playerName);
+              const attemptCheck = await window.globalLeaderboard.hasDailyAttemptToday(playerName);
+              console.log('Daily attempt check on start result:', attemptCheck);
+              
+              if (attemptCheck.success && attemptCheck.hasAttempted) {
+                console.log('Player has already attempted today on start, showing modal');
+                // Player has already attempted today, show modal
+                const todaysScore = await window.globalLeaderboard.getTodaysDailyScore(playerName);
+                window.globalLeaderboard.showDailyAlreadyAttemptedModal(todaysScore.success ? todaysScore.data : null);
+                
+                // Disable the game input to prevent playing
+                if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+                  const scene = window.game.scene.keys['GameScene'];
+                  if (scene.disableInput) {
+                    scene.disableInput();
+                  }
+                }
+              } else {
+                console.log('Player has not attempted today on start, allowing play');
+              }
+            } else {
+              console.log('No player name or leaderboard not available on start, allowing play');
+            }
+          }
+        };
+        
+        // Run the check after a short delay to ensure everything is initialized
+        setTimeout(checkDailyAttemptOnStart, 1000);
         
         // Mode switching functionality
         const modeButtons = document.querySelectorAll('.mode-btn');
