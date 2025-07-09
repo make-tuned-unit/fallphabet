@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=82">
+      <link rel="stylesheet" href="style.css?v=83">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -841,16 +841,31 @@
       }
       
       create() {
-        console.log('Creating GameScene...');
+        // Get playfield dimensions
+        const playfieldWidth = 800;
+        const playfieldHeight = 1200;
         
-        // Calculate playfield dimensions
-        const playfieldWidth = 800; // Match Phaser config and container
-        const playfieldHeight = 1200; // Match Phaser config height
+        // Grid setup
         this.gridX = 50;
         this.gridY = 50;
         this.gridWidth = playfieldWidth - 100;
         this.gridHeight = playfieldHeight - 100;
         this.playfieldBottomY = this.gridY + this.gridHeight;
+        
+        // Change columns to 5 for a 5-column grid
+        this.columns = 5;
+        this.rows = 12;
+        
+        // Recalculate tile size and margin for 5 columns, keeping the same margin formula
+        this.tileSize = (this.gridWidth / this.columns) * 0.75; // Keep the same 75% sizing
+        this.tileMargin = (this.gridWidth / this.columns - this.tileSize) / 2;
+        // Recalculate column positions for 5 columns
+        this.columnX = [];
+        for (let i = 0; i < this.columns; i++) {
+          this.columnX.push(this.gridX + (i + 0.5) * (this.gridWidth / this.columns));
+        }
+        
+        console.log('Creating GameScene...');
         
         // Create grid outline
         this.grid = this.add.rectangle(
