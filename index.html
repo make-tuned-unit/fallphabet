@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=56">
+      <link rel="stylesheet" href="style.css?v=58">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <!-- Open Graph and Twitter Card for social sharing -->
   <meta property="og:title" content="Fallphabet" />
@@ -731,10 +731,10 @@
         }
       }
 
-      clearBuffer() {
+      clearBuffer(skipDestruction = false) {
         this.selectedTiles.forEach(tile => {
-          // Destroy tiles when clearing buffer (not successful word submission)
-          if (tile && !tile.destroyed) {
+          // Only destroy tiles when clearing buffer for unsuccessful selections
+          if (!skipDestruction && tile && !tile.destroyed) {
             tile.destroy();
             if (tile.text && !tile.text.destroyed) tile.text.destroy();
             if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
@@ -756,7 +756,7 @@
           word: word,
           tiles: [...this.selectedTiles]
         });
-        this.clearBuffer();
+        this.clearBuffer(true); // Skip destruction - tiles will be handled by animation
       }
       
       update() {

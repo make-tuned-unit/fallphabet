@@ -76,7 +76,7 @@ body {
 /* Header Section */
 .game-header {
   text-align: center;
-  margin-top: 40px;
+  margin-top: 70px;
   margin-bottom: 0;
   background: none;
   border: none;
@@ -243,7 +243,7 @@ body {
     overflow: visible !important;
   }
   .game-header {
-    margin-top: 30px;
+    margin-top: 60px;
   }
 
   #playfield-container {
@@ -272,7 +272,7 @@ body {
     height: calc(100dvh - 10px) !important;
   }
   .game-header {
-    margin-top: 30px;
+    margin-top: 60px;
   }
 
   #playfield-container {
@@ -432,10 +432,11 @@ body {
   background: #ffe5d9; /* Changed to match the pale peach background */
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   z-index: 2000;
   box-shadow: none !important;
   padding: 0 12px !important;
+  gap: 20px;
 }
 
 .menu-buttons {
@@ -534,7 +535,8 @@ body {
   .top-menu {
     height: 50px;
     padding: 0 8px;
-    justify-content: space-between; /* Space between mode selector and menu buttons */
+    justify-content: center; /* Center all menu items */
+    gap: 15px;
   }
   
   .mode-selector {
