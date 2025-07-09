@@ -1269,7 +1269,7 @@
               score: finalScore,
               gameMode: 'daily_challenge',
               wordsUsed: wordsUsed,
-              maxChainMultiplier: highestChain
+              maxChainMultiplier: this.chainTracker ? this.chainTracker.getHighestChain() : 1
             };
             
             // Check if player name exists, if not show name input modal

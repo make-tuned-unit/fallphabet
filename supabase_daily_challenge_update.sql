@@ -115,13 +115,13 @@ BEGIN
   SELECT json_build_object(
     'success', true,
     'rank', (
-      SELECT rank FROM get_daily_challenge_leaderboard() 
-      WHERE player_name = player_name_param
+      SELECT l.rank FROM get_daily_challenge_leaderboard() l
+      WHERE l.player_name = player_name_param
     ),
     'total_participants', (
-      SELECT COUNT(*) FROM leaderboard 
-      WHERE game_mode = 'daily_challenge' 
-      AND attempt_date = CURRENT_DATE
+      SELECT COUNT(*) FROM leaderboard l
+      WHERE l.game_mode = 'daily_challenge' 
+      AND l.attempt_date = CURRENT_DATE
     )
   ) INTO result;
   
