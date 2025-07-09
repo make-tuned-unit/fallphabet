@@ -28,7 +28,7 @@ $$ LANGUAGE plpgsql;
 
 -- Create a function to check if player has already attempted today's daily challenge
 CREATE OR REPLACE FUNCTION has_daily_attempt_today(player_name_param VARCHAR)
-RETURNS BOOLEAN AS $$
+RETURNS JSON AS $$
 DECLARE
   attempt_exists BOOLEAN;
 BEGIN
@@ -39,7 +39,7 @@ BEGIN
     AND attempt_date = CURRENT_DATE
   ) INTO attempt_exists;
   
-  RETURN attempt_exists;
+  RETURN json_build_object('has_attempted', attempt_exists);
 END;
 $$ LANGUAGE plpgsql;
 

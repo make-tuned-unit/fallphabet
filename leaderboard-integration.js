@@ -3,7 +3,9 @@
 
 class GlobalLeaderboardManager {
   constructor() {
+    console.log('GlobalLeaderboardManager constructor called');
     this.supabase = window.supabaseClient;
+    console.log('Supabase client available:', !!this.supabase);
     this.isConnected = false;
     this.testConnection();
   }
@@ -321,7 +323,9 @@ class GlobalLeaderboardManager {
 
   // Get player name from localStorage or prompt for it
   getPlayerName() {
-    return localStorage.getItem('fallphabet_player_name') || null;
+    const playerName = localStorage.getItem('fallphabet_player_name') || null;
+    console.log('getPlayerName() called, returning:', playerName);
+    return playerName;
   }
 
   // Show leaderboard modal and render leaderboard for a given mode
@@ -412,22 +416,29 @@ class GlobalLeaderboardManager {
 
   // Check if player has already attempted daily challenge today
   async hasDailyAttemptToday(playerName) {
+    console.log('hasDailyAttemptToday called with playerName:', playerName);
+    console.log('Supabase connection status:', this.isConnected);
+    
     if (!this.isConnected) {
       console.warn('Supabase not connected, cannot check daily attempt');
       return { success: false, error: 'Not connected' };
     }
 
     try {
+      console.log('Calling Supabase RPC has_daily_attempt_today with player_name_param:', playerName);
       const { data, error } = await this.supabase
         .rpc('has_daily_attempt_today', {
           player_name_param: playerName
         });
+
+      console.log('Supabase RPC response - data:', data, 'error:', error);
 
       if (error) {
         console.error('Error checking daily attempt:', error);
         return { success: false, error: error.message };
       }
 
+      console.log('Daily attempt check result - hasAttempted:', data.has_attempted);
       return { success: true, hasAttempted: data.has_attempted };
     } catch (err) {
       console.error('Error checking daily attempt:', err);
