@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=87">
+      <link rel="stylesheet" href="style.css?v=88">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -914,6 +914,7 @@
         this.gameModeManager = window.gameModeManager || new GameModeManager();
         this.taptileSpeedManager = new TaptileSpeedManager();
         this.leaderboardManager = new GlobalLeaderboardManager();
+        console.log('GameScene: Leaderboard manager initialized:', this.leaderboardManager);
         
         // Game state
         this.wordsUsed = 0;
@@ -1260,6 +1261,8 @@
           }
           
           // Submit to Daily Challenge leaderboard
+          console.log('Daily Challenge: About to submit to leaderboard');
+          console.log('Daily Challenge: Leaderboard manager:', this.leaderboardManager);
           if (this.leaderboardManager) {
             console.log('Daily Challenge: Leaderboard manager available');
             const scoreData = {
