@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=64">
+      <link rel="stylesheet" href="style.css?v=65">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -171,7 +171,7 @@
           <p>• Time window shrinks as speed increases</p>
           <p>• Speed increases every 3 words</p>
           <p>• Time window decreases from 5.0s to 1.5s</p>
-          <p>• Go for the highest score on the global leaderboard!</p>
+          <p>• Compete globally on the leaderboard!</p>
           <p>• Your personal best is saved locally</p>
         </div>
       </div>
@@ -1118,10 +1118,14 @@
         }
         if (!isValid) {
           this.showFlashMessage(`"${word}" - Not a valid English word!`, '#ff6b6b');
+          // Clear buffer and destroy tiles for invalid words
+          this.inputHandler.clearBuffer();
           return;
         }
         if (isProper) {
           this.showFlashMessage(`"${word}" is a proper name. No proper names allowed!`, '#ff6b6b');
+          // Clear buffer and destroy tiles for invalid words
+          this.inputHandler.clearBuffer();
           return;
         }
         
