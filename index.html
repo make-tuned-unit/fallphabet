@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=31">
+  <link rel="stylesheet" href="style.css?v=35">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <!-- Open Graph and Twitter Card for social sharing -->
   <meta property="og:title" content="Fallphabet" />
@@ -455,9 +455,12 @@
 
       clearBuffer() {
         this.selectedTiles.forEach(tile => {
-          // Only unhighlight tiles, don't destroy them
+          // Destroy tiles when clearing buffer (not successful word submission)
           if (tile && !tile.destroyed) {
-            this.highlightTile(tile, false);
+            tile.destroy();
+            if (tile.text && !tile.text.destroyed) tile.text.destroy();
+            if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
+            if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
           }
         });
         this.selectedTiles = [];
@@ -813,7 +816,7 @@
         this.scoredWords.push({ word, score });
         tiles.forEach(tile => {
           this.tweens.add({
-            targets: [tile, tile.text],
+            targets: [tile, tile.text, tile.shadow, tile.innerShadow],
             scaleX: 0,
             scaleY: 0,
             duration: 300,
@@ -821,6 +824,8 @@
             onComplete: () => {
               tile.destroy();
               if (tile.text) tile.text.destroy();
+              if (tile.shadow) tile.shadow.destroy();
+              if (tile.innerShadow) tile.innerShadow.destroy();
             }
           });
         });
