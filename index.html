@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=94">
+      <link rel="stylesheet" href="style.css?v=95">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -1457,6 +1457,24 @@
         console.log('Initializing global leaderboard...');
         window.globalLeaderboard = new GlobalLeaderboardManager();
       }
+      
+      // Wait for Supabase connection to be established
+      console.log('Waiting for Supabase connection...');
+      let connectionAttempts = 0;
+      const maxAttempts = 10;
+      
+      while (!window.globalLeaderboard.isConnected && connectionAttempts < maxAttempts) {
+        console.log(`Connection attempt ${connectionAttempts + 1}/${maxAttempts}`);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        connectionAttempts++;
+      }
+      
+      if (!window.globalLeaderboard.isConnected) {
+        console.log('⚠️ Supabase connection failed after multiple attempts, allowing game creation');
+        return true; // Create game anyway
+      }
+      
+      console.log('✅ Supabase connection established, proceeding with Daily Challenge check');
       
       // Check Daily Challenge status immediately (like Wordle)
       const checkDailyChallengeStatus = async () => {
