@@ -1152,6 +1152,7 @@
 
       endGame() {
         this.gameOver = true;
+        this.disableInput();
         
         // Stop taptile speed manager
         if (this.taptileSpeedManager) {
@@ -1392,6 +1393,17 @@
               modal.style.display = 'none';
             }, 300);
           };
+        }
+      }
+      disableInput() {
+        if (this.inputHandler) {
+          // Remove all input event listeners
+          if (this.inputHandler.scene && this.inputHandler.scene.input) {
+            this.inputHandler.scene.input.off('pointerdown', this.inputHandler.onPointerDown, this.inputHandler);
+            this.inputHandler.scene.input.off('pointermove', this.inputHandler.onPointerMove, this.inputHandler);
+            this.inputHandler.scene.input.off('pointerup', this.inputHandler.onPointerUp, this.inputHandler);
+            this.inputHandler.scene.input.off('gameobjectdown', this.inputHandler.onTileTap, this.inputHandler);
+          }
         }
       }
     }
