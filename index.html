@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=95">
+      <link rel="stylesheet" href="style.css?v=96">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -1496,6 +1496,23 @@
           
           if (playerIdentifier && window.globalLeaderboard) {
             console.log('🔍 Checking daily attempt on page load for player:', playerIdentifier);
+            
+            // Wait for Supabase connection to be established
+            let connectionAttempts = 0;
+            const maxAttempts = 50; // 5 seconds max wait
+            
+            while (!window.globalLeaderboard.isConnected && connectionAttempts < maxAttempts) {
+              console.log(`⏳ Waiting for Supabase connection... (attempt ${connectionAttempts + 1}/${maxAttempts})`);
+              await new Promise(resolve => setTimeout(resolve, 100));
+              connectionAttempts++;
+            }
+            
+            if (!window.globalLeaderboard.isConnected) {
+              console.log('⚠️ Supabase connection not established after waiting, allowing game creation');
+            } else {
+              console.log('✅ Supabase connection established, proceeding with daily attempt check');
+            }
+            
             try {
               const attemptCheck = await window.globalLeaderboard.hasDailyAttemptToday(playerIdentifier);
               console.log('📊 Daily attempt check on page load result:', attemptCheck);
