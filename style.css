@@ -1111,6 +1111,14 @@ body {
   color: #dc2626;
 }
 
+.daily-leaderboard-body .speed {
+  color: #7c3aed;
+}
+
+.daily-leaderboard-body .time {
+  color: #059669;
+}
+
 /* Mobile Responsive for Daily Leaderboard */
 @media (max-width: 600px) {
   .daily-leaderboard-content {

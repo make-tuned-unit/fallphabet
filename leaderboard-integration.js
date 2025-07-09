@@ -699,6 +699,80 @@ class GlobalLeaderboardManager {
     });
   }
 
+  // Show dedicated Taptile leaderboard view
+  showTaptileLeaderboardView() {
+    const modal = document.createElement('div');
+    modal.className = 'daily-leaderboard-modal';
+    modal.innerHTML = `
+      <div class="daily-leaderboard-content">
+        <div class="daily-leaderboard-header">
+          <h3>Global Taptile Leaderboard</h3>
+          <button id="close-taptile-leaderboard-btn" class="close-btn">&times;</button>
+        </div>
+        <div class="daily-leaderboard-body">
+          <div id="taptile-leaderboard-list" class="leaderboard-list">
+            <div class="loading">Loading Taptile leaderboard...</div>
+          </div>
+        </div>
+        <div class="daily-leaderboard-footer">
+          <button id="play-daily-from-leaderboard-btn" class="modal-btn primary">Play Daily Challenge</button>
+          <button id="close-taptile-leaderboard-modal-btn" class="modal-btn">Close</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const closeBtn = modal.querySelector('#close-taptile-leaderboard-btn');
+    const closeModalBtn = modal.querySelector('#close-taptile-leaderboard-modal-btn');
+    const playDailyBtn = modal.querySelector('#play-daily-from-leaderboard-btn');
+
+    // Load and render Taptile leaderboard
+    this.renderTaptileLeaderboard(modal.querySelector('#taptile-leaderboard-list'));
+
+    // Event listeners
+    closeBtn.addEventListener('click', () => {
+      if (modal && modal.parentNode) {
+        document.body.removeChild(modal);
+      }
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+      if (modal && modal.parentNode) {
+        document.body.removeChild(modal);
+      }
+    });
+
+    playDailyBtn.addEventListener('click', () => {
+      if (modal && modal.parentNode) {
+        document.body.removeChild(modal);
+      }
+      // Switch to Daily Challenge mode
+      if (window.gameModeManager) {
+        window.gameModeManager.setMode('daily');
+        setTimeout(() => {
+          window.gameModeManager.updateUI();
+          
+          // Restart game with new mode
+          if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+            window.game.scene.stop('GameScene');
+            window.game.scene.remove('GameScene');
+            window.game.scene.add('GameScene', GameScene, true);
+          }
+        }, 100);
+      }
+    });
+
+    // Close modal when clicking outside
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        if (modal && modal.parentNode) {
+          document.body.removeChild(modal);
+        }
+      }
+    });
+  }
+
   // Render daily leaderboard specifically for today
   async renderDailyLeaderboard(container) {
     if (!this.isConnected) {
@@ -754,6 +828,61 @@ class GlobalLeaderboardManager {
 
     } catch (err) {
       console.error('Error rendering daily leaderboard:', err);
+      container.innerHTML = '<div class="error">Error loading leaderboard</div>';
+    }
+  }
+
+  // Render Taptile leaderboard
+  async renderTaptileLeaderboard(container) {
+    if (!this.isConnected) {
+      container.innerHTML = '<div class="error">Unable to load leaderboard - not connected to server</div>';
+      return;
+    }
+
+    try {
+      const { data, error } = await this.supabase
+        .from('leaderboard')
+        .select('*')
+        .eq('game_mode', 'fallphabet_taptile')
+        .order('score', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        console.error('Error loading Taptile leaderboard:', error);
+        container.innerHTML = '<div class="error">Error loading leaderboard</div>';
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        container.innerHTML = '<div class="no-scores">No Taptile scores yet! Be the first to play!</div>';
+        return;
+      }
+
+      const playerIdentifier = this.getPlayerIdentifier();
+      let html = '<div class="leaderboard-entries">';
+      
+      data.forEach((entry, index) => {
+        const isCurrentPlayer = entry.player_name === playerIdentifier;
+        const rank = index + 1;
+        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
+        
+        html += `
+          <div class="leaderboard-entry ${isCurrentPlayer ? 'current-player' : ''}">
+            <div class="rank">${medal} ${rank}</div>
+            <div class="player-name">${this.escapeHtml(entry.player_name)}</div>
+            <div class="score">${entry.score.toLocaleString()}</div>
+            <div class="details">
+              <span class="speed">${entry.max_chain_multiplier}x speed</span>
+              <span class="time">${entry.game_duration_seconds}s</span>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      container.innerHTML = html;
+    } catch (err) {
+      console.error('Error rendering Taptile leaderboard:', err);
       container.innerHTML = '<div class="error">Error loading leaderboard</div>';
     }
   }

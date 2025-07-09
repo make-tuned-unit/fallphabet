@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=106">
+      <link rel="stylesheet" href="style.css?v=107">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -1843,35 +1843,24 @@
         
         // Leaderboard functionality
         const leaderboardBtn = document.getElementById('leaderboard-btn');
-        const leaderboardModal = document.getElementById('leaderboard-modal');
-        const leaderboardClose = document.getElementById('leaderboard-close');
         
         if (leaderboardBtn) {
           leaderboardBtn.addEventListener('click', () => {
-            leaderboardModal.classList.add('show');
             if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
               const scene = window.game.scene.keys['GameScene'];
               if (scene.leaderboardManager) {
-                // Show current mode's leaderboard
+                // Show current mode's leaderboard using the new modal style
                 const currentMode = window.gameModeManager.getCurrentMode();
                 const gameMode = currentMode.speedIncrease ? 'fallphabet_taptile' : 'daily_challenge';
-                scene.leaderboardManager.renderLeaderboard(gameMode);
+                
+                if (gameMode === 'daily_challenge') {
+                  // Use the dedicated daily leaderboard modal
+                  scene.leaderboardManager.showDailyLeaderboardView();
+                } else {
+                  // Use the new modal style for Taptile leaderboard
+                  scene.leaderboardManager.showTaptileLeaderboardView();
+                }
               }
-            }
-          });
-        }
-        
-        if (leaderboardClose) {
-          leaderboardClose.addEventListener('click', () => {
-            leaderboardModal.classList.remove('show');
-          });
-        }
-        
-        // Dismiss leaderboard modal by clicking outside
-        if (leaderboardModal) {
-          leaderboardModal.addEventListener('click', e => {
-            if (e.target === leaderboardModal) {
-              leaderboardModal.classList.remove('show');
             }
           });
         }
