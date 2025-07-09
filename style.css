@@ -1033,6 +1033,10 @@ body {
   box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
 }
 
+.daily-leaderboard-footer .modal-btn + .modal-btn {
+  margin-left: 12px;
+}
+
 /* Daily Leaderboard List Styles */
 .daily-leaderboard-body .leaderboard-list {
   margin: 0;

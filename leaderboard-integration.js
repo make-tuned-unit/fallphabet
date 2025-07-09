@@ -700,7 +700,7 @@ class GlobalLeaderboardManager {
   }
 
   // Show dedicated Taptile leaderboard view
-  showTaptileLeaderboardView() {
+  async showTaptileLeaderboardView() {
     const modal = document.createElement('div');
     modal.className = 'daily-leaderboard-modal';
     modal.innerHTML = `
@@ -716,6 +716,7 @@ class GlobalLeaderboardManager {
         </div>
         <div class="daily-leaderboard-footer">
           <button id="play-daily-from-leaderboard-btn" class="modal-btn primary">Play Daily Challenge</button>
+          <button id="try-again-taptile-btn" class="modal-btn primary" style="display:none;">Try Again</button>
           <button id="close-taptile-leaderboard-modal-btn" class="modal-btn">Close</button>
         </div>
       </div>
@@ -726,9 +727,24 @@ class GlobalLeaderboardManager {
     const closeBtn = modal.querySelector('#close-taptile-leaderboard-btn');
     const closeModalBtn = modal.querySelector('#close-taptile-leaderboard-modal-btn');
     const playDailyBtn = modal.querySelector('#play-daily-from-leaderboard-btn');
+    const tryAgainBtn = modal.querySelector('#try-again-taptile-btn');
 
     // Load and render Taptile leaderboard
     this.renderTaptileLeaderboard(modal.querySelector('#taptile-leaderboard-list'));
+
+    // Hide or show Play Daily/ Try Again based on daily attempt
+    const playerIdentifier = this.getPlayerIdentifier();
+    this.hasDailyAttemptToday(playerIdentifier).then(result => {
+      if (result.success && result.hasAttempted) {
+        // Already played daily: hide Play Daily, show Try Again
+        playDailyBtn.style.display = 'none';
+        tryAgainBtn.style.display = '';
+      } else {
+        // Not played daily: show Play Daily, hide Try Again
+        playDailyBtn.style.display = '';
+        tryAgainBtn.style.display = 'none';
+      }
+    });
 
     // Event listeners
     closeBtn.addEventListener('click', () => {
@@ -752,8 +768,25 @@ class GlobalLeaderboardManager {
         window.gameModeManager.setMode('daily');
         setTimeout(() => {
           window.gameModeManager.updateUI();
-          
           // Restart game with new mode
+          if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+            window.game.scene.stop('GameScene');
+            window.game.scene.remove('GameScene');
+            window.game.scene.add('GameScene', GameScene, true);
+          }
+        }, 100);
+      }
+    });
+
+    tryAgainBtn.addEventListener('click', () => {
+      if (modal && modal.parentNode) {
+        document.body.removeChild(modal);
+      }
+      // Restart Taptile mode
+      if (window.gameModeManager) {
+        window.gameModeManager.setMode('taptile');
+        setTimeout(() => {
+          window.gameModeManager.updateUI();
           if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
             window.game.scene.stop('GameScene');
             window.game.scene.remove('GameScene');

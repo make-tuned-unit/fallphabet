@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=108">
+      <link rel="stylesheet" href="style.css?v=109">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -1867,7 +1867,7 @@
         const leaderboardBtn = document.getElementById('leaderboard-btn');
         
         if (leaderboardBtn) {
-          leaderboardBtn.addEventListener('click', () => {
+          leaderboardBtn.addEventListener('click', async () => {
             if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
               const scene = window.game.scene.keys['GameScene'];
               if (scene.leaderboardManager) {
@@ -1880,7 +1880,7 @@
                   scene.leaderboardManager.showDailyLeaderboardView();
                 } else {
                   // Use the new modal style for Taptile leaderboard
-                  scene.leaderboardManager.showTaptileLeaderboardView();
+                  await scene.leaderboardManager.showTaptileLeaderboardView();
                 }
               }
             }
