@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=84">
+      <link rel="stylesheet" href="style.css?v=85">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -302,7 +302,7 @@
         this.currentSpeed = this.baseSpeed;
         this.speedMultiplier = 1.0;
         this.timeWindow = 5.0;
-        this.lastWordTime = null; // Will be set on first word submission
+        this.lastWordTime = Date.now(); // Set to current time so first word has full time window
         this.startSpeedTimer();
         this.updateUI();
       }
@@ -325,10 +325,7 @@
       }
       
       checkTimeWindow() {
-        // If no word has been submitted yet, don't trigger game over
-        if (this.lastWordTime === null) {
-          return true;
-        }
+        // Always allow time window check since lastWordTime is set on start
         const now = Date.now();
         const timeSinceLastWord = (now - this.lastWordTime) / 1000;
         return timeSinceLastWord <= this.timeWindow;
@@ -363,6 +360,11 @@
           clearInterval(this.speedTimer);
           this.speedTimer = null;
         }
+        // Clear UI displays when stopped
+        const speedDisplay = document.getElementById('speed-display');
+        const timeDisplay = document.getElementById('time-display');
+        if (speedDisplay) speedDisplay.textContent = '0.0x';
+        if (timeDisplay) timeDisplay.textContent = '0.0s';
       }
       
       getStats() {
@@ -1517,7 +1519,10 @@
             if (currentMode.speedIncrease) {
               // Hide modal
               document.getElementById('gameover-modal').classList.remove('show');
-              window.game.scene.restart();
+              setTimeout(() => {
+                document.getElementById('gameover-modal').style.display = 'none';
+              }, 300);
+              window.game.scene.restart('GameScene');
             }
           };
           
