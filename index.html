@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=109">
+      <link rel="stylesheet" href="style.css?v=110">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -628,25 +628,10 @@
       }
       
       onPointerDown(pointer) {
-        this.isDragging = true;
-        
-        // Check if click is outside the grid area
-        const x = pointer.x;
-        const y = pointer.y;
-        const isOutsideGrid = x < this.scene.gridX || 
-                             x > this.scene.gridX + this.scene.gridWidth ||
-                             y < this.scene.gridY || 
-                             y > this.scene.gridY + this.scene.gridHeight;
-        
-        // If outside grid and we have selected tiles, clear the buffer
-        if (isOutsideGrid && this.selectedTiles.length > 0) {
-          this.clearBuffer();
-          return;
+        if (this.scene && this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease) {
+          if (this.scene.registerInteraction) this.scene.registerInteraction();
         }
-        
-        // Only clear buffer if not already selecting
-        if (!this.selectedTiles.length) this.clearBuffer();
-        this.selectTileAt(pointer.x, pointer.y);
+        return origOnPointerDownWithInactivity.call(this, pointer);
       }
       
       onPointerMove(pointer) {
@@ -897,6 +882,8 @@
         this.gameOver = false;
         this.gameStartTime = Date.now();
         this.scoredWords = [];
+        this.inactivityTimeout = null;
+        this.hasInteracted = false;
       }
       
       create() {
@@ -1000,6 +987,34 @@
         // In GameScene create() or init(), clear any word buffer and selected tiles
         if (this.inputHandler) {
           this.inputHandler.clearBuffer();
+        }
+        this.hasInteracted = false;
+        this.clearInactivityTimeout();
+        if (this.gameModeManager.getCurrentMode().speedIncrease) {
+          this.startInactivityTimeout();
+        }
+      }
+
+      startInactivityTimeout() {
+        this.clearInactivityTimeout();
+        this.inactivityTimeout = setTimeout(() => {
+          if (!this.hasInteracted && !this.gameOver) {
+            this.endGame();
+          }
+        }, 10000); // 10 seconds
+      }
+
+      clearInactivityTimeout() {
+        if (this.inactivityTimeout) {
+          clearTimeout(this.inactivityTimeout);
+          this.inactivityTimeout = null;
+        }
+      }
+
+      registerInteraction() {
+        if (!this.hasInteracted) {
+          this.hasInteracted = true;
+          this.clearInactivityTimeout();
         }
       }
 
@@ -1329,11 +1344,12 @@
       endGame() {
         this.gameOver = true;
         this.disableInput();
-        
         // Stop taptile speed manager
         if (this.taptileSpeedManager) {
           this.taptileSpeedManager.stop();
         }
+        // Stop inactivity timer
+        this.clearInactivityTimeout();
         
         // Stop all timers in tileSpawner
         if (this.tileSpawner && this.tileSpawner.columnTimers) {
@@ -1963,6 +1979,9 @@
                   if (scene.inputHandler) {
                     scene.inputHandler.clearBuffer();
                   }
+                  
+                  // Clear inactivity timer
+                  if (scene.clearInactivityTimeout) scene.clearInactivityTimeout();
                   
                   // Restart the scene
                   window.game.scene.restart('GameScene');
