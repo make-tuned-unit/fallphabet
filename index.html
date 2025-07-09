@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=92">
+      <link rel="stylesheet" href="style.css?v=93">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -1460,34 +1460,54 @@
       
       // Check Daily Challenge status immediately (like Wordle)
       const checkDailyChallengeStatus = async () => {
+        console.log('=== DAILY CHALLENGE STATUS CHECK START ===');
+        
         const currentMode = window.gameModeManager.getCurrentMode();
+        console.log('Current mode:', currentMode);
+        console.log('Speed increase:', currentMode.speedIncrease);
+        
         if (!currentMode.speedIncrease) { // Daily Challenge mode
-          console.log('Page loaded in Daily Challenge mode, checking if already attempted today...');
+          console.log('✅ Page loaded in Daily Challenge mode, checking if already attempted today...');
+          
+          // Wait a bit for leaderboard to initialize
+          await new Promise(resolve => setTimeout(resolve, 500));
           
           const playerName = window.globalLeaderboard ? window.globalLeaderboard.getPlayerName() : null;
           console.log('Player name on page load:', playerName);
+          console.log('Global leaderboard available:', !!window.globalLeaderboard);
           
           if (playerName && window.globalLeaderboard) {
-            console.log('Checking daily attempt on page load for player:', playerName);
-            const attemptCheck = await window.globalLeaderboard.hasDailyAttemptToday(playerName);
-            console.log('Daily attempt check on page load result:', attemptCheck);
-            
-            if (attemptCheck.success && attemptCheck.hasAttempted) {
-              console.log('Player has already attempted today on page load, showing modal');
-              // Player has already attempted today, show modal immediately
-              const todaysScore = await window.globalLeaderboard.getTodaysDailyScore(playerName);
-              window.globalLeaderboard.showDailyAlreadyAttemptedModal(todaysScore.success ? todaysScore.data : null);
+            console.log('🔍 Checking daily attempt on page load for player:', playerName);
+            try {
+              const attemptCheck = await window.globalLeaderboard.hasDailyAttemptToday(playerName);
+              console.log('📊 Daily attempt check on page load result:', attemptCheck);
               
-              // Don't create the game - player has already attempted today
-              console.log('Blocking game creation - player already attempted today');
-              return false; // Don't create game
-            } else {
-              console.log('Player has not attempted today on page load, allowing game creation');
+              if (attemptCheck.success && attemptCheck.hasAttempted) {
+                console.log('🚫 Player has already attempted today on page load, showing modal');
+                // Player has already attempted today, show modal immediately
+                const todaysScore = await window.globalLeaderboard.getTodaysDailyScore(playerName);
+                window.globalLeaderboard.showDailyAlreadyAttemptedModal(todaysScore.success ? todaysScore.data : null);
+                
+                // Don't create the game - player has already attempted today
+                console.log('❌ Blocking game creation - player already attempted today');
+                return false; // Don't create game
+              } else {
+                console.log('✅ Player has not attempted today on page load, allowing game creation');
+              }
+            } catch (error) {
+              console.error('❌ Error checking daily attempt:', error);
+              console.log('⚠️ Allowing game creation due to error');
             }
           } else {
-            console.log('No player name or leaderboard not available on page load, allowing game creation');
+            console.log('⚠️ No player name or leaderboard not available on page load, allowing game creation');
+            console.log('Player name:', playerName);
+            console.log('Leaderboard available:', !!window.globalLeaderboard);
           }
+        } else {
+          console.log('✅ Not in Daily Challenge mode, allowing game creation');
         }
+        
+        console.log('=== DAILY CHALLENGE STATUS CHECK END ===');
         return true; // Create game
       };
       
