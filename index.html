@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=67">
+      <link rel="stylesheet" href="style.css?v=68">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -243,6 +243,8 @@
       }
       
       updateUI() {
+        console.log('updateUI called for mode:', this.currentMode);
+        
         // Update mode buttons
         document.querySelectorAll('.mode-btn').forEach(btn => {
           btn.classList.remove('active');
@@ -254,14 +256,18 @@
         const leaderboardBtn = document.getElementById('leaderboard-btn');
         const mainContent = document.getElementById('main-content');
         
+        console.log('Leaderboard button found:', !!leaderboardBtn);
+        
         if (this.currentMode === 'taptile') {
           taptileStats.style.display = 'flex';
           leaderboardBtn.style.display = 'block';
           mainContent.classList.add('taptile-mode');
+          console.log('Set leaderboard button to block for taptile');
         } else {
           taptileStats.style.display = 'none';
           leaderboardBtn.style.display = 'block'; // Show leaderboard for Daily Challenge too
           mainContent.classList.remove('taptile-mode');
+          console.log('Set leaderboard button to block for daily');
         }
         
         // Update instructions
@@ -1419,6 +1425,11 @@
       // Initialize global game mode manager
       window.gameModeManager = new GameModeManager();
       
+      // Force initial UI update to ensure leaderboard button is visible
+      setTimeout(() => {
+        window.gameModeManager.updateUI();
+      }, 50);
+      
       try {
         window.game = new Phaser.Game(config);
         console.log('Phaser game created successfully');
@@ -1428,7 +1439,13 @@
         modeButtons.forEach(btn => {
           btn.addEventListener('click', () => {
             const mode = btn.getAttribute('data-mode');
+            console.log('Switching to mode:', mode);
             window.gameModeManager.setMode(mode);
+            
+            // Force UI update after a small delay to ensure DOM is ready
+            setTimeout(() => {
+              window.gameModeManager.updateUI();
+            }, 100);
             
             // Restart game with new mode
             if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
