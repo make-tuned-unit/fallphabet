@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=73">
+      <link rel="stylesheet" href="style.css?v=74">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -129,7 +129,7 @@
         </div>
       </div>
       <div class="modal-actions">
-        <button id="modal-share-btn" class="modal-btn">Share</button>
+        <button id="modal-share-btn" class="modal-btn primary">Share</button>
         <button id="modal-restart-btn" class="modal-btn">Try Again</button>
       </div>
     </div>
@@ -1330,6 +1330,17 @@
         modal.style.display = 'flex';
         modal.style.zIndex = '3000';
         modal.classList.add('show');
+        
+        // Also ensure the close button is properly set up
+        const closeBtn = document.getElementById('modal-close-btn');
+        if (closeBtn) {
+          closeBtn.onclick = () => {
+            modal.classList.remove('show');
+            setTimeout(() => {
+              modal.style.display = 'none';
+            }, 300);
+          };
+        }
       }
     }
 
@@ -1560,7 +1571,12 @@
         const closeBtn = document.getElementById('modal-close-btn');
         if (closeBtn) {
           closeBtn.onclick = () => {
-            document.getElementById('gameover-modal').classList.remove('show');
+            const modal = document.getElementById('gameover-modal');
+            modal.classList.remove('show');
+            // Also hide the modal completely
+            setTimeout(() => {
+              modal.style.display = 'none';
+            }, 300);
           };
         }
 
