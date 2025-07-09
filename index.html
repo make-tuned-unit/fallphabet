@@ -316,7 +316,7 @@
       
       increaseSpeed() {
         this.speedMultiplier = Math.min(this.speedMultiplier + this.speedIncreaseAmount, this.maxSpeedMultiplier);
-        this.currentSpeed = this.baseSpeed * this.speedMultiplier;
+        this.currentSpeed = Math.max(this.baseSpeed * this.speedMultiplier, this.baseSpeed); // Never below base speed
         this.timeWindow = Math.max(this.timeWindow - this.timeWindowDecrease, this.minTimeWindow);
         this.updateUI();
       }
@@ -356,12 +356,11 @@
       updateUI() {
         const speedDisplay = document.getElementById('speed-display');
         const timeDisplay = document.getElementById('time-display');
-        
         if (speedDisplay) {
-          speedDisplay.textContent = `${this.speedMultiplier.toFixed(1)}x`;
+          speedDisplay.textContent = `${Math.max(this.speedMultiplier, 1.0).toFixed(1)}x`;
         }
         if (timeDisplay) {
-          timeDisplay.textContent = `${this.timeWindow.toFixed(1)}s`;
+          timeDisplay.textContent = `${Math.max(this.timeWindow, 1.0).toFixed(1)}s`;
         }
       }
       
@@ -370,11 +369,11 @@
           clearInterval(this.speedTimer);
           this.speedTimer = null;
         }
-        // Clear UI displays when stopped
+        // Show last valid values instead of zero
         const speedDisplay = document.getElementById('speed-display');
         const timeDisplay = document.getElementById('time-display');
-        if (speedDisplay) speedDisplay.textContent = '0.0x';
-        if (timeDisplay) timeDisplay.textContent = '0.0s';
+        if (speedDisplay) speedDisplay.textContent = `${Math.max(this.speedMultiplier, 1.0).toFixed(1)}x`;
+        if (timeDisplay) timeDisplay.textContent = `${Math.max(this.timeWindow, 1.0).toFixed(1)}s`;
       }
       
       getStats() {
