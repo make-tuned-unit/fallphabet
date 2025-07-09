@@ -40,7 +40,7 @@ body {
 /* Header Section */
 .game-header {
   text-align: center;
-  margin-top: 0;
+  margin-top: 60px;
   margin-bottom: 0;
   background: none;
   border: none;
@@ -64,7 +64,6 @@ body {
   box-sizing: border-box;
   position: relative;
   z-index: 101;
-  background: rgba(255, 255, 255, 0.1);
 }
 
 .game-stats {
@@ -147,10 +146,13 @@ body {
     height: 100%;
   }
   #main-content {
-    margin-top: 20px !important;
-    height: calc(100vh - 20px) !important;
-    height: calc(100dvh - 20px) !important;
+    margin-top: 10px !important;
+    height: calc(100vh - 10px) !important;
+    height: calc(100dvh - 10px) !important;
     overflow: visible !important;
+  }
+  .game-header {
+    margin-top: 50px;
   }
   #playfield-container {
     min-height: 400px;
@@ -167,9 +169,12 @@ body {
 
 @media (min-height: 800px) and (max-width: 430px) {
   #main-content {
-    margin-top: 20px !important;
-    height: calc(100vh - 20px) !important;
-    height: calc(100dvh - 20px) !important;
+    margin-top: 10px !important;
+    height: calc(100vh - 10px) !important;
+    height: calc(100dvh - 10px) !important;
+  }
+  .game-header {
+    margin-top: 50px;
   }
   #playfield-container {
     min-height: 400px;
