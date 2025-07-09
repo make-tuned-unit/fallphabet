@@ -281,7 +281,7 @@ class GlobalLeaderboardManager {
       }
       const leaderboardHTML = `
         <div class="leaderboard-header">
-          <h3>Top ${gameMode === 'fallphabet_taptile' ? 'Taptile' : 'Daily Challenge'} Scores</h3>
+          <h3>Top ${gameMode === 'fallphabet_taptile' ? 'Taptile' : 'Daily Challenge'} ${gameMode === 'daily_challenge' ? 'Words Used' : 'Scores'}</h3>
         </div>
         <div class="leaderboard-list">
           ${result.data.map((entry, index) => `
@@ -290,13 +290,13 @@ class GlobalLeaderboardManager {
               <div class="player-info">
                 <div class="player-name">${this.escapeHtml(entry.player_name)}</div>
                 <div class="player-stats">
-                  ${entry.game_mode === 'fallphabet_taptile' ? 
-                    `Speed: ${entry.max_chain_multiplier}x • Time: ${entry.game_duration_seconds}s` :
-                    `Words: ${entry.words_used} • Chain: x${entry.max_chain_multiplier}`
+                  ${gameMode === 'daily_challenge' ? 
+                    `Words: ${entry.words_used} • Top Word: ${this.escapeHtml(entry.top_word || 'N/A')}` :
+                    `Speed: ${entry.max_chain_multiplier}x • Time: ${entry.game_duration_seconds}s`
                   }
                 </div>
               </div>
-              <div class="score">${entry.score}</div>
+              ${gameMode === 'daily_challenge' ? '' : `<div class="score">${entry.score}</div>`}
             </div>
           `).join('')}
         </div>
