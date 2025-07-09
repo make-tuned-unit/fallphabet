@@ -25,9 +25,9 @@ body {
   align-items: center;
   justify-content: flex-start;
   width: 100%;
-  height: calc(100vh - 120px);
-  height: calc(100dvh - 120px);
-  margin-top: 120px;
+  height: calc(100vh - 180px);
+  height: calc(100dvh - 180px);
+  margin-top: 180px;
   background: transparent;
   box-sizing: border-box;
   gap: 0;
@@ -151,6 +151,9 @@ body {
   #main-content {
     width: 100vw !important;
     max-width: 100vw !important;
+    margin-top: 140px !important;
+    height: calc(100vh - 140px) !important;
+    height: calc(100dvh - 140px) !important;
   }
   .game-title {
     font-size: 8vw !important;
@@ -180,6 +183,11 @@ body {
 
 /* iPhone 14 Pro Max and similar tall screens */
 @media (min-height: 800px) and (max-width: 430px) {
+  #main-content {
+    margin-top: 140px !important;
+    height: calc(100vh - 140px) !important;
+    height: calc(100dvh - 140px) !important;
+  }
   #playfield-container {
     height: calc(100vh - 140px);
     height: calc(100dvh - 140px);
@@ -199,6 +207,11 @@ body {
 
 /* Force playfield visibility on all devices */
 @media (max-height: 700px) {
+  #main-content {
+    margin-top: 120px !important;
+    height: calc(100vh - 120px) !important;
+    height: calc(100dvh - 120px) !important;
+  }
   #playfield-container {
     height: calc(100vh - 120px);
     height: calc(100dvh - 120px);
