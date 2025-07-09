@@ -337,8 +337,8 @@ body {
 
 .modal-close-btn {
   position: absolute;
-  top: 12px;
-  right: 16px;
+  top: 10px;
+  right: 10px;
   background: none;
   border: none;
   color: #7c3aed;
@@ -346,7 +346,7 @@ body {
   font-weight: bold;
   cursor: pointer;
   z-index: 2600; /* Increased to be above the modal */
-  padding: 0 8px;
+  padding: 10px 10px;
   line-height: 1;
   transition: color 0.15s;
 }

@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=49">
+      <link rel="stylesheet" href="style.css?v=50">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <!-- Open Graph and Twitter Card for social sharing -->
   <meta property="og:title" content="Fallphabet" />
@@ -913,7 +913,7 @@
         if (this.scoreManager.getTotalScore() >= 200) {
           // Win condition
           if (title) title.textContent = 'You Did It!';
-          if (stats) stats.innerHTML = `<span style="font-family: Arial, Helvetica, sans-serif; font-size: 1.2rem; color: #222; display: block;">It took you <strong>${wordsUsed}</strong> words to hit 200 points today.<br><br>Your Top Word was <strong>${topWord}</strong> earning you <strong>${topWordScore}</strong> points.<br><br>You chained <strong>x${highestChain}</strong> together today!<br><br>Come back tomorrow to see if you can beat your score.<br><br>Share with friends to see who can beat the Fallphabet with the fewest words.</span>`;
+          if (stats) stats.innerHTML = `<span style="font-family: Arial, Helvetica, sans-serif; font-size: 1.2rem; color: #222; display: block;">It took you <strong>${wordsUsed}</strong> words to hit 200 points today.<br><br>Your Top Word was <strong>${topWord}</strong> earning you <strong>${topWordScore}</strong> points.<br><br>You chained <strong>${highestChain}</strong> words together today!<br><br>Come back tomorrow to see if you can beat your score.<br><br>Share with friends to see who can beat the Fallphabet with the fewest words.</span>`;
         } else {
           // Normal game over
           if (title) title.textContent = 'Game Over!';
