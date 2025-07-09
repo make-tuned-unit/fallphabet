@@ -496,9 +496,24 @@
           console.log(`Loaded ${this.dictionary.size} words`);
         } catch (error) {
           console.error('Error loading dictionary:', error);
-          // Fallback to a small set of common words
-          const fallbackWords = ['HELLO', 'WORLD', 'GAME', 'PLAY', 'FUN', 'WORD', 'LETTER', 'TILE'];
+          // Fallback to a larger set of common words
+          const fallbackWords = [
+            'HELLO', 'WORLD', 'GAME', 'PLAY', 'FUN', 'WORD', 'LETTER', 'TILE', 'CAT', 'DOG', 'BAT', 'HAT', 'RAT', 'SAT', 'MAT',
+            'BIG', 'PIG', 'DIG', 'WIG', 'JIG', 'RIG', 'ZIG', 'BAG', 'TAG', 'WAG', 'RAG', 'SAG', 'LAG', 'NAG', 'HAG', 'JAG',
+            'CAN', 'FAN', 'MAN', 'PAN', 'RAN', 'TAN', 'VAN', 'BAN', 'DAN', 'JAN', 'LAN', 'WAN', 'YAN', 'ZAN', 'CAP', 'GAP',
+            'LAP', 'MAP', 'NAP', 'RAP', 'SAP', 'TAP', 'YAP', 'ZAP', 'CAR', 'FAR', 'JAR', 'PAR', 'TAR', 'WAR', 'BAR', 'EAR',
+            'GAR', 'MAR', 'OAR', 'SAR', 'VAR', 'YAR', 'ZAR', 'EAT', 'FAT', 'HAT', 'MAT', 'PAT', 'RAT', 'SAT', 'VAT', 'BAT',
+            'CAT', 'GAT', 'JAT', 'LAT', 'NAT', 'OAT', 'QAT', 'TAT', 'WAT', 'YAT', 'ZAT', 'BET', 'GET', 'JET', 'LET', 'MET',
+            'NET', 'PET', 'SET', 'VET', 'WET', 'YET', 'ZET', 'BIT', 'FIT', 'HIT', 'KIT', 'LIT', 'MIT', 'PIT', 'SIT', 'TIT',
+            'WIT', 'ZIT', 'BOT', 'COT', 'DOT', 'GOT', 'HOT', 'JOT', 'LOT', 'NOT', 'POT', 'ROT', 'SOT', 'TOT', 'WOT', 'YOT',
+            'ZOT', 'BUT', 'CUT', 'GUT', 'HUT', 'JUT', 'NUT', 'PUT', 'RUT', 'TUT', 'YUT', 'ZUT', 'BOX', 'COX', 'FOX', 'POX',
+            'SOX', 'TOX', 'WOX', 'YOX', 'ZOX', 'BOY', 'COY', 'FOY', 'GOY', 'HOY', 'JOY', 'LOY', 'MOY', 'NOY', 'POY', 'ROY',
+            'SOY', 'TOY', 'VOY', 'WOY', 'YOY', 'ZOY', 'BED', 'FED', 'LED', 'RED', 'WED', 'ZED', 'BEG', 'LEG', 'PEG', 'REG',
+            'SEG', 'TEG', 'WEG', 'ZEG', 'BEN', 'DEN', 'FEN', 'GEN', 'HEN', 'KEN', 'MEN', 'PEN', 'REN', 'SEN', 'TEN', 'VEN',
+            'WEN', 'YEN', 'ZEN', 'BET', 'GET', 'JET', 'LET', 'MET', 'NET', 'PET', 'SET', 'VET', 'WET', 'YET', 'ZET'
+          ];
           fallbackWords.forEach(word => this.dictionary.add(word));
+          console.log(`Loaded fallback dictionary with ${fallbackWords.length} words`);
         }
       }
       
@@ -733,6 +748,7 @@
       async handleWordSubmission(data) {
         if (this.gameOver) return;
         const { word, tiles } = data;
+        console.log('Word submission attempt:', word);
         // Always clean up tiles from spawner tracking, regardless of validation result
         tiles.forEach(tile => {
           if (tile && tile.col !== undefined && this.tileSpawner.columnsTiles[tile.col]) {
@@ -745,10 +761,22 @@
         // Strict English word validation
         let isValid = false;
         let isProper = false;
+        let apiFailed = false;
+        
         try {
-          const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
+          console.log('Attempting to validate word with API:', word);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+          
+          const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`, {
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          console.log('API response status:', res.status);
+          
           if (res.ok) {
             const data = await res.json();
+            console.log('API response data:', data);
             if (Array.isArray(data)) {
               // Check all meanings for proper noun
               isProper = data.some(entry =>
@@ -757,13 +785,24 @@
                 )
               );
               isValid = true;
+              console.log('Word validated by API:', word, 'isProper:', isProper);
             }
+          } else {
+            console.log('API returned error status:', res.status);
+            apiFailed = true;
           }
         } catch (e) {
-          // API failed, fallback to local dictionary
+          console.log('Dictionary API failed, using fallback validation:', e);
+          apiFailed = true;
+        }
+        
+        // Only use fallback if API completely failed
+        if (apiFailed) {
+          console.log('Using fallback validation for:', word);
           isValid = await this.wordValidator.validate(word);
         }
         if (!isValid) {
+          console.log('Word validation failed:', word);
           this.showFlashMessage(`"${word}" - Not a valid English word!`, '#ff6b6b');
           return;
         }
@@ -780,6 +819,7 @@
         // If valid and not a proper noun, continue with scoring and animation
         const chainLevel = this.chainTracker.getChainLevel();
         const score = this.scoreManager.calculateScore(word, chainLevel);
+        console.log('Word validated successfully:', word, 'Score:', score, 'Chain:', chainLevel);
         this.scoreManager.addScore(score);
         this.wordsUsed++;
         if (score > this.topWordScore) {
