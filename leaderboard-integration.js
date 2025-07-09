@@ -263,6 +263,12 @@ class GlobalLeaderboardManager {
 
     leaderboardContent.innerHTML = '<div class="loading">Loading leaderboard...</div>';
 
+    // Check connection status first
+    if (!this.isConnected) {
+      console.warn('Supabase not connected, checking connection...');
+      await this.testConnection();
+    }
+
     const result = await this.getTopScores(gameMode, 20);
     
     if (!result.success) {

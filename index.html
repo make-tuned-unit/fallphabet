@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=75">
+      <link rel="stylesheet" href="style.css?v=76">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -1387,6 +1387,7 @@
         const restartBtn = document.getElementById('modal-restart-btn');
         if (restartBtn) {
           restartBtn.style.display = 'none';
+          restartBtn.style.visibility = 'hidden';
         }
         
         // Also ensure the close button is properly set up
@@ -1458,6 +1459,16 @@
             }
           });
         });
+
+        // Prevent page refresh for Daily Challenge mode
+        window.addEventListener('beforeunload', (e) => {
+          if (window.gameModeManager && !window.gameModeManager.getCurrentMode().speedIncrease) {
+            // Daily Challenge mode - warn user about losing progress
+            e.preventDefault();
+            e.returnValue = 'You are playing Daily Challenge mode. Refreshing will lose your progress. Are you sure?';
+            return e.returnValue;
+          }
+        });
         
         // Leaderboard functionality
         const leaderboardBtn = document.getElementById('leaderboard-btn');
@@ -1528,6 +1539,12 @@
               window.game.scene.restart();
             }
           };
+          
+          // Hide restart button for Daily Challenge mode (one attempt per day)
+          if (window.gameModeManager && !window.gameModeManager.getCurrentMode().speedIncrease) {
+            restartBtn.style.display = 'none';
+            restartBtn.style.visibility = 'hidden';
+          }
         }
 
         // --- Enhanced Share button with Instagram Story support ---
