@@ -77,7 +77,7 @@ class GlobalLeaderboardManager {
             score: scoreData.score,
             words_used: scoreData.wordsUsed,
             game_mode: scoreData.gameMode,
-            game_duration_seconds: scoreData.gameDurationSeconds,
+            game_duration_seconds: Math.round(scoreData.gameDurationSeconds || 0),
             max_chain_multiplier: scoreData.maxChainMultiplier
           }])
           .select();
@@ -214,7 +214,7 @@ class GlobalLeaderboardManager {
         top_word: scoreData.topWord || '',
         top_word_score: scoreData.topWordScore || 0,
         game_mode: scoreData.gameMode,
-        game_duration_seconds: scoreData.gameDurationSeconds,
+        game_duration_seconds: Math.round(scoreData.gameDurationSeconds || 0),
         max_chain_multiplier: scoreData.maxChainMultiplier,
         created_at: new Date().toISOString()
       };

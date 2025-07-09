@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=96">
+      <link rel="stylesheet" href="style.css?v=97">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -1237,8 +1237,10 @@
           
           // Always show restart for taptile mode
           const restartBtn = document.getElementById('modal-restart-btn');
-          restartBtn.textContent = 'Try Again';
-          restartBtn.style.display = '';
+          if (restartBtn) {
+            restartBtn.textContent = 'Try Again';
+            restartBtn.style.display = '';
+          }
           
         } else {
           // Daily challenge mode
