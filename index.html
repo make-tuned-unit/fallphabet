@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=69">
+      <link rel="stylesheet" href="style.css?v=70">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -243,8 +243,6 @@
       }
       
       updateUI() {
-        console.log('updateUI called for mode:', this.currentMode);
-        
         // Update mode buttons
         document.querySelectorAll('.mode-btn').forEach(btn => {
           btn.classList.remove('active');
@@ -256,18 +254,14 @@
         const leaderboardBtn = document.getElementById('leaderboard-btn');
         const mainContent = document.getElementById('main-content');
         
-        console.log('Leaderboard button found:', !!leaderboardBtn);
-        
         if (this.currentMode === 'taptile') {
           taptileStats.style.display = 'flex';
           leaderboardBtn.style.display = 'block';
           mainContent.classList.add('taptile-mode');
-          console.log('Set leaderboard button to block for taptile');
         } else {
           taptileStats.style.display = 'none';
           leaderboardBtn.style.display = 'block'; // Show leaderboard for Daily Challenge too
           mainContent.classList.remove('taptile-mode');
-          console.log('Set leaderboard button to block for daily');
         }
         
         // Update instructions
@@ -685,14 +679,12 @@
         if (!tile || !tile.isScrabbleTile) return;
         
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        console.log(`Tile tap on ${isMobile ? 'mobile' : 'desktop'}:`, tile.letter, 'Buffer:', this.buffer.join(''));
         
         const now = Date.now();
         // Double-tap detection
         if (this.lastTappedTile === tile && (now - this.lastTapTime) < 350) {
           // Only submit if this tile is the last selected tile
           if (this.selectedTiles.length && this.selectedTiles[this.selectedTiles.length - 1] === tile) {
-            console.log(`Double-tap detected, submitting word: ${this.buffer.join('')}`);
             this.submitWord();
             this.clearAutoClearTimer();
             return;
@@ -703,7 +695,6 @@
             this.buffer.push(tile.letter);
             this.highlightTile(tile, true);
             this.lastTile = tile;
-            console.log(`Added tile ${tile.letter}, buffer now: ${this.buffer.join('')}`);
             // If this is the first tile of a new word, handle chain increment
             if (this.selectedTiles.length === 1 && this.scene.chainTracker && this.scene.chainTracker.chainWindowActive) {
               this.scene.chainTracker.shouldIncrementChain = true;
@@ -773,60 +764,38 @@
       }
 
       clearBuffer(skipDestruction = false) {
-        console.log(`clearBuffer called with skipDestruction=${skipDestruction}, selectedTiles.length=${this.selectedTiles.length}`);
         this.selectedTiles.forEach((tile, index) => {
           // Only destroy tiles when clearing buffer for unsuccessful selections
           if (!skipDestruction && tile && !tile.destroyed) {
-            console.log(`Destroying tile ${index}:`, tile);
             tile.destroy();
             if (tile.text && !tile.text.destroyed) tile.text.destroy();
             if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
             if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
-          } else if (skipDestruction) {
-            console.log(`Skipping destruction for tile ${index}`);
-          } else {
-            console.log(`Tile ${index} already destroyed or null`);
           }
         });
         this.selectedTiles = [];
         this.buffer = [];
         this.lastTile = null;
         this.clearAutoClearTimer();
-        console.log('clearBuffer completed');
       }
       
       submitWord() {
         if (this.buffer.length < 2) return;
         const word = this.buffer.join('');
+        const tiles = [...this.selectedTiles];
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        console.log(`submitWord called on ${isMobile ? 'mobile' : 'desktop'}: "${word}" with ${this.selectedTiles.length} tiles`);
+        
+        // Clear buffer immediately to prevent word combination
+        this.clearBuffer(true);
+        
         this.scene.events.emit('wordSubmitted', {
           word: word,
-          tiles: [...this.selectedTiles]
+          tiles: tiles
         });
-        // Removed: this.clearBuffer(true); // Let buffer be cleared after validation
       }
       
       update() {
         // Any per-frame updates if needed
-      }
-    }
-
-    // WordValidator Module
-    class WordValidator {
-      constructor() {
-        this.dictionary = new Set();
-        this.loadDictionary();
-      }
-      
-      async loadDictionary() {
-        // This class is no longer used for validation - we use the free dictionary API instead
-        console.log('WordValidator: Using free dictionary API for validation');
-      }
-      
-      async validate(word) {
-        // This method is no longer used - we use the free dictionary API instead
-        return false;
       }
     }
 
@@ -916,42 +885,6 @@
       }
     }
 
-    // --- Daily Challenge Manager ---
-    class DailyChallengeManager {
-      constructor() {
-        this.today = this.getTodayString();
-        this.load();
-      }
-      getTodayString() {
-        const now = new Date();
-        return `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
-      }
-      load() {
-        const data = JSON.parse(localStorage.getItem('fallphabet_daily') || '{}');
-        if (data.date !== this.today) {
-          this.attempts = 0;
-          this.save();
-        } else {
-          this.attempts = data.attempts || 0;
-        }
-      }
-      save() {
-        localStorage.setItem('fallphabet_daily', JSON.stringify({ date: this.today, attempts: this.attempts }));
-      }
-      incrementAttempt() {
-        this.attempts++;
-        this.save();
-      }
-      canRetry() {
-        this.load();
-        return this.attempts < 2;
-      }
-      attemptsLeft() {
-        this.load();
-        return Math.max(0, 2 - this.attempts);
-      }
-    }
-
     // GameScene
     class GameScene extends Phaser.Scene {
       constructor() {
@@ -1016,7 +949,6 @@
         this.tileSpawner = new TileSpawner(this, this.gridX, this.gridY, this.gridWidth, this.gridHeight, this.columns, this.rows);
         
         this.inputHandler = new InputHandler(this, this.tileSpawner);
-        this.wordValidator = new WordValidator();
         this.scoreManager = new ScoreManager();
         this.chainTracker = new ChainTracker();
         
@@ -1052,8 +984,6 @@
           0x000000,
           1
         ).setOrigin(0, 0).setLineWidth(3).setDepth(100);
-
-        this.dailyChallenge = new DailyChallengeManager();
       }
 
       update(time, delta) {
@@ -1097,8 +1027,6 @@
           const timeout = isMobile ? 10000 : 5000; // 10 seconds on mobile, 5 on desktop
           const timeoutId = setTimeout(() => controller.abort(), timeout);
           
-          console.log(`Validating word "${word}" on ${isMobile ? 'mobile' : 'desktop'} with ${timeout}ms timeout`);
-          
           const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`, {
             signal: controller.signal
           });
@@ -1114,14 +1042,9 @@
                 )
               );
               isValid = true;
-              console.log(`Word "${word}" validated successfully`);
             }
-          } else {
-            console.log(`API returned status ${res.status} for word "${word}"`);
-            apiFailed = true;
           }
         } catch (e) {
-          console.log(`API call failed for "${word}":`, e.message);
           apiFailed = true;
         }
         
@@ -1131,34 +1054,36 @@
         }
         if (!isValid) {
           this.showFlashMessage(`"${word}" - Not a valid English word!`, '#ff6b6b');
-          // Clear buffer and destroy tiles for invalid words
-          console.log('Invalid word - destroying tiles');
-          this.inputHandler.clearBuffer();
+          // Destroy tiles for invalid words (buffer already cleared)
+          tiles.forEach(tile => {
+            if (tile && !tile.destroyed) {
+              tile.destroy();
+              if (tile.text && !tile.text.destroyed) tile.text.destroy();
+              if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
+              if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
+            }
+          });
           return;
         }
         if (isProper) {
           this.showFlashMessage(`"${word}" is a proper name. No proper names allowed!`, '#ff6b6b');
-          // Clear buffer and destroy tiles for invalid words
-          console.log('Proper noun - destroying tiles');
-          this.inputHandler.clearBuffer();
+          // Destroy tiles for invalid words (buffer already cleared)
+          tiles.forEach(tile => {
+            if (tile && !tile.destroyed) {
+              tile.destroy();
+              if (tile.text && !tile.text.destroyed) tile.text.destroy();
+              if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
+              if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
+            }
+          });
           return;
         }
         
-        // Haptic feedback for successful word submission (temporarily disabled for mobile debugging)
-        // if ('vibrate' in navigator) {
-        //   navigator.vibrate(100); // Short vibration for success
-        // }
-        
         // If valid and not a proper noun, continue with scoring and animation
-        console.log(`Starting scoring process for word "${word}"`);
         const chainLevel = this.chainTracker.getChainLevel();
-        console.log(`Chain level: ${chainLevel}`);
         const score = this.scoreManager.calculateScore(word, chainLevel);
-        console.log(`Calculated score: ${score}`);
         this.scoreManager.addScore(score);
-        console.log(`Total score after adding: ${this.scoreManager.getTotalScore()}`);
         this.wordsUsed++;
-        console.log(`Words used: ${this.wordsUsed}`);
         if (score > this.topWordScore) {
           this.topWordScore = score;
           this.topWord = word;
@@ -1215,8 +1140,6 @@
         
         const currentScore = this.scoreManager.getTotalScore();
         const currentChain = this.chainTracker.getChainLevel();
-        
-        console.log(`updateUI called - Score: ${currentScore}, Chain: ${currentChain}`);
         
         scoreDisplay.textContent = currentScore;
         scoreDisplay.style.fontFamily = 'Arial, Helvetica, sans-serif';
