@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=89">
+      <link rel="stylesheet" href="style.css?v=90">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -1452,6 +1452,12 @@
               // Initialize global game mode manager
         window.gameModeManager = new GameModeManager();
         
+        // Ensure leaderboard is initialized before setting up mode switching
+        if (!window.globalLeaderboard) {
+          console.log('Initializing global leaderboard...');
+          window.globalLeaderboard = new GlobalLeaderboardManager();
+        }
+        
         // Global function to switch to Taptile mode (used by modals)
         window.switchToTaptileMode = () => {
           console.log('Switching to Taptile mode from modal');
@@ -1485,15 +1491,28 @@
             
             // Check if switching to Daily Challenge and player has already attempted today
             if (mode === 'daily') {
+              console.log('Checking Daily Challenge attempt...');
+              console.log('Global leaderboard available:', !!window.globalLeaderboard);
+              
               const playerName = window.globalLeaderboard ? window.globalLeaderboard.getPlayerName() : null;
+              console.log('Player name:', playerName);
+              
               if (playerName && window.globalLeaderboard) {
+                console.log('Checking daily attempt for player:', playerName);
                 const attemptCheck = await window.globalLeaderboard.hasDailyAttemptToday(playerName);
+                console.log('Daily attempt check result:', attemptCheck);
+                
                 if (attemptCheck.success && attemptCheck.hasAttempted) {
+                  console.log('Player has already attempted today, showing modal');
                   // Player has already attempted today, show modal
                   const todaysScore = await window.globalLeaderboard.getTodaysDailyScore(playerName);
                   window.globalLeaderboard.showDailyAlreadyAttemptedModal(todaysScore.success ? todaysScore.data : null);
                   return; // Don't switch modes
+                } else {
+                  console.log('Player has not attempted today or check failed, allowing play');
                 }
+              } else {
+                console.log('No player name or leaderboard not available, allowing play');
               }
             }
             
