@@ -567,6 +567,19 @@ class GlobalLeaderboardManager {
       // Switch to Taptile mode
       if (window.switchToTaptileMode) {
         window.switchToTaptileMode();
+      } else {
+        // Fallback: manually switch mode
+        if (window.gameModeManager) {
+          window.gameModeManager.setMode('taptile');
+          setTimeout(() => {
+            window.gameModeManager.updateUI();
+            if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+              window.game.scene.stop('GameScene');
+              window.game.scene.remove('GameScene');
+              window.game.scene.add('GameScene', GameScene, true);
+            }
+          }, 100);
+        }
       }
     });
 
@@ -574,7 +587,8 @@ class GlobalLeaderboardManager {
       if (modal && modal.parentNode) {
         document.body.removeChild(modal);
       }
-      this.showLeaderboardModal('daily_challenge');
+      // Show dedicated daily leaderboard view instead of slide-up modal
+      this.showDailyLeaderboardView();
     });
 
     closeBtn.addEventListener('click', () => {
@@ -582,6 +596,142 @@ class GlobalLeaderboardManager {
         document.body.removeChild(modal);
       }
     });
+  }
+
+  // Show dedicated daily leaderboard view
+  showDailyLeaderboardView() {
+    const modal = document.createElement('div');
+    modal.className = 'daily-leaderboard-modal';
+    modal.innerHTML = `
+      <div class="daily-leaderboard-content">
+        <div class="daily-leaderboard-header">
+          <h3>Today's Daily Challenge Leaderboard</h3>
+          <button id="close-daily-leaderboard-btn" class="close-btn">&times;</button>
+        </div>
+        <div class="daily-leaderboard-body">
+          <div id="daily-leaderboard-list" class="leaderboard-list">
+            <div class="loading">Loading today's leaderboard...</div>
+          </div>
+        </div>
+        <div class="daily-leaderboard-footer">
+          <button id="play-taptile-from-leaderboard-btn" class="modal-btn primary">Play Fallphabet Taptile</button>
+          <button id="close-daily-leaderboard-modal-btn" class="modal-btn">Close</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const closeBtn = modal.querySelector('#close-daily-leaderboard-btn');
+    const closeModalBtn = modal.querySelector('#close-daily-leaderboard-modal-btn');
+    const playTaptileBtn = modal.querySelector('#play-taptile-from-leaderboard-btn');
+
+    // Load and render daily leaderboard
+    this.renderDailyLeaderboard(modal.querySelector('#daily-leaderboard-list'));
+
+    // Event listeners
+    closeBtn.addEventListener('click', () => {
+      if (modal && modal.parentNode) {
+        document.body.removeChild(modal);
+      }
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+      if (modal && modal.parentNode) {
+        document.body.removeChild(modal);
+      }
+    });
+
+    playTaptileBtn.addEventListener('click', () => {
+      if (modal && modal.parentNode) {
+        document.body.removeChild(modal);
+      }
+      // Switch to Taptile mode
+      if (window.switchToTaptileMode) {
+        window.switchToTaptileMode();
+      } else {
+        // Fallback: manually switch mode
+        if (window.gameModeManager) {
+          window.gameModeManager.setMode('taptile');
+          setTimeout(() => {
+            window.gameModeManager.updateUI();
+            if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+              window.game.scene.stop('GameScene');
+              window.game.scene.remove('GameScene');
+              window.game.scene.add('GameScene', GameScene, true);
+            }
+          }, 100);
+        }
+      }
+    });
+
+    // Close modal when clicking outside
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        if (modal && modal.parentNode) {
+          document.body.removeChild(modal);
+        }
+      }
+    });
+  }
+
+  // Render daily leaderboard specifically for today
+  async renderDailyLeaderboard(container) {
+    if (!this.isConnected) {
+      container.innerHTML = '<div class="error">Unable to load leaderboard - not connected to server</div>';
+      return;
+    }
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await this.supabase
+        .from('leaderboard')
+        .select('*')
+        .eq('game_mode', 'daily_challenge')
+        .gte('created_at', today + 'T00:00:00')
+        .lte('created_at', today + 'T23:59:59')
+        .order('score', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        console.error('Error loading daily leaderboard:', error);
+        container.innerHTML = '<div class="error">Error loading leaderboard</div>';
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        container.innerHTML = '<div class="no-scores">No scores yet today! Be the first to play!</div>';
+        return;
+      }
+
+      const playerIdentifier = this.getPlayerIdentifier();
+      let html = '<div class="leaderboard-entries">';
+      
+      data.forEach((entry, index) => {
+        const isCurrentPlayer = entry.player_name === playerIdentifier;
+        const rank = index + 1;
+        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
+        
+        html += `
+          <div class="leaderboard-entry ${isCurrentPlayer ? 'current-player' : ''}">
+            <div class="rank">${medal} ${rank}</div>
+            <div class="player-name">${this.escapeHtml(entry.player_name)}</div>
+            <div class="score">${entry.score.toLocaleString()}</div>
+            <div class="details">
+              <span class="words">${entry.words_used} words</span>
+              ${entry.top_word ? `<span class="top-word">"${this.escapeHtml(entry.top_word)}" (${entry.top_word_score} pts)</span>` : ''}
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      container.innerHTML = html;
+
+    } catch (err) {
+      console.error('Error rendering daily leaderboard:', err);
+      container.innerHTML = '<div class="error">Error loading leaderboard</div>';
+    }
   }
 }
 
