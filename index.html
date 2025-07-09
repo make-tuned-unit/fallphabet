@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=68">
+      <link rel="stylesheet" href="style.css?v=69">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -773,19 +773,26 @@
       }
 
       clearBuffer(skipDestruction = false) {
-        this.selectedTiles.forEach(tile => {
+        console.log(`clearBuffer called with skipDestruction=${skipDestruction}, selectedTiles.length=${this.selectedTiles.length}`);
+        this.selectedTiles.forEach((tile, index) => {
           // Only destroy tiles when clearing buffer for unsuccessful selections
           if (!skipDestruction && tile && !tile.destroyed) {
+            console.log(`Destroying tile ${index}:`, tile);
             tile.destroy();
             if (tile.text && !tile.text.destroyed) tile.text.destroy();
             if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
             if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
+          } else if (skipDestruction) {
+            console.log(`Skipping destruction for tile ${index}`);
+          } else {
+            console.log(`Tile ${index} already destroyed or null`);
           }
         });
         this.selectedTiles = [];
         this.buffer = [];
         this.lastTile = null;
         this.clearAutoClearTimer();
+        console.log('clearBuffer completed');
       }
       
       submitWord() {
@@ -797,7 +804,7 @@
           word: word,
           tiles: [...this.selectedTiles]
         });
-        this.clearBuffer(true); // Skip destruction - tiles will be handled by animation
+        // Removed: this.clearBuffer(true); // Let buffer be cleared after validation
       }
       
       update() {
@@ -1125,12 +1132,14 @@
         if (!isValid) {
           this.showFlashMessage(`"${word}" - Not a valid English word!`, '#ff6b6b');
           // Clear buffer and destroy tiles for invalid words
+          console.log('Invalid word - destroying tiles');
           this.inputHandler.clearBuffer();
           return;
         }
         if (isProper) {
           this.showFlashMessage(`"${word}" is a proper name. No proper names allowed!`, '#ff6b6b');
           // Clear buffer and destroy tiles for invalid words
+          console.log('Proper noun - destroying tiles');
           this.inputHandler.clearBuffer();
           return;
         }
