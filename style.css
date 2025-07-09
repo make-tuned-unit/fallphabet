@@ -149,6 +149,20 @@ body {
   font-size: 18px !important;
 }
 
+/* When Taptile mode is active, make Points and Chain match Speed and Time sizes */
+.taptile-mode .game-stats .stat-label {
+  font-size: 16px !important;
+}
+
+.taptile-mode .game-stats .stat-value {
+  font-size: 18px !important;
+}
+
+.taptile-mode .chain-svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+
 .clock-icon {
   color: #000;
 }

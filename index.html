@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=62">
+      <link rel="stylesheet" href="style.css?v=64">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -165,10 +165,14 @@
           <p>• No time limit - make words as long as possible</p>
         </div>
         <div id="taptile-goal" style="display: none;">
+          <h4>Continuous Run Mode</h4>
           <p>• Survive as long as possible with increasing speed</p>
           <p>• Make a new word within the time window or lose</p>
           <p>• Time window shrinks as speed increases</p>
+          <p>• Speed increases every 3 words</p>
+          <p>• Time window decreases from 5.0s to 1.5s</p>
           <p>• Go for the highest score on the global leaderboard!</p>
+          <p>• Your personal best is saved locally</p>
         </div>
       </div>
     </div>
@@ -248,13 +252,16 @@
         // Update stats display
         const taptileStats = document.getElementById('taptile-stats');
         const leaderboardBtn = document.getElementById('leaderboard-btn');
+        const mainContent = document.getElementById('main-content');
         
         if (this.currentMode === 'taptile') {
           taptileStats.style.display = 'flex';
           leaderboardBtn.style.display = 'block';
+          mainContent.classList.add('taptile-mode');
         } else {
           taptileStats.style.display = 'none';
           leaderboardBtn.style.display = 'none';
+          mainContent.classList.remove('taptile-mode');
         }
         
         // Update instructions
@@ -1287,6 +1294,18 @@
             });
           }
           
+          // Save Taptile game stats to localStorage
+          saveTaptileGameHistory({
+            score: finalScore,
+            timeSurvived: timeSurvived,
+            maxSpeed: taptileStats.maxSpeed,
+            wordsUsed: wordsUsed,
+            topWord: topWord,
+            topWordScore: topWordScore,
+            highestChain: highestChain,
+            timestamp: Date.now()
+          });
+          
           // Always show restart for taptile mode
           const restartBtn = document.getElementById('modal-restart-btn');
           restartBtn.textContent = 'Try Again';
@@ -1673,27 +1692,86 @@
     // ... pass gridWidth to TileSpawner and grid drawing logic ...
 
     function renderStatsHistory() {
-      const history = JSON.parse(localStorage.getItem('fallphabetHistory') || '[]');
+      const currentMode = window.gameModeManager ? window.gameModeManager.getCurrentMode() : { speedIncrease: false };
       const statsDiv = document.getElementById('stats-history-content');
-      if (!history.length) {
-        statsDiv.innerHTML = '<p>No games played yet.</p>';
+      
+      if (currentMode.speedIncrease) {
+        // Taptile mode - show continuous run stats
+        renderTaptileStats(statsDiv);
+      } else {
+        // Daily challenge mode - show daily challenge stats
+        renderDailyStats(statsDiv);
+      }
+    }
+    
+    function renderTaptileStats(statsDiv) {
+      const taptileHistory = JSON.parse(localStorage.getItem('fallphabet_taptile_history') || '[]');
+      
+      if (!taptileHistory.length) {
+        statsDiv.innerHTML = '<p>No Taptile games played yet.</p>';
         return;
       }
-      // Calculate best stats
+      
+      // Calculate best stats for Taptile mode
+      const bestScore = Math.max(...taptileHistory.map(h => h.score || 0));
+      const bestTime = Math.max(...taptileHistory.map(h => h.timeSurvived || 0));
+      const bestSpeed = Math.max(...taptileHistory.map(h => h.maxSpeed || 0));
+      const totalGames = taptileHistory.length;
+      
+      // Find the best game
+      const bestGame = taptileHistory.reduce((best, current) => 
+        (current.score || 0) > (best.score || 0) ? current : best
+      );
+      
+      statsDiv.innerHTML = `
+        <div style='margin-bottom:18px;'>
+          <h3 style='color:#7c3aed;margin:0 0 12px 0;'>Personal Best</h3>
+          <div style='background:#fff9ef;padding:12px;border-radius:8px;border:1px solid #e5c9a8;'>
+            <strong>Best Score:</strong> <span style='color:#7c3aed;font-weight:bold;'>${bestScore}</span><br/>
+            <strong>Longest Survival:</strong> <span style='color:#7c3aed;font-weight:bold;'>${bestTime.toFixed(1)}s</span><br/>
+            <strong>Highest Speed Reached:</strong> <span style='color:#7c3aed;font-weight:bold;'>${bestSpeed.toFixed(1)}x</span><br/>
+            <strong>Total Games:</strong> ${totalGames}
+          </div>
+        </div>
+        <div style='font-size:1.05rem;margin-bottom:8px;'><strong>Recent Runs:</strong></div>
+        <ul style='margin:8px 0 0 0;padding:0;list-style:none;max-height:200px;overflow-y:auto;'>
+          ${taptileHistory.slice(-8).reverse().map(h => {
+            const date = new Date(h.timestamp || Date.now()).toLocaleDateString();
+            return `<li style='margin-bottom:8px;padding:8px;background:#f8f9fa;border-radius:6px;'>
+              <span style='color:#7c3aed;font-weight:bold;'>${date}</span><br/>
+              Score: <strong>${h.score || 0}</strong> | Time: ${h.timeSurvived ? h.timeSurvived.toFixed(1) + 's' : '-'} | Speed: ${h.maxSpeed ? h.maxSpeed.toFixed(1) + 'x' : '-'} | Words: ${h.wordsUsed || 0}
+            </li>`;
+          }).join('')}
+        </ul>
+      `;
+    }
+    
+    function renderDailyStats(statsDiv) {
+      const history = JSON.parse(localStorage.getItem('fallphabetHistory') || '[]');
+      
+      if (!history.length) {
+        statsDiv.innerHTML = '<p>No daily challenge games played yet.</p>';
+        return;
+      }
+      
+      // Calculate best stats for Daily mode
       const fewestWords = Math.min(...history.map(h => h.wordsUsed));
       const highestScore = Math.max(...history.map(h => h.score ?? 0));
       let longestWord = '';
       history.forEach(h => {
         if (h.longestWord && h.longestWord.length > longestWord.length) longestWord = h.longestWord;
       });
-      // Render summary
+      
       statsDiv.innerHTML = `
         <div style='margin-bottom:18px;'>
-          <strong>Best (fewest) words to win:</strong> ${fewestWords}<br/>
-          <strong>Highest score:</strong> ${highestScore}<br/>
-          <strong>Longest word ever:</strong> <span style='color:#7c3aed;font-weight:bold;'>${longestWord || '-'}</span>
+          <h3 style='color:#7c3aed;margin:0 0 12px 0;'>Daily Challenge Best</h3>
+          <div style='background:#fff9ef;padding:12px;border-radius:8px;border:1px solid #e5c9a8;'>
+            <strong>Best (fewest) words to win:</strong> ${fewestWords}<br/>
+            <strong>Highest score:</strong> ${highestScore}<br/>
+            <strong>Longest word ever:</strong> <span style='color:#7c3aed;font-weight:bold;'>${longestWord || '-'}</span>
+          </div>
         </div>
-        <div style='font-size:1.05rem;'><strong>Recent Games:</strong></div>
+        <div style='font-size:1.05rem;margin-bottom:8px;'><strong>Recent Games:</strong></div>
         <ul style='margin:8px 0 0 0;padding:0;list-style:none;max-height:180px;overflow-y:auto;'>
           ${history.slice(-10).reverse().map(h =>
             `<li style='margin-bottom:8px;'><span style='color:#7c3aed;font-weight:bold;'>${h.date}</span>: ${h.wordsUsed} words, Top: ${h.topWord || '-'} (${h.topWordScore || 0} pts), Longest: ${h.longestWord || '-'}, Score: ${h.score ?? 0}</li>`
@@ -1706,6 +1784,16 @@
       const history = JSON.parse(localStorage.getItem('fallphabetHistory') || '[]');
       history.push(stats);
       localStorage.setItem('fallphabetHistory', JSON.stringify(history));
+    }
+    
+    function saveTaptileGameHistory(stats) {
+      const history = JSON.parse(localStorage.getItem('fallphabet_taptile_history') || '[]');
+      history.push(stats);
+      // Keep only the last 50 games to prevent localStorage from getting too large
+      if (history.length > 50) {
+        history.splice(0, history.length - 50);
+      }
+      localStorage.setItem('fallphabet_taptile_history', JSON.stringify(history));
     }
   </script>
 </body>
