@@ -215,27 +215,7 @@ body {
   }
 }
 
-/* Game Over Modal Styles */
-.gameover-modal {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2500; /* Increased to be above the top menu */
-}
-.gameover-modal-content {
-  background: #fff5e1;
-  border: 3px solid #000;
-  border-radius: 18px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-  padding: 36px 32px 28px 32px;
-  min-width: 320px;
-  max-width: 90vw;
-  text-align: center;
-  font-family: 'Roboto Slab', 'Montserrat', sans-serif;
-}
+
 .modal-title {
   color: #7c3aed;
   font-size: 2.1rem;
@@ -276,14 +256,7 @@ body {
   outline: none;
 }
 
-/* Fade-in animation for modal */
-@keyframes modalFadeIn {
-  from { opacity: 0; transform: scale(0.98); }
-  to { opacity: 1; transform: scale(1); }
-}
-.gameover-modal[style*="display: block"], .gameover-modal.show {
-  animation: modalFadeIn 0.35s cubic-bezier(0.4,0,0.2,1);
-}
+
 
 /* Help Button */
 .help-btn {
@@ -335,35 +308,9 @@ body {
   font-family: 'Arial', 'Helvetica', sans-serif;
 }
 
-.modal-close-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  border: none;
-  color: #7c3aed;
-  font-size: 2.2rem;
-  font-weight: bold;
-  cursor: pointer;
-  z-index: 2600; /* Increased to be above the modal */
-  padding: 10px 10px;
-  line-height: 1;
-  transition: color 0.15s;
-}
-.modal-close-btn:hover, .modal-close-btn:focus {
-  color: #b8860b;
-  outline: none;
-}
 
-@media (max-width: 600px), (max-height: 900px) {
-  .gameover-modal-content {
-    padding: 24px 12px 18px 12px !important;
-    margin: 0 8px !important;
-    min-width: unset !important;
-    max-width: 98vw !important;
-    box-sizing: border-box;
-  }
-}
+
+
 
 /* Top Menu Bar */
 .top-menu {

@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=50">
+      <link rel="stylesheet" href="style.css?v=51">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <!-- Open Graph and Twitter Card for social sharing -->
   <meta property="og:title" content="Fallphabet" />
@@ -78,9 +78,9 @@
   <div id="flash-message" class="flash-message"></div>
 
   <!-- Game Over Modal -->
-  <div id="gameover-modal" class="gameover-modal" style="display:none;">
-    <div class="gameover-modal-content">
-      <button id="modal-close-btn" class="modal-close-btn" aria-label="Close">&times;</button>
+  <div id="gameover-modal" class="slideup-modal" style="display:none;">
+    <div class="slideup-modal-content">
+      <button id="modal-close-btn" class="slideup-close-btn" aria-label="Close">&times;</button>
       <h2 class="modal-title">Game Over!</h2>
       <div class="modal-stats">
         <div><strong>Words Used:</strong> <span id="modal-words-used">0</span></div>
@@ -921,8 +921,7 @@
             stats.innerHTML = `<div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x${highestChain}</span></div>`;
           }
         }
-        modal.style.display = 'flex';
-        setTimeout(() => { modal.classList.add('show'); }, 10);
+        modal.classList.add('show');
         // Daily challenge logic for attempts/restart button
         this.dailyChallenge.incrementAttempt();
         const restartBtn = document.getElementById('modal-restart-btn');
@@ -997,9 +996,8 @@
             const scene = window.game.scene.keys['GameScene'];
             // Allow restart for wins or if attempts remain
             if (scene.scoreManager.getTotalScore() >= 200 || (scene.dailyChallenge && scene.dailyChallenge.attemptsLeft() > 0)) {
-              // Hide modal
-              document.getElementById('gameover-modal').style.display = 'none';
-              document.getElementById('gameover-modal').classList.remove('show');
+                        // Hide modal
+          document.getElementById('gameover-modal').classList.remove('show');
               window.game.scene.restart();
             }
           };
@@ -1104,7 +1102,6 @@
         const closeBtn = document.getElementById('modal-close-btn');
         if (closeBtn) {
           closeBtn.onclick = () => {
-            document.getElementById('gameover-modal').style.display = 'none';
             document.getElementById('gameover-modal').classList.remove('show');
           };
         }
