@@ -137,10 +137,11 @@ body {
 
 /* Responsive Design */
 @media (max-width: 600px), (max-height: 900px) {
-  body, #main-content, #playfield-container {
+  body, #main-content {
     margin: 0 !important;
     padding: 0 !important;
     box-sizing: border-box;
+    overflow-y: auto !important;
   }
   #playfield-container {
     margin-left: 0 !important;
@@ -151,6 +152,7 @@ body {
     right: 0 !important;
     box-sizing: border-box;
     overflow-x: hidden;
+    min-height: 400px;
   }
   #main-content {
     width: 100vw !important;
@@ -187,6 +189,9 @@ body {
 
 /* iPhone 14 Pro Max and similar tall screens */
 @media (min-height: 800px) and (max-width: 430px) {
+  body, #main-content {
+    overflow-y: auto !important;
+  }
   #main-content {
     margin-top: 40px !important;
     height: calc(100vh - 40px) !important;
