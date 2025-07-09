@@ -269,42 +269,43 @@ class GlobalLeaderboardManager {
       await this.testConnection();
     }
 
-    const result = await this.getTopScores(gameMode, 20);
-    
-    if (!result.success) {
-      leaderboardContent.innerHTML = `<div class="error">Error loading leaderboard: ${result.error}</div>`;
-      return;
-    }
-
-    if (result.data.length === 0) {
-      leaderboardContent.innerHTML = '<div class="no-scores">No scores yet! Be the first to play!</div>';
-      return;
-    }
-
-    const leaderboardHTML = `
-      <div class="leaderboard-header">
-        <h3>Top ${gameMode === 'fallphabet_taptile' ? 'Taptile' : 'Daily Challenge'} Scores</h3>
-      </div>
-      <div class="leaderboard-list">
-        ${result.data.map((entry, index) => `
-          <div class="leaderboard-entry ${index < 3 ? 'top-three' : ''}">
-            <div class="rank">#${entry.rank}</div>
-            <div class="player-info">
-              <div class="player-name">${this.escapeHtml(entry.player_name)}</div>
-              <div class="player-stats">
-                ${entry.game_mode === 'fallphabet_taptile' ? 
-                  `Speed: ${entry.max_chain_multiplier}x • Time: ${entry.game_duration_seconds}s` :
-                  `Words: ${entry.words_used} • Chain: x${entry.max_chain_multiplier}`
-                }
+    try {
+      const result = await this.getTopScores(gameMode, 20);
+      if (!result.success) {
+        leaderboardContent.innerHTML = `<div class="error">Error loading leaderboard: ${result.error}</div>`;
+        return;
+      }
+      if (result.data.length === 0) {
+        leaderboardContent.innerHTML = '<div class="no-scores">No scores yet! Be the first to play!</div>';
+        return;
+      }
+      const leaderboardHTML = `
+        <div class="leaderboard-header">
+          <h3>Top ${gameMode === 'fallphabet_taptile' ? 'Taptile' : 'Daily Challenge'} Scores</h3>
+        </div>
+        <div class="leaderboard-list">
+          ${result.data.map((entry, index) => `
+            <div class="leaderboard-entry ${index < 3 ? 'top-three' : ''}">
+              <div class="rank">#${entry.rank}</div>
+              <div class="player-info">
+                <div class="player-name">${this.escapeHtml(entry.player_name)}</div>
+                <div class="player-stats">
+                  ${entry.game_mode === 'fallphabet_taptile' ? 
+                    `Speed: ${entry.max_chain_multiplier}x • Time: ${entry.game_duration_seconds}s` :
+                    `Words: ${entry.words_used} • Chain: x${entry.max_chain_multiplier}`
+                  }
+                </div>
               </div>
+              <div class="score">${entry.score}</div>
             </div>
-            <div class="score">${entry.score}</div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-
-    leaderboardContent.innerHTML = leaderboardHTML;
+          `).join('')}
+        </div>
+      `;
+      leaderboardContent.innerHTML = leaderboardHTML;
+    } catch (err) {
+      leaderboardContent.innerHTML = `<div class='error'>Leaderboard error: ${err.message}</div>`;
+      console.error('Leaderboard render error:', err);
+    }
   }
 
   // Utility function to escape HTML

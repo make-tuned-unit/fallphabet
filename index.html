@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=86">
+      <link rel="stylesheet" href="style.css?v=87">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -130,7 +130,7 @@
       </div>
       <div class="modal-actions">
         <button id="modal-share-btn" class="modal-btn primary">Share</button>
-        <button id="modal-restart-btn" class="modal-btn">Try Again</button>
+        <button id="modal-restart-btn" class="modal-btn" style="display:none;"></button>
       </div>
     </div>
   </div>
@@ -1372,9 +1372,8 @@
         // Hide restart button for Daily Challenge mode (one attempt per day)
         const restartBtn = document.getElementById('modal-restart-btn');
         if (restartBtn && !currentMode.speedIncrease) {
-          // Daily Challenge mode - hide restart button completely
-          restartBtn.style.display = 'none';
-          restartBtn.style.visibility = 'hidden';
+          // Daily Challenge mode - remove restart button completely
+          restartBtn.parentNode.removeChild(restartBtn);
         } else if (restartBtn && currentMode.speedIncrease) {
           // Taptile mode - show restart button
           restartBtn.style.display = '';
@@ -1437,12 +1436,15 @@
             const mode = btn.getAttribute('data-mode');
             console.log('Switching to mode:', mode);
             window.gameModeManager.setMode(mode);
-            
+            // Remove restart button if switching to Daily Challenge mode
+            if (mode === 'daily') {
+              const restartBtn = document.getElementById('modal-restart-btn');
+              if (restartBtn) restartBtn.parentNode.removeChild(restartBtn);
+            }
             // Force UI update after a small delay to ensure DOM is ready
             setTimeout(() => {
               window.gameModeManager.updateUI();
             }, 100);
-            
             // Restart game with new mode and reset all state
             if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
               // Full reset: destroy and recreate the scene to clear all state
@@ -1521,25 +1523,23 @@
         // Restart button functionality
         const restartBtn = document.getElementById('modal-restart-btn');
         if (restartBtn) {
-          restartBtn.onclick = () => {
-            const scene = window.game.scene.keys['GameScene'];
-            const currentMode = window.gameModeManager.getCurrentMode();
-            
-            // Allow restart for taptile mode always (Daily Challenge is one attempt per day)
-            if (currentMode.speedIncrease) {
-              // Hide modal
-              document.getElementById('gameover-modal').classList.remove('show');
-              setTimeout(() => {
-                document.getElementById('gameover-modal').style.display = 'none';
-              }, 300);
-              window.game.scene.restart('GameScene');
-            }
-          };
-          
-          // Hide restart button for Daily Challenge mode (one attempt per day)
+          // Remove restart button if in Daily Challenge mode
           if (window.gameModeManager && !window.gameModeManager.getCurrentMode().speedIncrease) {
-            restartBtn.style.display = 'none';
-            restartBtn.style.visibility = 'hidden';
+            restartBtn.parentNode.removeChild(restartBtn);
+          } else {
+            restartBtn.onclick = () => {
+              const scene = window.game.scene.keys['GameScene'];
+              const currentMode = window.gameModeManager.getCurrentMode();
+              // Allow restart for taptile mode always (Daily Challenge is one attempt per day)
+              if (currentMode.speedIncrease) {
+                // Hide modal
+                document.getElementById('gameover-modal').classList.remove('show');
+                setTimeout(() => {
+                  document.getElementById('gameover-modal').style.display = 'none';
+                }, 300);
+                window.game.scene.restart('GameScene');
+              }
+            };
           }
         }
 
