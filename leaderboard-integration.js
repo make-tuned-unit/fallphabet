@@ -490,8 +490,10 @@ class GlobalLeaderboardManager {
         return { success: false, error: error.message };
       }
 
-      console.log('Daily attempt check result - hasAttempted:', data.has_attempted);
-      return { success: true, hasAttempted: data.has_attempted };
+      // Handle both object response and direct boolean response
+      const hasAttempted = typeof data === 'object' ? data.has_attempted : data;
+      console.log('Daily attempt check result - hasAttempted:', hasAttempted);
+      return { success: true, hasAttempted: hasAttempted };
     } catch (err) {
       console.error('Error checking daily attempt:', err);
       return { success: false, error: err.message };
