@@ -144,15 +144,9 @@ body {
     overflow-y: auto !important;
   }
   #playfield-container {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    width: 100vw !important;
-    max-width: 100vw !important;
-    left: 0 !important;
-    right: 0 !important;
-    box-sizing: border-box;
-    overflow-x: hidden;
     min-height: 400px;
+    height: auto !important;
+    max-height: none !important;
   }
   #main-content {
     width: 100vw !important;
@@ -198,11 +192,9 @@ body {
     height: calc(100dvh - 40px) !important;
   }
   #playfield-container {
-    height: calc(100vh - 140px);
-    height: calc(100dvh - 140px);
-    max-height: calc(100vh - 140px);
-    max-height: calc(100dvh - 140px);
     min-height: 400px;
+    height: auto !important;
+    max-height: none !important;
   }
   .game-title {
     font-size: 7vw !important;
