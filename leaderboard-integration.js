@@ -873,7 +873,7 @@ class GlobalLeaderboardManager {
     }
 
     try {
-      const limit = 20;
+      const limit = 50; // Get more data to filter properly
       const { data, error } = await this.supabase
         .from('leaderboard')
         .select('*')
@@ -892,61 +892,45 @@ class GlobalLeaderboardManager {
         return;
       }
 
-      const playerIdentifier = this.getPlayerIdentifier();
-      // Find the player's highest score and rank
-      let playerBest = null;
-      let playerRank = null;
-      let seenPlayer = false;
-      let html = '<div class="leaderboard-entries">';
-      let rank = 1;
-      // Render top N, but only show player once
-      for (let i = 0; i < data.length; i++) {
-        const entry = data[i];
-        const isCurrentPlayer = entry.player_name === playerIdentifier;
-        if (isCurrentPlayer && !playerBest) {
-          playerBest = entry;
-          playerRank = rank;
+      // Filter to show only the best score per user
+      const userBestScores = new Map();
+      data.forEach(entry => {
+        const existing = userBestScores.get(entry.player_name);
+        if (!existing || entry.score > existing.score) {
+          userBestScores.set(entry.player_name, entry);
         }
-        // Only show the player in their highest position
-        if (isCurrentPlayer) {
-          if (seenPlayer) continue;
-          seenPlayer = true;
-        }
-        if (rank <= limit) {
-          const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
-          html += `
-            <div class="leaderboard-entry ${isCurrentPlayer ? 'current-player' : ''}">
-              <div class="rank">${medal} ${rank}</div>
-              <div class="player-name">${this.escapeHtml(entry.player_name)}</div>
-              <div class="score">${entry.score.toLocaleString()}</div>
-              <div class="details">
-                <span class="speed">${entry.max_chain_multiplier}x speed</span>
-                <span class="time">${entry.game_duration_seconds}s</span>
-              </div>
-            </div>
-          `;
-        }
-        rank++;
-      }
-      html += '</div>';
+      });
 
-      // If the player is not in the top N, show their best score at the bottom
-      if (playerBest && playerRank > limit) {
-        html += '<div class="leaderboard-entries" style="margin-top: 16px; border-top: 1px solid #eee; padding-top: 12px;">';
+      // Convert back to array and sort by score
+      const filteredData = Array.from(userBestScores.values())
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 20); // Show top 20 users
+
+      const playerIdentifier = this.getPlayerIdentifier();
+      let html = '<div class="leaderboard-entries">';
+      
+      filteredData.forEach((entry, index) => {
+        const isCurrentPlayer = entry.player_name === playerIdentifier;
+        const rank = index + 1;
+        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
+        
         html += `
-          <div class="leaderboard-entry current-player">
-            <div class="rank">${playerRank}</div>
-            <div class="player-name">${this.escapeHtml(playerBest.player_name)}</div>
-            <div class="score">${playerBest.score.toLocaleString()}</div>
+          <div class="leaderboard-entry ${isCurrentPlayer ? 'current-player' : ''}">
+            <div class="rank">${medal} ${rank}</div>
+            <div class="player-name">${this.escapeHtml(entry.player_name)}</div>
+            <div class="score">${entry.score.toLocaleString()}</div>
             <div class="details">
-              <span class="speed">${playerBest.max_chain_multiplier}x speed</span>
-              <span class="time">${playerBest.game_duration_seconds}s</span>
+              <span class="speed">${entry.max_chain_multiplier ? entry.max_chain_multiplier.toFixed(1) + 'x' : '1.0x'}</span>
+              <span class="time">${entry.game_duration_seconds ? entry.game_duration_seconds.toFixed(1) + 's' : '0s'}</span>
+              <span class="words">${entry.words_used || 0} words</span>
             </div>
           </div>
         `;
-        html += '</div>';
-      }
+      });
+      
+      html += '</div>';
       container.innerHTML = html;
+
     } catch (err) {
       console.error('Error rendering Taptile leaderboard:', err);
       container.innerHTML = '<div class="error">Error loading leaderboard</div>';
