@@ -573,7 +573,19 @@ class GlobalLeaderboardManager {
           window.gameModeManager.setMode('taptile');
           setTimeout(() => {
             window.gameModeManager.updateUI();
-            if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+            
+            // Create game if it doesn't exist (in case it was blocked by daily challenge check)
+            if (!window.game) {
+              console.log('Creating game for Taptile mode (fallback - was previously blocked)');
+              try {
+                window.game = new Phaser.Game(config);
+                console.log('Phaser game created successfully for Taptile mode (fallback)');
+              } catch (error) {
+                console.error('Error creating game for Taptile mode (fallback):', error);
+              }
+            } else if (window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+              // Game exists, restart with new mode
+              console.log('Restarting existing game for Taptile mode (fallback)');
               window.game.scene.stop('GameScene');
               window.game.scene.remove('GameScene');
               window.game.scene.add('GameScene', GameScene, true);
@@ -655,7 +667,19 @@ class GlobalLeaderboardManager {
           window.gameModeManager.setMode('taptile');
           setTimeout(() => {
             window.gameModeManager.updateUI();
-            if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+            
+            // Create game if it doesn't exist (in case it was blocked by daily challenge check)
+            if (!window.game) {
+              console.log('Creating game for Taptile mode (fallback 2 - was previously blocked)');
+              try {
+                window.game = new Phaser.Game(config);
+                console.log('Phaser game created successfully for Taptile mode (fallback 2)');
+              } catch (error) {
+                console.error('Error creating game for Taptile mode (fallback 2):', error);
+              }
+            } else if (window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+              // Game exists, restart with new mode
+              console.log('Restarting existing game for Taptile mode (fallback 2)');
               window.game.scene.stop('GameScene');
               window.game.scene.remove('GameScene');
               window.game.scene.add('GameScene', GameScene, true);

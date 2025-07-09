@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=99">
+      <link rel="stylesheet" href="style.css?v=100">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -1566,9 +1566,19 @@
         setTimeout(() => {
           window.gameModeManager.updateUI();
         }, 100);
-        // Restart game with new mode and reset all state
-        if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
-          // Full reset: destroy and recreate the scene to clear all state
+        
+        // Create game if it doesn't exist (in case it was blocked by daily challenge check)
+        if (!window.game) {
+          console.log('Creating game for Taptile mode (was previously blocked)');
+          try {
+            window.game = new Phaser.Game(config);
+            console.log('Phaser game created successfully for Taptile mode');
+          } catch (error) {
+            console.error('Error creating game for Taptile mode:', error);
+          }
+        } else if (window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+          // Game exists, restart with new mode
+          console.log('Restarting existing game for Taptile mode');
           window.game.scene.stop('GameScene');
           window.game.scene.remove('GameScene');
           window.game.scene.add('GameScene', GameScene, true);
