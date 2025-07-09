@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=103">
+      <link rel="stylesheet" href="style.css?v=104">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -1165,6 +1165,134 @@
           wordListDiv.innerHTML = '';
         }
       }
+      
+      // Check if the current score is a new high score for Taptile
+      checkTaptileHighScore(currentScore) {
+        const playerIdentifier = this.leaderboardManager ? this.leaderboardManager.getPlayerIdentifier() : null;
+        if (!playerIdentifier) return true; // If no player ID, treat as new high score
+        
+        const highScoreKey = `taptile_high_score_${playerIdentifier}`;
+        const currentHighScore = parseInt(localStorage.getItem(highScoreKey) || '0');
+        
+        return currentScore > currentHighScore;
+      }
+      
+      // Update the player's high score for Taptile
+      updateTaptileHighScore(score) {
+        const playerIdentifier = this.leaderboardManager ? this.leaderboardManager.getPlayerIdentifier() : null;
+        if (!playerIdentifier) return;
+        
+        const highScoreKey = `taptile_high_score_${playerIdentifier}`;
+        localStorage.setItem(highScoreKey, score.toString());
+      }
+      
+      // Show confetti animation
+      showConfetti() {
+        // Create confetti container
+        const confettiContainer = document.createElement('div');
+        confettiContainer.id = 'confetti-container';
+        confettiContainer.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          z-index: 9999;
+        `;
+        document.body.appendChild(confettiContainer);
+        
+        // Create confetti pieces
+        const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff', '#5f27cd'];
+        const confettiCount = 150;
+        
+        for (let i = 0; i < confettiCount; i++) {
+          const confetti = document.createElement('div');
+          confetti.style.cssText = `
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: ${colors[Math.floor(Math.random() * colors.length)]};
+            left: ${Math.random() * 100}%;
+            top: -10px;
+            animation: confetti-fall ${2 + Math.random() * 3}s linear forwards;
+            transform: rotate(${Math.random() * 360}deg);
+          `;
+          confettiContainer.appendChild(confetti);
+        }
+        
+        // Remove confetti after animation
+        setTimeout(() => {
+          if (confettiContainer.parentNode) {
+            confettiContainer.parentNode.removeChild(confettiContainer);
+          }
+        }, 5000);
+      }
+      
+      // Show high score celebration modal
+      showHighScoreModal(score, timeSurvived, maxSpeed, wordsUsed, topWord, topWordScore, highestChain) {
+        // Update the high score
+        this.updateTaptileHighScore(score);
+        
+        const modal = document.createElement('div');
+        modal.className = 'high-score-modal';
+        modal.innerHTML = `
+          <div class="high-score-content">
+            <div class="high-score-header">
+              <h2>🎉 New High Score! 🎉</h2>
+              <div class="score-display">${score.toLocaleString()}</div>
+            </div>
+            <div class="high-score-stats">
+              <div class="stat-row">
+                <span class="stat-label">Time Survived:</span>
+                <span class="stat-value">${timeSurvived.toFixed(1)}s</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Max Speed:</span>
+                <span class="stat-value">${maxSpeed.toFixed(1)}x</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Words Used:</span>
+                <span class="stat-value">${wordsUsed}</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Top Word:</span>
+                <span class="stat-value">"${topWord}" (${topWordScore} pts)</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Highest Chain:</span>
+                <span class="stat-value">x${highestChain}</span>
+              </div>
+            </div>
+            <div class="high-score-actions">
+              <button id="view-rankings-btn" class="modal-btn primary">View Your Rankings</button>
+              <button id="close-high-score-btn" class="modal-btn">Continue</button>
+            </div>
+          </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Event listeners
+        const viewRankingsBtn = modal.querySelector('#view-rankings-btn');
+        const closeBtn = modal.querySelector('#close-high-score-btn');
+        
+        viewRankingsBtn.addEventListener('click', () => {
+          if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+          }
+          // Show global leaderboard
+          if (this.leaderboardManager) {
+            this.leaderboardManager.showLeaderboardModal('fallphabet_taptile');
+          }
+        });
+        
+        closeBtn.addEventListener('click', () => {
+          if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+          }
+        });
+      }
 
       endGame() {
         this.gameOver = true;
@@ -1211,8 +1339,17 @@
             document.getElementById('modal-time-survived').textContent = `${timeSurvived.toFixed(1)}s`;
           }
           
-          // Submit to leaderboard
-          if (this.leaderboardManager) {
+          // Check if this is a new high score for Taptile
+          const isNewHighScore = this.checkTaptileHighScore(finalScore);
+          
+          if (isNewHighScore) {
+            // Show confetti and high score modal
+            this.showConfetti();
+            this.showHighScoreModal(finalScore, timeSurvived, taptileStats.maxSpeed, wordsUsed, topWord, topWordScore, highestChain);
+          }
+          
+          // Only submit to leaderboard if it's a new high score
+          if (isNewHighScore && this.leaderboardManager) {
             const scoreData = {
               score: finalScore,
               gameMode: 'fallphabet_taptile',
@@ -1229,12 +1366,12 @@
                 playerName: playerName,
                 ...scoreData
               }).then(result => {
-                console.log('Taptile score submission result:', result);
+                console.log('Taptile high score submission result:', result);
               });
             } else {
               // No player name, show name input modal
               this.leaderboardManager.showNameInputModal(scoreData, (result, submissionData) => {
-                console.log('Taptile name input result:', result);
+                console.log('Taptile high score name input result:', result);
               });
             }
           }
