@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=75">
+      <link rel="stylesheet" href="style.css?v=76">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -1688,6 +1688,66 @@
           restartBtn.style.display = '';
           restartBtn.style.visibility = 'visible';
           restartBtn.textContent = 'Try Again';
+          
+          // Ensure the restart button has the proper event listener
+          restartBtn.onclick = () => {
+            console.log('Restart button clicked - restarting Taptile game...');
+            
+            // Hide modal immediately
+            const modal = document.getElementById('gameover-modal');
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+            
+            // Clear any existing high score modals
+            const highScoreModal = document.querySelector('.high-score-modal');
+            if (highScoreModal && highScoreModal.parentNode) {
+              highScoreModal.parentNode.removeChild(highScoreModal);
+            }
+            
+            // Clear any confetti
+            const confettiContainer = document.getElementById('confetti-container');
+            if (confettiContainer && confettiContainer.parentNode) {
+              confettiContainer.parentNode.removeChild(confettiContainer);
+            }
+            
+            // Reset game state and restart scene
+            if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+              const scene = window.game.scene.keys['GameScene'];
+              
+              // Reset game state
+              scene.gameOver = false;
+              scene.wordsUsed = 0;
+              scene.topWord = '';
+              scene.topWordScore = 0;
+              scene.scoredWords = [];
+              scene.gameStartTime = Date.now();
+              
+              // Reset managers
+              if (scene.scoreManager) scene.scoreManager.reset();
+              if (scene.chainTracker) scene.chainTracker.resetChain();
+              if (scene.taptileSpeedManager) scene.taptileSpeedManager.start();
+              
+              // Clear any existing tiles
+              if (scene.tileSpawner) {
+                scene.tileSpawner.clearAllTiles();
+              }
+              
+              // Clear input buffer
+              if (scene.inputHandler) {
+                scene.inputHandler.clearBuffer();
+              }
+              
+              // Clear inactivity timer
+              if (scene.clearInactivityTimeout) scene.clearInactivityTimeout();
+              
+              // Restart the scene
+              window.game.scene.restart('GameScene');
+              
+              console.log('Taptile game restarted successfully');
+            } else {
+              console.error('Game scene not available for restart');
+            }
+          };
         }
         
         // Also ensure the close button is properly set up
