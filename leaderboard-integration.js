@@ -328,6 +328,58 @@ class GlobalLeaderboardManager {
     return playerName;
   }
 
+  // Generate a unique player ID based on browser fingerprint
+  generatePlayerId() {
+    // Try to get existing player ID
+    let playerId = localStorage.getItem('fallphabet_player_id');
+    
+    if (!playerId) {
+      // Generate a new player ID based on browser characteristics
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.textBaseline = 'top';
+      ctx.font = '14px Arial';
+      ctx.fillText('Fallphabet Player ID', 2, 2);
+      
+      const fingerprint = [
+        navigator.userAgent,
+        navigator.language,
+        screen.width + 'x' + screen.height,
+        new Date().getTimezoneOffset(),
+        canvas.toDataURL(),
+        navigator.hardwareConcurrency || 'unknown',
+        navigator.deviceMemory || 'unknown'
+      ].join('|');
+      
+      // Create a hash of the fingerprint
+      let hash = 0;
+      for (let i = 0; i < fingerprint.length; i++) {
+        const char = fingerprint.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+      }
+      
+      playerId = 'player_' + Math.abs(hash).toString(36);
+      localStorage.setItem('fallphabet_player_id', playerId);
+      console.log('Generated new player ID:', playerId);
+    }
+    
+    return playerId;
+  }
+
+  // Get player identifier (name if available, otherwise ID)
+  getPlayerIdentifier() {
+    const playerName = this.getPlayerName();
+    if (playerName) {
+      return playerName;
+    }
+    
+    // If no name, use player ID
+    const playerId = this.generatePlayerId();
+    console.log('No player name found, using player ID:', playerId);
+    return playerId;
+  }
+
   // Show leaderboard modal and render leaderboard for a given mode
   showLeaderboardModal(gameMode) {
     const leaderboardModal = document.getElementById('leaderboard-modal');
