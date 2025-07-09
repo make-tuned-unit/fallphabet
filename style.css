@@ -163,7 +163,7 @@ body {
     font-size: 8vw !important;
     width: 100%;
     letter-spacing: 1vw;
-    margin: 5px 0 5px 0;
+    margin: 0 0 5px 0;
   }
   .game-stats {
     margin-top: 5px;
@@ -202,7 +202,7 @@ body {
   .game-title {
     font-size: 7vw !important;
     letter-spacing: 0.8vw;
-    margin: 5px 0 5px 0;
+    margin: 0 0 5px 0;
   }
   .game-stats {
     margin-top: 5px;
@@ -227,7 +227,7 @@ body {
   .game-title {
     font-size: 6vw !important;
     letter-spacing: 0.7vw;
-    margin: 5px 0 3px 0;
+    margin: 0 0 3px 0;
   }
   .game-stats {
     margin-top: 3px;
