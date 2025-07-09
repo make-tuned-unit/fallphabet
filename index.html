@@ -740,12 +740,10 @@
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), isMobile ? 8000 : 5000); // Longer timeout for mobile
           
+          // Use the same API for both mobile and desktop
           const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`, {
             signal: controller.signal,
-            mode: 'cors',
-            headers: {
-              'Accept': 'application/json'
-            }
+            mode: 'cors'
           });
           clearTimeout(timeoutId);
           
@@ -764,31 +762,13 @@
             apiFailed = true;
           }
         } catch (e) {
+          console.error('Dictionary API error:', e.message, 'Mobile:', isMobile);
           apiFailed = true;
         }
         
-        // Fallback for mobile devices with network issues
-        if (apiFailed && isMobile) {
-          // Simple fallback for common English words on mobile
-          const commonWords = new Set([
-            'CAT', 'DOG', 'BAT', 'HAT', 'RAT', 'SAT', 'MAT', 'BIG', 'PIG', 'DIG', 'WIG', 'JIG', 'RIG', 'ZIG',
-            'BAG', 'TAG', 'WAG', 'RAG', 'SAG', 'LAG', 'NAG', 'HAG', 'JAG', 'CAN', 'FAN', 'MAN', 'PAN', 'RAN',
-            'TAN', 'VAN', 'BAN', 'DAN', 'JAN', 'LAN', 'WAN', 'YAN', 'ZAN', 'CAP', 'GAP', 'LAP', 'MAP', 'NAP',
-            'RAP', 'SAP', 'TAP', 'YAP', 'ZAP', 'CAR', 'FAR', 'JAR', 'PAR', 'TAR', 'WAR', 'BAR', 'EAR', 'GAR',
-            'MAR', 'OAR', 'SAR', 'VAR', 'YAR', 'ZAR', 'EAT', 'FAT', 'PAT', 'VAT', 'GAT', 'JAT', 'LAT', 'NAT',
-            'OAT', 'QAT', 'TAT', 'WAT', 'YAT', 'ZAT', 'BET', 'GET', 'JET', 'LET', 'MET', 'NET', 'PET', 'SET',
-            'VET', 'WET', 'YET', 'ZET', 'BIT', 'FIT', 'HIT', 'KIT', 'LIT', 'MIT', 'PIT', 'SIT', 'TIT', 'WIT',
-            'ZIT', 'BOT', 'COT', 'DOT', 'GOT', 'HOT', 'JOT', 'LOT', 'NOT', 'POT', 'ROT', 'SOT', 'TOT', 'WOT',
-            'YOT', 'ZOT', 'BUT', 'CUT', 'GUT', 'HUT', 'JUT', 'NUT', 'PUT', 'RUT', 'TUT', 'YUT', 'ZUT', 'BOX',
-            'COX', 'FOX', 'POX', 'SOX', 'TOX', 'WOX', 'YOX', 'ZOX', 'BOY', 'COY', 'FOY', 'GOY', 'HOY', 'JOY',
-            'LOY', 'MOY', 'NOY', 'POY', 'ROY', 'SOY', 'TOY', 'VOY', 'WOY', 'YOY', 'ZOY', 'BED', 'FED', 'LED',
-            'RED', 'WED', 'ZED', 'BEG', 'LEG', 'PEG', 'REG', 'SEG', 'TEG', 'WEG', 'ZEG', 'BEN', 'DEN', 'FEN',
-            'GEN', 'HEN', 'KEN', 'MEN', 'PEN', 'REN', 'SEN', 'TEN', 'VEN', 'WEN', 'YEN', 'ZEN', 'HELLO', 'WORLD',
-            'GAME', 'PLAY', 'FUN', 'WORD', 'LETTER', 'TILE', 'GOOD', 'BAD', 'YES', 'NO', 'UP', 'DOWN', 'LEFT',
-            'RIGHT', 'IN', 'OUT', 'ON', 'OFF', 'AT', 'TO', 'OF', 'FOR', 'AND', 'BUT', 'OR', 'THE', 'A', 'AN'
-          ]);
-          isValid = commonWords.has(word.toUpperCase());
-        } else if (apiFailed) {
+        // No fallback - only use the free dictionary API
+        if (apiFailed) {
+          console.error('API failed for word:', word, 'Mobile:', isMobile);
           isValid = false;
         }
         if (!isValid) {
