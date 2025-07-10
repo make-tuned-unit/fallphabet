@@ -1224,11 +1224,14 @@
         chainDisplay.textContent = `x${currentChain}`;
         chainDisplay.style.fontFamily = 'Arial, Helvetica, sans-serif';
         
-        // Check for game over based on mode (only for Daily Challenge)
+        // Check for game over based on mode (only for Daily Challenge reaching 200+ points)
         const currentMode = this.gameModeManager.getCurrentMode();
         if (!currentMode.speedIncrease && this.scoreManager.getTotalScore() >= 200 && !this.gameOver) {
           this.endGame();
         }
+        
+        // Note: Removed the old game over condition that ended Daily Challenge when tiles reached bottom, since we only want the game to end when reaching 200+ points.
+        // Now Daily Challenge only ends when player reaches 200+ points
 
         // Add a container for the word list
         const modalStats = document.querySelector('.modal-stats');
@@ -1336,65 +1339,30 @@
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
             </button>
-            <div class="high-score-header">
-              <h2>🎉 New High Score! 🎉</h2>
-              <div class="score-display">${score.toLocaleString()}</div>
+            <h2>🎉 New High Score! 🎉</h2>
+            <div class="score-display">${score}</div>
+            <div class="modal-stats">
+              <div><strong>Words Used:</strong> ${wordsUsed}</div>
+              <div><strong>Top Word:</strong> ${topWord} (${topWordScore})</div>
+              <div><strong>Highest Chain:</strong> x${highestChain}</div>
+              <div><strong>Time Survived:</strong> ${timeSurvived.toFixed(1)}s</div>
+              <div><strong>Max Speed:</strong> ${maxSpeed.toFixed(2)}</div>
             </div>
-            <div class="high-score-stats">
-              <div class="stat-row">
-                <span class="stat-label">Time Survived:</span>
-                <span class="stat-value">${timeSurvived.toFixed(1)}s</span>
-              </div>
-              <div class="stat-row">
-                <span class="stat-label">Max Speed:</span>
-                <span class="stat-value">${maxSpeed.toFixed(1)}x</span>
-              </div>
-              <div class="stat-row">
-                <span class="stat-label">Words Used:</span>
-                <span class="stat-value">${wordsUsed}</span>
-              </div>
-              <div class="stat-row">
-                <span class="stat-label">Top Word:</span>
-                <span class="stat-value">"${topWord}" (${topWordScore} pts)</span>
-              </div>
-              <div class="stat-row">
-                <span class="stat-label">Highest Chain:</span>
-                <span class="stat-value">x${highestChain}</span>
-              </div>
-            </div>
-            <div class="high-score-actions">
-              <button id="view-rankings-btn" class="modal-btn primary">View Your Rankings</button>
-              <button id="continue-high-score-btn" class="modal-btn">Continue</button>
+            <div class="modal-actions">
+              <button id="view-rankings-btn" class="primary">View Your Rankings</button>
             </div>
           </div>
         `;
-        document.body.appendChild(modal);
-        modal.classList.add('show');
-
-        // Fix: Continue button closes the modal
-        const continueBtn = modal.querySelector('#continue-high-score-btn');
-        if (continueBtn) {
-          continueBtn.onclick = () => {
-            // Close the high score modal
+        // Remove Continue button logic, update View Your Rankings button logic
+        const viewRankingsBtn = modal.querySelector('#view-rankings-btn');
+        if (viewRankingsBtn) {
+          viewRankingsBtn.onclick = () => {
             document.body.removeChild(modal);
-            // Open the leaderboard modal
             if (typeof showLeaderboardModal === 'function') {
               showLeaderboardModal('taptile');
             } else if (window.showLeaderboardModal) {
               window.showLeaderboardModal('taptile');
             }
-          };
-        }
-        // Also close on X button
-        const closeBtn = modal.querySelector('#close-high-score-btn');
-        if (closeBtn) {
-          closeBtn.onclick = () => {
-            modal.classList.remove('show');
-            setTimeout(() => {
-              if (modal.parentNode) {
-                document.body.removeChild(modal);
-              }
-            }, 300);
           };
         }
       }
@@ -1624,14 +1592,192 @@
         } else {
           // Daily challenge mode
           if (finalScore >= 200) {
-            // Win condition
+            // Win condition - player reached 200+ points
             if (title) title.textContent = 'You Did It!';
             if (stats) stats.innerHTML = `<span style="font-family: Arial, Helvetica, sans-serif; font-size: 1.2rem; color: #222; display: block;">It took you <strong>${wordsUsed}</strong> words to hit 200 points today.<br><br>Your Top Word was <strong>${topWord}</strong> earning you <strong>${topWordScore}</strong> points.<br><br>You chained <strong>${highestChain}</strong> words together today!<br><br>Come back tomorrow to see if you can beat your score.<br><br>Share with friends to see who can beat the Fallphabet with the fewest words.</span>`;
+            
+            // Submit to Daily Challenge leaderboard only when reaching 200+ points
+            console.log('Daily Challenge: About to submit to leaderboard');
+            console.log('Daily Challenge: Leaderboard manager:', this.leaderboardManager);
+            if (this.leaderboardManager) {
+              console.log('Daily Challenge: Leaderboard manager available');
+              const scoreData = {
+                score: finalScore,
+                gameMode: 'daily_challenge',
+                wordsUsed: wordsUsed,
+                topWord: topWord,
+                topWordScore: topWordScore,
+                maxChainMultiplier: this.chainTracker ? this.chainTracker.getHighestChain() : 1
+              };
+              
+              // Check if player name exists, if not show name input modal
+              const playerName = this.leaderboardManager.getPlayerName();
+              console.log('Daily Challenge: Player name check:', playerName ? 'exists' : 'missing');
+              
+              if (playerName) {
+                // Player name exists, submit directly
+                console.log('Daily Challenge: Submitting with existing name:', playerName);
+                this.leaderboardManager.submitScore({
+                  playerName: playerName,
+                  ...scoreData
+                }).then(result => {
+                  console.log('Daily Challenge: Submission result:', result);
+                  if (result.success) {
+                    // Show rank in modal
+                    const rankText = result.rank ? `You ranked #${result.rank} out of ${result.totalParticipants} players today!` : '';
+                    if (rankText) {
+                      const statsDiv = document.querySelector('.modal-stats');
+                      if (statsDiv) {
+                        statsDiv.innerHTML += `<div style="margin-top: 15px; color: #7c3aed; font-weight: bold;">${rankText}</div>`;
+                      }
+                    }
+                    
+                    // Mark daily challenge as completed for today
+                    const today = new Date().toISOString().split('T')[0];
+                    localStorage.setItem(`daily_challenge_completed_${today}`, 'true');
+                    
+                    // For successful submissions, hide restart button (one attempt per day)
+                    const restartBtn = document.getElementById('modal-restart-btn');
+                    if (restartBtn) {
+                      restartBtn.style.display = 'none';
+                    }
+                    
+                  } else if (result.error && result.error.includes('already completed')) {
+                    // Player has already attempted today
+                    const statsDiv = document.querySelector('.modal-stats');
+                    if (statsDiv) {
+                      statsDiv.innerHTML += `<div style="margin-top: 15px; color: #dc3545; font-weight: bold;">${result.error}</div>`;
+                    }
+                    
+                    // Hide restart button for already completed attempts
+                    const restartBtn = document.getElementById('modal-restart-btn');
+                    if (restartBtn) {
+                      restartBtn.style.display = 'none';
+                    }
+                    
+                  } else {
+                    // For other errors, allow retry
+                    const restartBtn = document.getElementById('modal-restart-btn');
+                    if (restartBtn) {
+                      restartBtn.textContent = 'Try Again';
+                      restartBtn.style.display = '';
+                    }
+                  }
+                });
+              } else {
+                // No player name, show name input modal
+                console.log('Daily Challenge: Showing name input modal');
+                this.leaderboardManager.showNameInputModal(scoreData, (result, submissionData) => {
+                  console.log('Daily Challenge: Name input result:', result);
+                  if (result.success) {
+                    // Show rank in modal
+                    const rankText = result.rank ? `You ranked #${result.rank} out of ${result.totalParticipants} players today!` : '';
+                    if (rankText) {
+                      const statsDiv = document.querySelector('.modal-stats');
+                      if (statsDiv) {
+                        statsDiv.innerHTML += `<div style="margin-top: 15px; color: #7c3aed; font-weight: bold;">${rankText}</div>`;
+                      }
+                    }
+                    
+                    // Mark daily challenge as completed for today
+                    const today = new Date().toISOString().split('T')[0];
+                    localStorage.setItem(`daily_challenge_completed_${today}`, 'true');
+                    
+                    // For successful submissions, hide restart button (one attempt per day)
+                    const restartBtn = document.getElementById('modal-restart-btn');
+                    if (restartBtn) {
+                      restartBtn.style.display = 'none';
+                    }
+                    
+                  } else if (result.error && result.error.includes('already completed')) {
+                    // Player has already attempted today
+                    const statsDiv = document.querySelector('.modal-stats');
+                    if (statsDiv) {
+                      statsDiv.innerHTML += `<div style="margin-top: 15px; color: #dc3545; font-weight: bold;">${result.error}</div>`;
+                    }
+                    
+                    // Hide restart button for already completed attempts
+                    const restartBtn = document.getElementById('modal-restart-btn');
+                    if (restartBtn) {
+                      restartBtn.style.display = 'none';
+                    }
+                    
+                  } else if (!result.cancelled) {
+                    // For other errors, allow retry
+                    const restartBtn = document.getElementById('modal-restart-btn');
+                    if (restartBtn) {
+                      restartBtn.textContent = 'Try Again';
+                      restartBtn.style.display = '';
+                    }
+                  }
+                });
+              }
+            } else {
+              console.log('Daily Challenge: No leaderboard manager available');
+              // Fallback for when leaderboard manager is not available
+              const restartBtn = document.getElementById('modal-restart-btn');
+              // Hide restart button for Daily Challenge mode (one attempt per day)
+              if (restartBtn) {
+                restartBtn.style.display = 'none';
+              }
+            }
+            
           } else {
-            // Normal game over
+            // Normal game over - player failed to reach 200 points
             if (title) title.textContent = 'Game Over!';
             if (stats) {
-              stats.innerHTML = `<div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x${highestChain}</span></div>`;
+              stats.innerHTML = `<div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x${highestChain}</span></div><div style="margin-top: 15px; color: #dc3545; font-weight: bold;">You need 200 points to complete today's challenge. Try again!</div>`;
+            }
+            
+            // For failed attempts (under 200 points), show restart button
+            const restartBtn = document.getElementById('modal-restart-btn');
+            if (restartBtn) {
+              restartBtn.textContent = 'Try Again';
+              restartBtn.style.display = '';
+              restartBtn.onclick = () => {
+                console.log('Daily Challenge restart button clicked - restarting game...');
+                
+                // Hide modal immediately
+                const modal = document.getElementById('gameover-modal');
+                modal.classList.remove('show');
+                modal.style.display = 'none';
+                
+                // Reset game state and restart scene
+                if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+                  const scene = window.game.scene.keys['GameScene'];
+                  
+                  // Reset game state
+                  scene.gameOver = false;
+                  scene.wordsUsed = 0;
+                  scene.topWord = '';
+                  scene.topWordScore = 0;
+                  scene.scoredWords = [];
+                  scene.gameStartTime = Date.now();
+                  
+                  // Reset managers
+                  if (scene.scoreManager) scene.scoreManager.reset();
+                  if (scene.chainTracker) scene.chainTracker.resetChain();
+                  
+                  // Clear any existing tiles
+                  if (scene.tileSpawner) {
+                    scene.tileSpawner.clearAllTiles();
+                  }
+                  
+                  // Clear input buffer
+                  if (scene.inputHandler) {
+                    scene.inputHandler.clearBuffer();
+                  }
+                  
+                  // Restart the scene
+                  window.game.scene.stop('GameScene');
+                  window.game.scene.remove('GameScene');
+                  window.game.scene.add('GameScene', GameScene, true);
+                  
+                  console.log('Daily Challenge game restarted successfully');
+                } else {
+                  console.error('Game scene not available for restart');
+                }
+              };
             }
           }
           
@@ -1639,124 +1785,6 @@
           const taptileModalStats = document.getElementById('taptile-modal-stats');
           if (taptileModalStats) {
             taptileModalStats.style.display = 'none';
-          }
-          
-          // Submit to Daily Challenge leaderboard
-          console.log('Daily Challenge: About to submit to leaderboard');
-          console.log('Daily Challenge: Leaderboard manager:', this.leaderboardManager);
-          if (this.leaderboardManager) {
-            console.log('Daily Challenge: Leaderboard manager available');
-            const scoreData = {
-              score: finalScore,
-              gameMode: 'daily_challenge',
-              wordsUsed: wordsUsed,
-              topWord: topWord,
-              topWordScore: topWordScore,
-              maxChainMultiplier: this.chainTracker ? this.chainTracker.getHighestChain() : 1
-            };
-            
-            // Check if player name exists, if not show name input modal
-            const playerName = this.leaderboardManager.getPlayerName();
-            console.log('Daily Challenge: Player name check:', playerName ? 'exists' : 'missing');
-            
-            if (playerName) {
-              // Player name exists, submit directly
-              console.log('Daily Challenge: Submitting with existing name:', playerName);
-              this.leaderboardManager.submitScore({
-                playerName: playerName,
-                ...scoreData
-              }).then(result => {
-                console.log('Daily Challenge: Submission result:', result);
-                if (result.success) {
-                  // Show rank in modal
-                  const rankText = result.rank ? `You ranked #${result.rank} out of ${result.totalParticipants} players today!` : '';
-                  if (rankText) {
-                    const statsDiv = document.querySelector('.modal-stats');
-                    if (statsDiv) {
-                      statsDiv.innerHTML += `<div style="margin-top: 15px; color: #7c3aed; font-weight: bold;">${rankText}</div>`;
-                    }
-                  }
-                  
-                  // For successful submissions, hide restart button (one attempt per day)
-                  const restartBtn = document.getElementById('modal-restart-btn');
-                  if (restartBtn) {
-                    restartBtn.style.display = 'none';
-                  }
-                  
-                } else if (result.error && result.error.includes('already completed')) {
-                  // Player has already attempted today
-                  const statsDiv = document.querySelector('.modal-stats');
-                  if (statsDiv) {
-                    statsDiv.innerHTML += `<div style="margin-top: 15px; color: #dc3545; font-weight: bold;">${result.error}</div>`;
-                  }
-                  
-                  // Hide restart button for already completed attempts
-                  const restartBtn = document.getElementById('modal-restart-btn');
-                  if (restartBtn) {
-                    restartBtn.style.display = 'none';
-                  }
-                  
-                } else {
-                  // For other errors, allow retry
-                  const restartBtn = document.getElementById('modal-restart-btn');
-                  if (restartBtn) {
-                    restartBtn.textContent = 'Try Again';
-                    restartBtn.style.display = '';
-                  }
-                }
-              });
-            } else {
-              // No player name, show name input modal
-              console.log('Daily Challenge: Showing name input modal');
-              this.leaderboardManager.showNameInputModal(scoreData, (result, submissionData) => {
-                console.log('Daily Challenge: Name input result:', result);
-                if (result.success) {
-                  // Show rank in modal
-                  const rankText = result.rank ? `You ranked #${result.rank} out of ${result.totalParticipants} players today!` : '';
-                  if (rankText) {
-                    const statsDiv = document.querySelector('.modal-stats');
-                    if (statsDiv) {
-                      statsDiv.innerHTML += `<div style="margin-top: 15px; color: #7c3aed; font-weight: bold;">${rankText}</div>`;
-                    }
-                  }
-                  
-                  // For successful submissions, hide restart button (one attempt per day)
-                  const restartBtn = document.getElementById('modal-restart-btn');
-                  if (restartBtn) {
-                    restartBtn.style.display = 'none';
-                  }
-                  
-                } else if (result.error && result.error.includes('already completed')) {
-                  // Player has already attempted today
-                  const statsDiv = document.querySelector('.modal-stats');
-                  if (statsDiv) {
-                    statsDiv.innerHTML += `<div style="margin-top: 15px; color: #dc3545; font-weight: bold;">${result.error}</div>`;
-                  }
-                  
-                  // Hide restart button for already completed attempts
-                  const restartBtn = document.getElementById('modal-restart-btn');
-                  if (restartBtn) {
-                    restartBtn.style.display = 'none';
-                  }
-                  
-                } else if (!result.cancelled) {
-                  // For other errors, allow retry
-                  const restartBtn = document.getElementById('modal-restart-btn');
-                  if (restartBtn) {
-                    restartBtn.textContent = 'Try Again';
-                    restartBtn.style.display = '';
-                  }
-                }
-              });
-            }
-          } else {
-            console.log('Daily Challenge: No leaderboard manager available');
-            // Fallback for when leaderboard manager is not available
-            const restartBtn = document.getElementById('modal-restart-btn');
-            // Hide restart button for Daily Challenge mode (one attempt per day)
-            if (restartBtn) {
-              restartBtn.style.display = 'none';
-            }
           }
           
           // Save game stats to localStorage
@@ -1933,6 +1961,23 @@
       if (!shouldCreateGame) {
         console.log('Game creation blocked due to Daily Challenge already attempted');
         return; // Don't create the game
+      }
+      
+      // Additional check for localStorage flag (in case backend check fails)
+      const currentMode = window.gameModeManager.getCurrentMode();
+      if (!currentMode.speedIncrease) {
+        // Daily Challenge mode - check localStorage flag
+        const today = new Date().toISOString().split('T')[0];
+        const alreadyCompleted = localStorage.getItem(`daily_challenge_completed_${today}`);
+        
+        if (alreadyCompleted === 'true') {
+          console.log('Daily Challenge already completed today (localStorage check)');
+          // Show modal indicating already completed
+          if (window.globalLeaderboard) {
+            window.globalLeaderboard.showDailyAlreadyAttemptedModal(null);
+          }
+          return; // Don't create the game
+        }
       }
       
       console.log('Creating Phaser game...');
