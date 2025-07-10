@@ -374,6 +374,67 @@ body {
   }
 }
 
+/* iPhone 14 Pro Max specific fixes */
+@media screen and (max-width: 430px) and (min-height: 932px) {
+  #main-content {
+    margin-top: 60px !important;
+    height: calc(100vh - 60px) !important;
+    height: calc(100dvh - 60px) !important;
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .game-header {
+    margin-top: 15px;
+    padding-top: 5px;
+  }
+  
+  .game-title {
+    font-size: 7.5vw !important;
+    letter-spacing: 0.8vw;
+    margin: 0 0 8px 0;
+    line-height: 1.1;
+  }
+  
+  .game-stats {
+    margin-top: 5px;
+    gap: 18px;
+  }
+  
+  #playfield-container {
+    max-height: calc(100vh - 220px);
+    max-height: calc(100dvh - 220px);
+  }
+}
+
+/* Safe area support for all iOS devices */
+@supports (padding: max(0px)) {
+  #main-content {
+    padding-top: max(50px, env(safe-area-inset-top));
+    margin-top: 0 !important;
+  }
+  
+  .game-header {
+    padding-top: max(10px, env(safe-area-inset-top) - 40px);
+  }
+}
+
+/* Additional fix for devices with dynamic island */
+@media screen and (max-width: 430px) and (min-height: 932px) and (-webkit-device-pixel-ratio: 3) {
+  #main-content {
+    margin-top: 70px !important;
+    height: calc(100vh - 70px) !important;
+    height: calc(100dvh - 70px) !important;
+  }
+  
+  .game-header {
+    margin-top: 20px;
+  }
+  
+  .game-title {
+    margin: 0 0 10px 0;
+  }
+}
+
 
 /* Unified Responsive Modal System */
 .responsive-modal {
