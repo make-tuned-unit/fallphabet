@@ -130,7 +130,6 @@
         <div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x1</span></div>
         <!-- Taptile mode specific stats -->
         <div id="taptile-modal-stats" style="display: none;">
-          <div><strong>Final Score:</strong> <span id="modal-final-score">0</span></div>
           <div><strong>Max Speed:</strong> <span id="modal-max-speed">1x</span></div>
           <div><strong>Time Survived:</strong> <span id="modal-time-survived">0s</span></div>
         </div>
@@ -1414,14 +1413,13 @@
           
           if (title) title.textContent = 'Game Over!';
           if (stats) {
-            stats.innerHTML = `<div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x${highestChain}</span></div>`;
+            stats.innerHTML = `<div><strong>Points:</strong> <span id="modal-final-score">${finalScore}</span></div><div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x${highestChain}</span></div>`;
           }
           
           // Show taptile specific stats
           const taptileModalStats = document.getElementById('taptile-modal-stats');
           if (taptileModalStats) {
             taptileModalStats.style.display = 'block';
-            document.getElementById('modal-final-score').textContent = finalScore;
             document.getElementById('modal-max-speed').textContent = `${taptileStats.maxSpeed.toFixed(1)}x`;
             document.getElementById('modal-time-survived').textContent = `${timeSurvived.toFixed(1)}s`;
           }
@@ -1465,14 +1463,13 @@
             // Not a new high score - just show regular game over with Try Again
             if (title) title.textContent = 'Game Over!';
             if (stats) {
-              stats.innerHTML = `<div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x${highestChain}</span></div>`;
+              stats.innerHTML = `<div><strong>Points:</strong> <span id="modal-final-score">${finalScore}</span></div><div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x${highestChain}</span></div>`;
             }
             
             // Show taptile specific stats
             const taptileModalStats = document.getElementById('taptile-modal-stats');
             if (taptileModalStats) {
               taptileModalStats.style.display = 'block';
-              document.getElementById('modal-final-score').textContent = finalScore;
               document.getElementById('modal-max-speed').textContent = `${taptileStats.maxSpeed.toFixed(1)}x`;
               document.getElementById('modal-time-survived').textContent = `${timeSurvived.toFixed(1)}s`;
             }
