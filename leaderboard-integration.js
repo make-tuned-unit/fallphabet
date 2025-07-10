@@ -68,10 +68,10 @@ class GlobalLeaderboardManager {
           return { success: false, error: error.message };
         }
 
-        // Set localStorage flag to prevent multiple attempts today
+        // Set localStorage flag to prevent multiple attempts today (using UTC date)
         const today = new Date().toISOString().split('T')[0];
         localStorage.setItem(`daily_challenge_completed_${today}`, 'true');
-        console.log('✅ Set localStorage flag for daily challenge completion today:', today);
+        console.log('✅ Set localStorage flag for daily challenge completion today (UTC):', today);
         console.log('✅ localStorage flag value after setting:', localStorage.getItem(`daily_challenge_completed_${today}`));
 
         result = {
@@ -119,8 +119,9 @@ class GlobalLeaderboardManager {
       let data, error;
 
       if (gameMode === 'daily_challenge') {
-        // Get today's daily challenge leaderboard
+        // Get today's daily challenge leaderboard (using UTC date)
         const today = new Date().toISOString().split('T')[0];
+        console.log('🔍 Fetching daily challenge leaderboard for date (UTC):', today);
         const result = await this.supabase
           .from('daily_challenge_leaderboard')
           .select('*')
@@ -169,7 +170,8 @@ class GlobalLeaderboardManager {
     try {
       let data, error;
       if (gameMode === 'daily_challenge') {
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toISOString().split('T')[0]; // UTC date
+        console.log('🔍 Getting player best score for daily challenge date (UTC):', today);
         const result = await this.supabase
           .from('daily_challenge_leaderboard')
           .select('*')
@@ -588,8 +590,11 @@ class GlobalLeaderboardManager {
     console.log('🔍 hasDailyAttemptToday called with playerName:', playerName);
     console.log('🔍 Supabase connection status:', this.isConnected);
     
-    // First check localStorage flag as a backup (works even in incognito)
+    // Get today's date in UTC to ensure consistent reset time across all timezones
     const today = new Date().toISOString().split('T')[0];
+    console.log('🔍 Today\'s date (UTC):', today);
+    console.log('🔍 Current local time:', new Date().toString());
+    
     const localStorageFlag = localStorage.getItem(`daily_challenge_completed_${today}`);
     console.log('🔍 localStorage flag check for today:', today, 'flag:', localStorageFlag);
     console.log('🔍 All localStorage keys:', Object.keys(localStorage).filter(key => key.includes('daily_challenge')));
@@ -642,7 +647,8 @@ class GlobalLeaderboardManager {
       return { success: false, error: 'Not connected' };
     }
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0]; // UTC date
+      console.log('🔍 Getting today\'s score for date (UTC):', today);
       const { data, error } = await this.supabase
         .from('daily_challenge_leaderboard')
         .select('*')
