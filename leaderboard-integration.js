@@ -1,6 +1,7 @@
 // Global Leaderboard Integration for Fallphabet
 // Handles all Supabase operations for the global leaderboard
 
+console.log('🎯 Leaderboard integration loaded - Version 9 with enhanced debugging - ' + new Date().toISOString());
 class GlobalLeaderboardManager {
   constructor() {
     console.log('GlobalLeaderboardManager constructor called');
@@ -43,25 +44,35 @@ class GlobalLeaderboardManager {
 
       if (scoreData.gameMode === 'daily_challenge') {
         // Daily Challenge: insert into daily_challenge_leaderboard
+        console.log('Submitting daily challenge score:', scoreData);
+        const insertData = {
+          player_name: scoreData.playerName,
+          score: scoreData.score,
+          words_used: scoreData.wordsUsed,
+          top_word: scoreData.topWord || '',
+          top_word_score: scoreData.topWordScore || 0,
+          highest_chain: scoreData.maxChainMultiplier || 1,
+          attempt_date: new Date().toISOString().split('T')[0],
+          daily_seed: scoreData.dailySeed || '',
+          created_at: new Date().toISOString(),
+        };
+        console.log('Insert data:', insertData);
         const { data, error } = await this.supabase
           .from('daily_challenge_leaderboard')
-          .insert([{
-            player_name: scoreData.playerName,
-            score: scoreData.score,
-            words_used: scoreData.wordsUsed,
-            top_word: scoreData.topWord || '',
-            top_word_score: scoreData.topWordScore || 0,
-            highest_chain: scoreData.maxChainMultiplier || 1,
-            attempt_date: new Date().toISOString().split('T')[0],
-            daily_seed: scoreData.dailySeed || '',
-            created_at: new Date().toISOString(),
-          }])
+          .insert([insertData])
           .select();
 
+        console.log('Daily challenge submission response - data:', data, 'error:', error);
         if (error) {
           console.error('Daily challenge submission error:', error);
           return { success: false, error: error.message };
         }
+
+        // Set localStorage flag to prevent multiple attempts today
+        const today = new Date().toISOString().split('T')[0];
+        localStorage.setItem(`daily_challenge_completed_${today}`, 'true');
+        console.log('✅ Set localStorage flag for daily challenge completion today:', today);
+        console.log('✅ localStorage flag value after setting:', localStorage.getItem(`daily_challenge_completed_${today}`));
 
         result = {
           success: true,
@@ -415,8 +426,10 @@ class GlobalLeaderboardManager {
     
     // Use the appropriate rendering method based on game mode
     if (gameMode === 'daily_challenge') {
-      // Use the dedicated daily challenge renderer
-      this.renderDailyLeaderboard(leaderboardModal.querySelector('#leaderboard-content'));
+      // Use the dedicated daily challenge renderer with a small delay to ensure score submission completes
+      setTimeout(() => {
+        this.renderDailyLeaderboard(leaderboardModal.querySelector('#leaderboard-content'));
+      }, 500);
     } else if (gameMode === 'fallphabet_taptile' || gameMode === 'taptile') {
       // Use the dedicated taptile renderer
       this.renderTaptileLeaderboard(leaderboardModal.querySelector('#leaderboard-content'));
@@ -428,6 +441,7 @@ class GlobalLeaderboardManager {
 
   // Show name input modal for score submission
   showNameInputModal(scoreData, callback) {
+    console.log('showNameInputModal called with updated version v4');
     const modal = document.createElement('div');
     modal.className = 'responsive-modal';
     modal.innerHTML = `
@@ -472,11 +486,39 @@ class GlobalLeaderboardManager {
       }, 300);
     };
 
-    submitBtn.addEventListener('click', () => {
+    submitBtn.addEventListener('click', async () => {
       const playerName = nameInput.value.trim();
       if (playerName) {
+        console.log('Name input submit button clicked with playerName:', playerName);
+        
+        // Check if name already exists
+        const nameCheck = await this.checkNameExists(playerName, scoreData.gameMode);
+        if (nameCheck.success && nameCheck.exists) {
+          // Name already exists, show error
+          const errorDiv = document.createElement('div');
+          errorDiv.style.cssText = 'color: #dc3545; font-size: 0.9rem; margin-top: 10px; text-align: center;';
+          errorDiv.textContent = 'This name is already taken. Please choose a different name.';
+          
+          // Remove any existing error message
+          const existingError = modal.querySelector('.name-error');
+          if (existingError) {
+            existingError.remove();
+          }
+          
+          errorDiv.className = 'name-error';
+          modal.querySelector('.input-group').appendChild(errorDiv);
+          nameInput.focus();
+          return;
+        }
+        
         closeModal();
-        callback(playerName);
+        // Submit the score and call callback with result
+        const result = await this.submitScore({
+          playerName: playerName,
+          ...scoreData
+        });
+        console.log('Score submission result:', result);
+        callback(result);
       } else {
         nameInput.focus();
       }
@@ -500,10 +542,62 @@ class GlobalLeaderboardManager {
     });
   }
 
+  // Check if a player name already exists in the leaderboard
+  async checkNameExists(playerName, gameMode) {
+    if (!this.isConnected) {
+      console.warn('Supabase not connected, cannot check name existence');
+      return { success: false, error: 'Not connected' };
+    }
+
+    try {
+      let data, error;
+      if (gameMode === 'daily_challenge') {
+        const result = await this.supabase
+          .from('daily_challenge_leaderboard')
+          .select('player_name')
+          .eq('player_name', playerName)
+          .limit(1);
+        data = result.data;
+        error = result.error;
+      } else {
+        const result = await this.supabase
+          .from('taptile_leaderboard')
+          .select('player_name')
+          .eq('player_name', playerName)
+          .limit(1);
+        data = result.data;
+        error = result.error;
+      }
+
+      if (error) {
+        console.error('Error checking name existence:', error);
+        return { success: false, error: error.message };
+      }
+
+      const exists = data && data.length > 0;
+      console.log(`Name "${playerName}" exists in ${gameMode}:`, exists);
+      return { success: true, exists: exists };
+    } catch (err) {
+      console.error('Error checking name existence:', err);
+      return { success: false, error: err.message };
+    }
+  }
+
   // Check if player has already attempted daily challenge today
   async hasDailyAttemptToday(playerName) {
-    console.log('hasDailyAttemptToday called with playerName:', playerName);
-    console.log('Supabase connection status:', this.isConnected);
+    console.log('🔍 hasDailyAttemptToday called with playerName:', playerName);
+    console.log('🔍 Supabase connection status:', this.isConnected);
+    
+    // First check localStorage flag as a backup (works even in incognito)
+    const today = new Date().toISOString().split('T')[0];
+    const localStorageFlag = localStorage.getItem(`daily_challenge_completed_${today}`);
+    console.log('🔍 localStorage flag check for today:', today, 'flag:', localStorageFlag);
+    console.log('🔍 All localStorage keys:', Object.keys(localStorage).filter(key => key.includes('daily_challenge')));
+    
+    if (localStorageFlag === 'true') {
+      console.log('🚫 localStorage flag indicates daily challenge already completed today');
+      return { success: true, hasAttempted: true, source: 'localStorage' };
+    }
     
     if (!this.isConnected) {
       console.warn('Supabase not connected, cannot check daily attempt');
@@ -527,7 +621,14 @@ class GlobalLeaderboardManager {
       // Handle both object response and direct boolean response
       const hasAttempted = typeof data === 'object' ? data.has_attempted : data;
       console.log('Daily attempt check result - hasAttempted:', hasAttempted);
-      return { success: true, hasAttempted: hasAttempted };
+      
+      // If backend says they've attempted, also set localStorage flag
+      if (hasAttempted) {
+        localStorage.setItem(`daily_challenge_completed_${today}`, 'true');
+        console.log('Set localStorage flag for today');
+      }
+      
+      return { success: true, hasAttempted: hasAttempted, source: 'database' };
     } catch (err) {
       console.error('Error checking daily attempt:', err);
       return { success: false, error: err.message };
@@ -833,24 +934,29 @@ class GlobalLeaderboardManager {
 
   // Render daily leaderboard specifically for today
   async renderDailyLeaderboard(container) {
+    console.log('renderDailyLeaderboard called');
     if (!this.isConnected) {
+      console.log('Not connected to Supabase');
       container.innerHTML = '<div class="error">Unable to load leaderboard - not connected to server</div>';
       return;
     }
     try {
       const today = new Date().toISOString().split('T')[0];
+      console.log('Fetching daily leaderboard for date:', today);
       const { data, error } = await this.supabase
         .from('daily_challenge_leaderboard')
         .select('*')
         .eq('attempt_date', today)
         .order('score', { ascending: false })
         .limit(20);
+      console.log('Daily leaderboard query result - data:', data, 'error:', error);
       if (error) {
         console.error('Error loading daily leaderboard:', error);
         container.innerHTML = '<div class="error">Error loading leaderboard</div>';
         return;
       }
       if (!data || data.length === 0) {
+        console.log('No scores found for today');
         container.innerHTML = '<div class="no-scores">No scores yet today! Be the first to play!</div>';
         return;
       }

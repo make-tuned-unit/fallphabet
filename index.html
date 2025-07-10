@@ -13,7 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
-  <script src="leaderboard-integration.js"></script>
+      <script src="leaderboard-integration.js?v=10-2025-07-09-22-30"></script>
   <!-- Open Graph and Twitter Card for social sharing -->
   <meta property="og:title" content="Fallphabet" />
   <meta property="og:description" content="Try to win with as few words as possible!" />
@@ -1263,11 +1263,17 @@
       // Check if the current score is a new high score for Taptile
       checkTaptileHighScore(currentScore) {
         const playerIdentifier = this.leaderboardManager ? this.leaderboardManager.getPlayerIdentifier() : null;
-        if (!playerIdentifier) return true; // If no player ID, treat as new high score
+        if (!playerIdentifier) return false; // If no player ID, don't treat as new high score
         
         const highScoreKey = `taptile_high_score_${playerIdentifier}`;
-        const currentHighScore = parseInt(localStorage.getItem(highScoreKey) || '0');
+        const storedHighScore = localStorage.getItem(highScoreKey);
         
+        if (storedHighScore === null) {
+          // First time playing - treat as new high score
+          return true;
+        }
+        
+        const currentHighScore = parseInt(storedHighScore);
         return currentScore > currentHighScore;
       }
       
@@ -1432,7 +1438,7 @@
             this.showConfetti();
             this.showHighScoreModal(finalScore, timeSurvived, taptileStats.maxSpeed, wordsUsed, topWord, topWordScore, highestChain);
             
-            // Only submit to leaderboard if it's a new high score
+            // Submit new high score to leaderboard
             if (this.leaderboardManager) {
               const scoreData = {
                 score: finalScore,
@@ -1454,7 +1460,7 @@
                 });
               } else {
                 // No player name, show name input modal
-                this.leaderboardManager.showNameInputModal(scoreData, (result, submissionData) => {
+                this.leaderboardManager.showNameInputModal(scoreData, (result) => {
                   console.log('Taptile high score name input result:', result);
                 });
               }
@@ -1474,37 +1480,40 @@
               document.getElementById('modal-time-survived').textContent = `${timeSurvived.toFixed(1)}s`;
             }
             
-            // Always submit to leaderboard and prompt for name if needed
-            if (this.leaderboardManager) {
-              const scoreData = {
-                score: finalScore,
-                gameMode: 'fallphabet_taptile',
-                wordsUsed: wordsUsed,
-                gameDurationSeconds: timeSurvived,
-                maxChainMultiplier: taptileStats.maxSpeed
-              };
-              const playerName = this.leaderboardManager.getPlayerName();
-              if (playerName) {
-                this.leaderboardManager.submitScore({
-                  playerName: playerName,
-                  ...scoreData
-                }).then(result => {
-                  console.log('Taptile score submission result:', result);
-                });
-              } else {
-                this.leaderboardManager.showNameInputModal(scoreData, (enteredName) => {
-                  if (enteredName) {
-                    localStorage.setItem('fallphabet_player_name', enteredName);
-                    this.leaderboardManager.submitScore({
-                      playerName: enteredName,
-                      ...scoreData
-                    }).then(result => {
-                      console.log('Taptile score submission result (after name input):', result);
-                    });
-                  }
-                });
+            // Check if this is the first time playing (no stored high score)
+            const playerIdentifier = this.leaderboardManager ? this.leaderboardManager.getPlayerIdentifier() : null;
+            const highScoreKey = `taptile_high_score_${playerIdentifier}`;
+            const hasStoredHighScore = localStorage.getItem(highScoreKey) !== null;
+            
+            if (!hasStoredHighScore) {
+              // First time playing - prompt for name and submit first score
+              if (this.leaderboardManager) {
+                const scoreData = {
+                  score: finalScore,
+                  gameMode: 'fallphabet_taptile',
+                  wordsUsed: wordsUsed,
+                  gameDurationSeconds: timeSurvived,
+                  maxChainMultiplier: taptileStats.maxSpeed
+                };
+                
+                const playerName = this.leaderboardManager.getPlayerName();
+                if (playerName) {
+                  // Player name exists, submit first score
+                  this.leaderboardManager.submitScore({
+                    playerName: playerName,
+                    ...scoreData
+                  }).then(result => {
+                    console.log('Taptile first score submission result:', result);
+                  });
+                } else {
+                  // No player name, show name input modal for first score
+                  this.leaderboardManager.showNameInputModal(scoreData, (result) => {
+                    console.log('Taptile first score name input result:', result);
+                  });
+                }
               }
             }
+            // If not first time and not new high score, don't submit to leaderboard
             
             // Always show restart for taptile mode
             const restartBtn = document.getElementById('modal-restart-btn');
@@ -1664,8 +1673,10 @@
               } else {
                 // No player name, show name input modal
                 console.log('Daily Challenge: Showing name input modal');
-                this.leaderboardManager.showNameInputModal(scoreData, (result, submissionData) => {
+                this.leaderboardManager.showNameInputModal(scoreData, (result) => {
                   console.log('Daily Challenge: Name input result:', result);
+                  console.log('Daily Challenge: Result type:', typeof result);
+                  console.log('Daily Challenge: Result keys:', result ? Object.keys(result) : 'null');
                   if (result.success) {
                     // Show rank in modal
                     const rankText = result.rank ? `You ranked #${result.rank} out of ${result.totalParticipants} players today!` : '';
@@ -1920,6 +1931,7 @@
             }
             
             try {
+              console.log('🔍 About to check daily attempt for player:', playerIdentifier);
               const attemptCheck = await window.globalLeaderboard.hasDailyAttemptToday(playerIdentifier);
               console.log('📊 Daily attempt check on page load result:', attemptCheck);
               
