@@ -42,43 +42,42 @@ class GlobalLeaderboardManager {
       let result;
 
       if (scoreData.gameMode === 'daily_challenge') {
-        // Daily challenge with one attempt per day limit
+        // Daily Challenge: insert into daily_challenge_leaderboard
         const { data, error } = await this.supabase
-          .rpc('submit_daily_challenge_score', {
-            player_name_param: scoreData.playerName,
-            score_param: scoreData.score,
-            words_used_param: scoreData.wordsUsed,
-            top_word_param: scoreData.topWord || '',
-            top_word_score_param: scoreData.topWordScore || 0,
-            max_chain_multiplier_param: scoreData.maxChainMultiplier
-          });
+          .from('daily_challenge_leaderboard')
+          .insert([{
+            player_name: scoreData.playerName,
+            score: scoreData.score,
+            words_used: scoreData.wordsUsed,
+            top_word: scoreData.topWord || '',
+            top_word_score: scoreData.topWordScore || 0,
+            highest_chain: scoreData.maxChainMultiplier || 1,
+            attempt_date: new Date().toISOString().split('T')[0],
+            daily_seed: scoreData.dailySeed || '',
+            created_at: new Date().toISOString(),
+          }])
+          .select();
 
         if (error) {
           console.error('Daily challenge submission error:', error);
           return { success: false, error: error.message };
         }
 
-        if (!data.success) {
-          return { success: false, error: data.error };
-        }
-
-        result = { 
-          success: true, 
-          data: data,
-          rank: data.rank,
-          totalParticipants: data.total_participants
+        result = {
+          success: true,
+          data: data[0],
         };
       } else {
-        // Taptile mode (unlimited attempts)
+        // Taptile mode: insert into taptile_leaderboard
         const { data, error } = await this.supabase
-          .from('leaderboard')
+          .from('taptile_leaderboard')
           .insert([{
             player_name: scoreData.playerName,
             score: scoreData.score,
             words_used: scoreData.wordsUsed,
-            game_mode: scoreData.gameMode,
             game_duration_seconds: Math.round(scoreData.gameDurationSeconds || 0),
-            max_chain_multiplier: Math.round(scoreData.maxChainMultiplier || 0)
+            max_chain_multiplier: Math.round(scoreData.maxChainMultiplier || 0),
+            created_at: new Date().toISOString(),
           }])
           .select();
 
@@ -90,7 +89,7 @@ class GlobalLeaderboardManager {
         result = { success: true, data: data[0] };
       }
 
-      console.log('✅ Score submitted to global leaderboard:', result);
+      console.log('✅ Score submitted to leaderboard:', result);
       return result;
     } catch (err) {
       console.error('Error submitting score:', err);
@@ -110,20 +109,22 @@ class GlobalLeaderboardManager {
 
       if (gameMode === 'daily_challenge') {
         // Get today's daily challenge leaderboard
+        const today = new Date().toISOString().split('T')[0];
         const result = await this.supabase
-          .rpc('get_daily_challenge_leaderboard');
-        
+          .from('daily_challenge_leaderboard')
+          .select('*')
+          .eq('attempt_date', today)
+          .order('score', { ascending: false })
+          .limit(limit);
         data = result.data;
         error = result.error;
       } else {
-        // Get all-time leaderboard for other modes
+        // Get all-time leaderboard for Taptile mode
         const result = await this.supabase
-          .from('leaderboard')
+          .from('taptile_leaderboard')
           .select('*')
-          .eq('game_mode', gameMode)
           .order('score', { ascending: false })
           .limit(limit);
-        
         data = result.data;
         error = result.error;
       }
@@ -155,19 +156,32 @@ class GlobalLeaderboardManager {
     }
 
     try {
-      const { data, error } = await this.supabase
-        .from('leaderboard')
-        .select('*')
-        .eq('player_name', playerName)
-        .eq('game_mode', gameMode)
-        .order('score', { ascending: false })
-        .limit(1);
-
+      let data, error;
+      if (gameMode === 'daily_challenge') {
+        const today = new Date().toISOString().split('T')[0];
+        const result = await this.supabase
+          .from('daily_challenge_leaderboard')
+          .select('*')
+          .eq('player_name', playerName)
+          .eq('attempt_date', today)
+          .order('score', { ascending: false })
+          .limit(1);
+        data = result.data;
+        error = result.error;
+      } else {
+        const result = await this.supabase
+          .from('taptile_leaderboard')
+          .select('*')
+          .eq('player_name', playerName)
+          .order('score', { ascending: false })
+          .limit(1);
+        data = result.data;
+        error = result.error;
+      }
       if (error) {
         console.error('Error fetching player best score:', error);
         return { success: false, error: error.message };
       }
-
       return { success: true, data: data[0] || null };
     } catch (err) {
       console.error('Error fetching player best score:', err);
@@ -181,19 +195,29 @@ class GlobalLeaderboardManager {
       console.warn('Supabase not connected, cannot get rank');
       return { success: false, error: 'Not connected' };
     }
-
     try {
-      const { count, error } = await this.supabase
-        .from('leaderboard')
-        .select('*', { count: 'exact', head: true })
-        .eq('game_mode', gameMode)
-        .gt('score', score);
-
+      let count, error;
+      if (gameMode === 'daily_challenge') {
+        const today = new Date().toISOString().split('T')[0];
+        const result = await this.supabase
+          .from('daily_challenge_leaderboard')
+          .select('*', { count: 'exact', head: true })
+          .eq('attempt_date', today)
+          .gt('score', score);
+        count = result.count;
+        error = result.error;
+      } else {
+        const result = await this.supabase
+          .from('taptile_leaderboard')
+          .select('*', { count: 'exact', head: true })
+          .gt('score', score);
+        count = result.count;
+        error = result.error;
+      }
       if (error) {
         console.error('Error getting player rank:', error);
         return { success: false, error: error.message };
       }
-
       const rank = count + 1;
       return { success: true, rank };
     } catch (err) {
@@ -266,15 +290,11 @@ class GlobalLeaderboardManager {
   async renderLeaderboard(gameMode = 'fallphabet_taptile') {
     const leaderboardContent = document.getElementById('leaderboard-content');
     if (!leaderboardContent) return;
-
     leaderboardContent.innerHTML = '<div class="loading">Loading leaderboard...</div>';
-
-    // Check connection status first
     if (!this.isConnected) {
       console.warn('Supabase not connected, checking connection...');
       await this.testConnection();
     }
-
     try {
       const result = await this.getTopScores(gameMode, 20);
       if (!result.success) {
@@ -302,7 +322,7 @@ class GlobalLeaderboardManager {
                   }
                 </div>
               </div>
-              ${gameMode === 'daily_challenge' ? `<div class="score">${entry.score}</div>` : `<div class="score">${entry.score}</div>`}
+              <div class="score">${entry.score}</div>
             </div>
           `).join('')}
         </div>
@@ -501,23 +521,19 @@ class GlobalLeaderboardManager {
       console.warn('Supabase not connected, cannot get today\'s score');
       return { success: false, error: 'Not connected' };
     }
-
     try {
+      const today = new Date().toISOString().split('T')[0];
       const { data, error } = await this.supabase
-        .from('leaderboard')
+        .from('daily_challenge_leaderboard')
         .select('*')
         .eq('player_name', playerName)
-        .eq('game_mode', 'daily_challenge')
-        .gte('created_at', new Date().toISOString().split('T')[0] + 'T00:00:00')
-        .lte('created_at', new Date().toISOString().split('T')[0] + 'T23:59:59')
+        .eq('attempt_date', today)
         .order('score', { ascending: false })
         .limit(1);
-
       if (error) {
         console.error('Error getting today\'s score:', error);
         return { success: false, error: error.message };
       }
-
       return { success: true, data: data[0] || null };
     } catch (err) {
       console.error('Error getting today\'s score:', err);
@@ -802,37 +818,29 @@ class GlobalLeaderboardManager {
       container.innerHTML = '<div class="error">Unable to load leaderboard - not connected to server</div>';
       return;
     }
-
     try {
       const today = new Date().toISOString().split('T')[0];
       const { data, error } = await this.supabase
-        .from('leaderboard')
+        .from('daily_challenge_leaderboard')
         .select('*')
-        .eq('game_mode', 'daily_challenge')
-        .gte('created_at', today + 'T00:00:00')
-        .lte('created_at', today + 'T23:59:59')
+        .eq('attempt_date', today)
         .order('score', { ascending: false })
         .limit(20);
-
       if (error) {
         console.error('Error loading daily leaderboard:', error);
         container.innerHTML = '<div class="error">Error loading leaderboard</div>';
         return;
       }
-
       if (!data || data.length === 0) {
         container.innerHTML = '<div class="no-scores">No scores yet today! Be the first to play!</div>';
         return;
       }
-
       const playerIdentifier = this.getPlayerIdentifier();
       let html = '<div class="leaderboard-entries">';
-      
       data.forEach((entry, index) => {
         const isCurrentPlayer = entry.player_name === playerIdentifier;
         const rank = index + 1;
         const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
-        
         html += `
           <div class="leaderboard-entry ${isCurrentPlayer ? 'current-player' : ''}">
             <div class="rank">${medal} ${rank}</div>
@@ -845,10 +853,8 @@ class GlobalLeaderboardManager {
           </div>
         `;
       });
-      
       html += '</div>';
       container.innerHTML = html;
-
     } catch (err) {
       console.error('Error rendering daily leaderboard:', err);
       container.innerHTML = '<div class="error">Error loading leaderboard</div>';
@@ -861,27 +867,22 @@ class GlobalLeaderboardManager {
       container.innerHTML = '<div class="error">Unable to load leaderboard - not connected to server</div>';
       return;
     }
-
     try {
       const limit = 50; // Get more data to filter properly
       const { data, error } = await this.supabase
-        .from('leaderboard')
+        .from('taptile_leaderboard')
         .select('*')
-        .eq('game_mode', 'fallphabet_taptile')
         .order('score', { ascending: false })
         .limit(limit);
-
       if (error) {
         console.error('Error loading Taptile leaderboard:', error);
         container.innerHTML = '<div class="error">Error loading leaderboard</div>';
         return;
       }
-
       if (!data || data.length === 0) {
         container.innerHTML = '<div class="no-scores">No scores yet! Be the first to play!</div>';
         return;
       }
-
       // Filter to show only the best score per user
       const userBestScores = new Map();
       data.forEach(entry => {
@@ -890,20 +891,16 @@ class GlobalLeaderboardManager {
           userBestScores.set(entry.player_name, entry);
         }
       });
-
       // Convert back to array and sort by score
       const filteredData = Array.from(userBestScores.values())
         .sort((a, b) => b.score - a.score)
         .slice(0, 20); // Show top 20 users
-
       const playerIdentifier = this.getPlayerIdentifier();
       let html = '<div class="leaderboard-entries">';
-      
       filteredData.forEach((entry, index) => {
         const isCurrentPlayer = entry.player_name === playerIdentifier;
         const rank = index + 1;
         const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
-        
         html += `
           <div class="leaderboard-entry ${isCurrentPlayer ? 'current-player' : ''}">
             <div class="rank">${medal} ${rank}</div>
@@ -917,10 +914,8 @@ class GlobalLeaderboardManager {
           </div>
         `;
       });
-      
       html += '</div>';
       container.innerHTML = html;
-
     } catch (err) {
       console.error('Error rendering Taptile leaderboard:', err);
       container.innerHTML = '<div class="error">Error loading leaderboard</div>';
