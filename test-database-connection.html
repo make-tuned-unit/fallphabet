@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Connection Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result { 
+            margin: 10px 0; 
+            padding: 10px; 
+            border-radius: 5px; 
+        }
+        .success { 
+            background: #d4edda; 
+            color: #155724; 
+            border: 1px solid #c3e6cb; 
+        }
+        .error { 
+            background: #f8d7da; 
+            color: #721c24; 
+            border: 1px solid #f5c6cb; 
+        }
+        .info { 
+            background: #d1ecf1; 
+            color: #0c5460; 
+            border: 1px solid #bee5eb; 
+        }
+        button { 
+            padding: 10px 20px; 
+            margin: 5px; 
+            cursor: pointer; 
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Fallphabet Database Connection Test</h1>
+        
+        <div class="test-section">
+            <h3>1. Connection Test</h3>
+            <button onclick="testConnection()">Test Supabase Connection</button>
+            <div id="connection-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Table Structure Test</h3>
+            <button onclick="testTableStructure()">Check Leaderboard Table</button>
+            <div id="table-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Insert Test</h3>
+            <input type="text" id="test-player-name" placeholder="Player Name" value="TestPlayer">
+            <input type="number" id="test-score" placeholder="Score" value="100">
+            <select id="test-game-mode">
+                <option value="fallphabet_taptile">Taptile</option>
+                <option value="daily_challenge">Daily Challenge</option>
+            </select>
+            <button onclick="testInsert()">Test Insert</button>
+            <div id="insert-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. RPC Function Test</h3>
+            <button onclick="testRPCFunctions()">Test Daily Challenge Functions</button>
+            <div id="rpc-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. Current Data</h3>
+            <button onclick="loadCurrentData()">Load Recent Entries</button>
+            <div id="data-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>6. Browser Console Log</h3>
+            <div class="log" id="console-log"></div>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <script>
+        let supabase;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('console-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `test-result ${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('console-log').innerHTML = '';
+        }
+
+        async function testConnection() {
+            const resultDiv = document.getElementById('connection-result');
+            resultDiv.innerHTML = '<div class="test-result info">Testing connection...</div>';
+            
+            try {
+                // Check if supabase is available
+                if (typeof window.supabase === 'undefined') {
+                    throw new Error('Supabase client not found. Check supabase-config.js');
+                }
+                
+                supabase = window.supabase;
+                log('Supabase client found', 'success');
+                
+                // Test a simple query
+                const { data, error } = await supabase
+                    .from('leaderboard')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) {
+                    throw error;
+                }
+                
+                resultDiv.innerHTML = '<div class="test-result success">✅ Connection successful! Database is accessible.</div>';
+                log('Database connection successful', 'success');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result error">❌ Connection failed: ${error.message}</div>`;
+                log(`Connection error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testTableStructure() {
+            const resultDiv = document.getElementById('table-result');
+            resultDiv.innerHTML = '<div class="test-result info">Checking table structure...</div>';
+            
+            try {
+                // Test if we can query the table structure
+                const { data, error } = await supabase
+                    .from('leaderboard')
+                    .select('*')
+                    .limit(0);
+                
+                if (error) {
+                    throw error;
+                }
+                
+                // Get column information
+                const { data: columns, error: columnError } = await supabase
+                    .rpc('get_table_columns', { table_name: 'leaderboard' })
+                    .catch(() => ({ data: null, error: 'RPC not available' }));
+                
+                let structureInfo = '✅ Table is accessible<br>';
+                if (columns) {
+                    structureInfo += '<strong>Columns:</strong><br>';
+                    columns.forEach(col => {
+                        structureInfo += `- ${col.column_name}: ${col.data_type}<br>`;
+                    });
+                } else {
+                    structureInfo += '<em>Column details not available</em><br>';
+                }
+                
+                resultDiv.innerHTML = `<div class="test-result success">${structureInfo}</div>`;
+                log('Table structure check completed', 'success');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result error">❌ Table check failed: ${error.message}</div>`;
+                log(`Table structure error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testInsert() {
+            const resultDiv = document.getElementById('insert-result');
+            const playerName = document.getElementById('test-player-name').value;
+            const score = parseInt(document.getElementById('test-score').value);
+            const gameMode = document.getElementById('test-game-mode').value;
+            
+            if (!playerName || !score) {
+                resultDiv.innerHTML = '<div class="test-result error">❌ Please enter both player name and score</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="test-result info">Testing insert...</div>';
+            
+            try {
+                const testData = {
+                    player_name: playerName + '_' + Date.now(),
+                    score: score,
+                    words_used: 5,
+                    game_mode: gameMode,
+                    game_duration_seconds: 60,
+                    max_chain_multiplier: 2
+                };
+                
+                log(`Attempting to insert: ${JSON.stringify(testData)}`, 'info');
+                
+                const { data, error } = await supabase
+                    .from('leaderboard')
+                    .insert([testData])
+                    .select();
+                
+                if (error) {
+                    throw error;
+                }
+                
+                resultDiv.innerHTML = `<div class="test-result success">✅ Insert successful! ID: ${data[0].id}</div>`;
+                log(`Insert successful: ${data[0].id}`, 'success');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result error">❌ Insert failed: ${error.message}</div>`;
+                log(`Insert error: ${error.message}`, 'error');
+                
+                // Check for specific error types
+                if (error.message.includes('duplicate key')) {
+                    log('This appears to be a duplicate key constraint violation', 'error');
+                } else if (error.message.includes('permission')) {
+                    log('This appears to be a permission issue', 'error');
+                } else if (error.message.includes('constraint')) {
+                    log('This appears to be a constraint violation', 'error');
+                }
+            }
+        }
+
+        async function testRPCFunctions() {
+            const resultDiv = document.getElementById('rpc-result');
+            resultDiv.innerHTML = '<div class="test-result info">Testing RPC functions...</div>';
+            
+            try {
+                // Test has_daily_attempt_today function
+                const { data: attemptData, error: attemptError } = await supabase
+                    .rpc('has_daily_attempt_today', { player_name_param: 'TestPlayer' })
+                    .catch(() => ({ data: null, error: 'Function not found' }));
+                
+                let rpcInfo = '';
+                
+                if (attemptError) {
+                    rpcInfo += `❌ has_daily_attempt_today: ${attemptError}<br>`;
+                    log(`RPC function error: ${attemptError}`, 'error');
+                } else {
+                    rpcInfo += `✅ has_daily_attempt_today: ${JSON.stringify(attemptData)}<br>`;
+                    log(`RPC function working: ${JSON.stringify(attemptData)}`, 'success');
+                }
+                
+                // Test submit_daily_challenge_score function
+                const { data: submitData, error: submitError } = await supabase
+                    .rpc('submit_daily_challenge_score', {
+                        p_player_name: 'TestPlayer',
+                        p_score: 150,
+                        p_words_used: 8,
+                        p_game_duration: 120,
+                        p_max_chain: 3
+                    })
+                    .catch(() => ({ data: null, error: 'Function not found' }));
+                
+                if (submitError) {
+                    rpcInfo += `❌ submit_daily_challenge_score: ${submitError}<br>`;
+                    log(`Submit RPC error: ${submitError}`, 'error');
+                } else {
+                    rpcInfo += `✅ submit_daily_challenge_score: ${JSON.stringify(submitData)}<br>`;
+                    log(`Submit RPC working: ${JSON.stringify(submitData)}`, 'success');
+                }
+                
+                resultDiv.innerHTML = `<div class="test-result info">${rpcInfo}</div>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result error">❌ RPC test failed: ${error.message}</div>`;
+                log(`RPC test error: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadCurrentData() {
+            const resultDiv = document.getElementById('data-result');
+            resultDiv.innerHTML = '<div class="test-result info">Loading recent data...</div>';
+            
+            try {
+                const { data, error } = await supabase
+                    .from('leaderboard')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                
+                if (error) {
+                    throw error;
+                }
+                
+                if (data.length === 0) {
+                    resultDiv.innerHTML = '<div class="test-result info">No data found in leaderboard table</div>';
+                    log('No data in leaderboard table', 'info');
+                    return;
+                }
+                
+                let dataHtml = '<div class="test-result success"><strong>Recent Entries:</strong><br>';
+                data.forEach(entry => {
+                    dataHtml += `- ${entry.player_name}: ${entry.score} pts (${entry.game_mode}) - ${new Date(entry.created_at).toLocaleString()}<br>`;
+                });
+                dataHtml += '</div>';
+                
+                resultDiv.innerHTML = dataHtml;
+                log(`Loaded ${data.length} recent entries`, 'success');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result error">❌ Failed to load data: ${error.message}</div>`;
+                log(`Data load error: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run connection test on page load
+        window.addEventListener('load', () => {
+            log('Page loaded, ready for testing', 'info');
+        });
+    </script>
+</body>
+</html> 

@@ -653,7 +653,9 @@
         if (this.scene && this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease) {
           if (this.scene.registerInteraction) this.scene.registerInteraction();
         }
-        return origOnPointerDownWithInactivity.call(this, pointer);
+        // Removed call to origOnPointerDownWithInactivity
+        // If you need to add custom pointer down logic, do it here.
+        // No super call needed.
       }
       
       onPointerMove(pointer) {
@@ -1024,6 +1026,18 @@
         if (this.gameModeManager.getCurrentMode().speedIncrease) {
           this.startInactivityTimeout();
         }
+
+        // --- ADDED: Clear selection on background click in Taptile mode ---
+        if (this.input && this.inputHandler && this.gameModeManager.getCurrentMode().speedIncrease) {
+          this.input.on('pointerdown', (pointer, currentlyOver) => {
+            // Only clear if not clicking on a tile (currentlyOver is empty)
+            if (!currentlyOver || currentlyOver.length === 0) {
+              if (!this.gameOver) {
+                this.inputHandler.clearBuffer();
+              }
+            }
+          });
+        }
       }
 
       startInactivityTimeout() {
@@ -1311,7 +1325,7 @@
       showHighScoreModal(score, timeSurvived, maxSpeed, wordsUsed, topWord, topWordScore, highestChain) {
         // Update the high score
         this.updateTaptileHighScore(score);
-        
+
         const modal = document.createElement('div');
         modal.className = 'responsive-modal';
         modal.innerHTML = `
@@ -1350,43 +1364,39 @@
             </div>
             <div class="high-score-actions">
               <button id="view-rankings-btn" class="modal-btn primary">View Your Rankings</button>
-              <button id="close-high-score-btn" class="modal-btn">Continue</button>
+              <button id="continue-high-score-btn" class="modal-btn">Continue</button>
             </div>
           </div>
         `;
-        
         document.body.appendChild(modal);
         modal.classList.add('show');
-        
-        const closeModal = () => {
-          modal.classList.remove('show');
-          setTimeout(() => {
-            if (modal.parentNode) {
-              document.body.removeChild(modal);
+
+        // Fix: Continue button closes the modal
+        const continueBtn = modal.querySelector('#continue-high-score-btn');
+        if (continueBtn) {
+          continueBtn.onclick = () => {
+            // Close the high score modal
+            document.body.removeChild(modal);
+            // Open the leaderboard modal
+            if (typeof showLeaderboardModal === 'function') {
+              showLeaderboardModal('taptile');
+            } else if (window.showLeaderboardModal) {
+              window.showLeaderboardModal('taptile');
             }
-          }, 300);
-        };
-        
-        // Event listeners
-        const viewRankingsBtn = modal.querySelector('#view-rankings-btn');
-        const closeHighScoreBtn = modal.querySelector('#close-high-score-btn');
-        
-        viewRankingsBtn.addEventListener('click', () => {
-          closeModal();
-          // Show Taptile leaderboard
-          if (this.leaderboardManager) {
-            this.leaderboardManager.showTaptileLeaderboardView();
-          }
-        });
-        
-        closeHighScoreBtn.addEventListener('click', closeModal);
-        
-        // Close on outside click
-        modal.addEventListener('click', (e) => {
-          if (e.target === modal) {
-            closeModal();
-          }
-        });
+          };
+        }
+        // Also close on X button
+        const closeBtn = modal.querySelector('#close-high-score-btn');
+        if (closeBtn) {
+          closeBtn.onclick = () => {
+            modal.classList.remove('show');
+            setTimeout(() => {
+              if (modal.parentNode) {
+                document.body.removeChild(modal);
+              }
+            }, 300);
+          };
+        }
       }
 
       endGame() {
@@ -1499,13 +1509,43 @@
               document.getElementById('modal-time-survived').textContent = `${timeSurvived.toFixed(1)}s`;
             }
             
+            // Always submit to leaderboard and prompt for name if needed
+            if (this.leaderboardManager) {
+              const scoreData = {
+                score: finalScore,
+                gameMode: 'fallphabet_taptile',
+                wordsUsed: wordsUsed,
+                gameDurationSeconds: timeSurvived,
+                maxChainMultiplier: taptileStats.maxSpeed
+              };
+              const playerName = this.leaderboardManager.getPlayerName();
+              if (playerName) {
+                this.leaderboardManager.submitScore({
+                  playerName: playerName,
+                  ...scoreData
+                }).then(result => {
+                  console.log('Taptile score submission result:', result);
+                });
+              } else {
+                this.leaderboardManager.showNameInputModal(scoreData, (enteredName) => {
+                  if (enteredName) {
+                    localStorage.setItem('fallphabet_player_name', enteredName);
+                    this.leaderboardManager.submitScore({
+                      playerName: enteredName,
+                      ...scoreData
+                    }).then(result => {
+                      console.log('Taptile score submission result (after name input):', result);
+                    });
+                  }
+                });
+              }
+            }
+            
             // Always show restart for taptile mode
             const restartBtn = document.getElementById('modal-restart-btn');
             if (restartBtn) {
               restartBtn.textContent = 'Try Again';
               restartBtn.style.display = '';
-              
-              // Set up the restart button event listener for Taptile mode
               restartBtn.onclick = () => {
                 console.log('Restart button clicked - restarting Taptile game...');
                 
@@ -1557,7 +1597,9 @@
                   if (scene.clearInactivityTimeout) scene.clearInactivityTimeout();
                   
                   // Restart the scene
-                  window.game.scene.restart('GameScene');
+                  window.game.scene.stop('GameScene');
+                  window.game.scene.remove('GameScene');
+                  window.game.scene.add('GameScene', GameScene, true);
                   
                   console.log('Taptile game restarted successfully');
                 } else {
@@ -2106,7 +2148,9 @@
                 if (scene.clearInactivityTimeout) scene.clearInactivityTimeout();
                 
                 // Restart the scene
-                window.game.scene.restart('GameScene');
+                window.game.scene.stop('GameScene');
+                window.game.scene.remove('GameScene');
+                window.game.scene.add('GameScene', GameScene, true);
                 
                 console.log('Taptile game restarted successfully');
               } else {

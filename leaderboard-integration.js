@@ -343,7 +343,10 @@ class GlobalLeaderboardManager {
 
   // Get player name from localStorage or prompt for it
   getPlayerName() {
-    const playerName = localStorage.getItem('fallphabet_player_name') || null;
+    let playerName = localStorage.getItem('fallphabet_player_name') || null;
+    if (!playerName || playerName.trim() === '' || playerName.trim().toLowerCase() === 'anonymous') {
+      playerName = null;
+    }
     console.log('getPlayerName() called, returning:', playerName);
     return playerName;
   }
@@ -861,6 +864,36 @@ class GlobalLeaderboardManager {
     }
   }
 
+  // --- Robust Taptile High Score Sync ---
+  // Call this after fetching leaderboard data
+  updateTaptileHighScoreFromLeaderboard(playerName, leaderboardData) {
+    if (!playerName || !leaderboardData) return;
+    // Find the highest score for this player
+    let best = 0;
+    leaderboardData.forEach(entry => {
+      if (entry.player_name === playerName && entry.score > best) {
+        best = entry.score;
+      }
+    });
+    const highScoreKey = `taptile_high_score_${playerName}`;
+    localStorage.setItem(highScoreKey, best.toString());
+  }
+
+  // Get the best Taptile score for the current player from leaderboard (if available) or localStorage
+  getBestTaptileScore(playerName, leaderboardData) {
+    let best = 0;
+    if (leaderboardData) {
+      leaderboardData.forEach(entry => {
+        if (entry.player_name === playerName && entry.score > best) {
+          best = entry.score;
+        }
+      });
+    }
+    const highScoreKey = `taptile_high_score_${playerName}`;
+    const localBest = parseInt(localStorage.getItem(highScoreKey) || '0');
+    return Math.max(best, localBest);
+  }
+
   // Render Taptile leaderboard
   async renderTaptileLeaderboard(container) {
     if (!this.isConnected) {
@@ -883,6 +916,9 @@ class GlobalLeaderboardManager {
         container.innerHTML = '<div class="no-scores">No scores yet! Be the first to play!</div>';
         return;
       }
+      // --- Sync high score to localStorage ---
+      const playerIdentifier = this.getPlayerIdentifier();
+      this.updateTaptileHighScoreFromLeaderboard(playerIdentifier, data);
       // Filter to show only the best score per user
       const userBestScores = new Map();
       data.forEach(entry => {
@@ -895,7 +931,6 @@ class GlobalLeaderboardManager {
       const filteredData = Array.from(userBestScores.values())
         .sort((a, b) => b.score - a.score)
         .slice(0, 20); // Show top 20 users
-      const playerIdentifier = this.getPlayerIdentifier();
       let html = '<div class="leaderboard-entries">';
       filteredData.forEach((entry, index) => {
         const isCurrentPlayer = entry.player_name === playerIdentifier;
@@ -920,6 +955,14 @@ class GlobalLeaderboardManager {
       console.error('Error rendering Taptile leaderboard:', err);
       container.innerHTML = '<div class="error">Error loading leaderboard</div>';
     }
+  }
+
+  // --- Patch high score check to use leaderboard value ---
+  checkTaptileHighScore(currentScore) {
+    const playerIdentifier = this.getPlayerIdentifier();
+    // Try to get leaderboard data from localStorage (synced after leaderboard fetch)
+    const best = this.getBestTaptileScore(playerIdentifier);
+    return currentScore > best;
   }
 }
 
