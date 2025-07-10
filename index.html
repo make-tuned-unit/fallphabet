@@ -2000,12 +2000,36 @@
           } catch (error) {
             console.error('Error creating game for Taptile mode:', error);
           }
-        } else if (window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
-          // Game exists, restart with new mode
-          console.log('Restarting existing game for Taptile mode');
-          window.game.scene.stop('GameScene');
-          window.game.scene.remove('GameScene');
-          window.game.scene.add('GameScene', GameScene, true);
+        }
+      };
+      
+      // Global function to show leaderboard modal (used by high score modal and other places)
+      window.showLeaderboardModal = (gameMode = 'fallphabet_taptile') => {
+        console.log('Global showLeaderboardModal called with gameMode:', gameMode);
+        if (window.globalLeaderboard) {
+          window.globalLeaderboard.showLeaderboardModal(gameMode);
+        } else {
+          console.error('Global leaderboard not available');
+        }
+      };
+      
+      // Global function specifically for Daily Challenge leaderboard
+      window.showDailyChallengeLeaderboard = () => {
+        console.log('Global showDailyChallengeLeaderboard called');
+        if (window.globalLeaderboard) {
+          window.globalLeaderboard.showLeaderboardModal('daily_challenge');
+        } else {
+          console.error('Global leaderboard not available');
+        }
+      };
+      
+      // Global function specifically for Taptile leaderboard
+      window.showTaptileLeaderboard = () => {
+        console.log('Global showTaptileLeaderboard called');
+        if (window.globalLeaderboard) {
+          window.globalLeaderboard.showLeaderboardModal('fallphabet_taptile');
+        } else {
+          console.error('Global leaderboard not available');
         }
       };
       
@@ -2085,21 +2109,15 @@
         
         if (leaderboardBtn) {
           leaderboardBtn.addEventListener('click', async () => {
-            if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
-              const scene = window.game.scene.keys['GameScene'];
-              if (scene.leaderboardManager) {
-                // Show current mode's leaderboard using the new modal style
-                const currentMode = window.gameModeManager.getCurrentMode();
-                const gameMode = currentMode.speedIncrease ? 'fallphabet_taptile' : 'daily_challenge';
-                
-                if (gameMode === 'daily_challenge') {
-                  // Use the dedicated daily leaderboard modal
-                  scene.leaderboardManager.showDailyLeaderboardView();
-                } else {
-                  // Use the new modal style for Taptile leaderboard
-                  await scene.leaderboardManager.showTaptileLeaderboardView();
-                }
-              }
+            // Use the global showLeaderboardModal function
+            const currentMode = window.gameModeManager.getCurrentMode();
+            const gameMode = currentMode.speedIncrease ? 'fallphabet_taptile' : 'daily_challenge';
+            
+            console.log('Leaderboard button clicked, showing:', gameMode);
+            if (window.showLeaderboardModal) {
+              window.showLeaderboardModal(gameMode);
+            } else {
+              console.error('Global showLeaderboardModal function not available');
             }
           });
         }

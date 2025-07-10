@@ -406,8 +406,24 @@ class GlobalLeaderboardManager {
   // Show leaderboard modal and render leaderboard for a given mode
   showLeaderboardModal(gameMode) {
     const leaderboardModal = document.getElementById('leaderboard-modal');
+    if (!leaderboardModal) {
+      console.error('Leaderboard modal not found');
+      return;
+    }
+    
     leaderboardModal.classList.add('show');
-    this.renderLeaderboard(gameMode);
+    
+    // Use the appropriate rendering method based on game mode
+    if (gameMode === 'daily_challenge') {
+      // Use the dedicated daily challenge renderer
+      this.renderDailyLeaderboard(leaderboardModal.querySelector('#leaderboard-content'));
+    } else if (gameMode === 'fallphabet_taptile' || gameMode === 'taptile') {
+      // Use the dedicated taptile renderer
+      this.renderTaptileLeaderboard(leaderboardModal.querySelector('#leaderboard-content'));
+    } else {
+      // Fallback to generic renderer
+      this.renderLeaderboard(gameMode);
+    }
   }
 
   // Show name input modal for score submission
