@@ -101,6 +101,16 @@ class GlobalLeaderboardManager {
       }
 
       console.log('✅ Score submitted to leaderboard:', result);
+      
+      // Store player name in localStorage for future recognition
+      if (scoreData.playerName) {
+        localStorage.setItem('fallphabet_player_name', scoreData.playerName);
+        console.log('✅ Stored player name in localStorage:', scoreData.playerName);
+        console.log('✅ localStorage after storing:', localStorage.getItem('fallphabet_player_name'));
+      } else {
+        console.log('⚠️ No playerName in scoreData, not storing in localStorage');
+      }
+      
       return result;
     } catch (err) {
       console.error('Error submitting score:', err);
@@ -357,10 +367,14 @@ class GlobalLeaderboardManager {
   // Get player name from localStorage or prompt for it
   getPlayerName() {
     let playerName = localStorage.getItem('fallphabet_player_name') || null;
+    console.log('getPlayerName() - localStorage value:', playerName);
+    
     if (!playerName || playerName.trim() === '' || playerName.trim().toLowerCase() === 'anonymous') {
       playerName = null;
+      console.log('getPlayerName() - invalid name, returning null');
+    } else {
+      console.log('getPlayerName() - valid name found:', playerName);
     }
-    console.log('getPlayerName() called, returning:', playerName);
     return playerName;
   }
 
@@ -557,16 +571,14 @@ class GlobalLeaderboardManager {
         const result = await this.supabase
           .from('daily_challenge_leaderboard')
           .select('player_name')
-          .eq('player_name', playerName)
-          .limit(1);
+          .limit(1000); // Get all names to check case-insensitively
         data = result.data;
         error = result.error;
       } else {
         const result = await this.supabase
           .from('taptile_leaderboard')
           .select('player_name')
-          .eq('player_name', playerName)
-          .limit(1);
+          .limit(1000); // Get all names to check case-insensitively
         data = result.data;
         error = result.error;
       }
@@ -576,8 +588,10 @@ class GlobalLeaderboardManager {
         return { success: false, error: error.message };
       }
 
-      const exists = data && data.length > 0;
-      console.log(`Name "${playerName}" exists in ${gameMode}:`, exists);
+      // Check case-insensitively
+      const playerNameLower = playerName.toLowerCase();
+      const exists = data && data.some(entry => entry.player_name.toLowerCase() === playerNameLower);
+      console.log(`Name "${playerName}" (case-insensitive) exists in ${gameMode}:`, exists);
       return { success: true, exists: exists };
     } catch (err) {
       console.error('Error checking name existence:', err);

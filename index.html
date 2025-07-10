@@ -9,11 +9,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=78">
+      <link rel="stylesheet" href="style.css?v=106">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
-      <script src="leaderboard-integration.js?v=10-2025-07-09-22-30"></script>
+      <script src="leaderboard-integration.js?v=16-2025-07-10-17-30"></script>
   <!-- Open Graph and Twitter Card for social sharing -->
   <meta property="og:title" content="Fallphabet" />
   <meta property="og:description" content="Try to win with as few words as possible!" />
@@ -296,11 +296,11 @@
         this.speedMultiplier = 1.0;
         this.timeWindow = 5.0;
         this.lastWordTime = 0;
-        this.speedIncreaseInterval = 30; // Increase speed every 30 seconds
-        this.speedIncreaseAmount = 0.2; // 20% increase
-        this.timeWindowDecrease = 0.5; // 0.5 second decrease
+        this.speedIncreaseInterval = 45; // Increase speed every 45 seconds (was 30)
+        this.speedIncreaseAmount = 0.12; // 12% increase (was 20%)
+        this.timeWindowDecrease = 0.25; // 0.25 second decrease (was 0.5)
         this.minTimeWindow = 1.0; // Minimum 1 second
-        this.maxSpeedMultiplier = 2.5; // Maximum 2.5x speed (reduced from 5.0)
+        this.maxSpeedMultiplier = 2.0; // Maximum 2.0x speed (was 2.5)
         this.speedTimer = null;
       }
       
@@ -428,13 +428,37 @@
         // Set up per-column spawn timers for natural cascade
         this.columnTimers = [];
         this.baseSpawnInterval = 1000; // ms, base interval for 1x speed
+        this.isPaused = false; // Track pause state
+        // Store spawn functions for each column to start them when the game begins
+        this.columnSpawnFunctions = [];
         for (let col = 0; col < this.columns; col++) {
+          // Staggered, randomized initial spawn for each column
           let isFirstSpawn = true;
+          let initialDelay = Phaser.Math.Between(0, 1200) + col * Phaser.Math.Between(100, 400);
+          // For the first 2-3 tiles, randomize their spawn times and vertical positions
+          let initialTiles = Phaser.Math.Between(2, 3);
+          let spawned = 0;
           const spawnNext = () => {
+            // Don't spawn if the game is paused
+            if (this.isPaused) {
+              // Retry after a short delay
+              this.columnTimers[col] = this.scene.time.addEvent({
+                delay: 100,
+                callback: spawnNext,
+                callbackScope: this
+              });
+              return;
+            }
             // Only spawn if last tile is far enough down
             const colTiles = this.columnsTiles[col];
             const lastTile = colTiles.length > 0 ? colTiles[colTiles.length - 1] : null;
-            const spawnY = this.gridY - this.tileSize / 2;
+            // For the first few tiles, randomize their Y position so they don't align
+            let spawnY;
+            if (spawned < initialTiles) {
+              spawnY = this.gridY - this.tileSize / 2 - Phaser.Math.Between(0, 120) * spawned;
+            } else {
+              spawnY = this.gridY - this.tileSize / 2;
+            }
             let requiredSpacing = this.tileSize + this.tileSpacing;
             if (lastTile && lastTile.y < spawnY + requiredSpacing) {
               // Not enough space, retry soon
@@ -447,10 +471,12 @@
             }
             const tile = this.spawnTile(col, spawnY);
             this.columnsTiles[col].push(tile);
+            spawned++;
             // Schedule the next spawn with dynamic interval based on speed
             let delay;
-            if (isFirstSpawn) {
-              // Only the first spawn is randomized
+            if (spawned < initialTiles) {
+              delay = Phaser.Math.Between(300, 700);
+            } else if (isFirstSpawn) {
               delay = Phaser.Math.Between(900, 1200);
               isFirstSpawn = false;
             } else {
@@ -467,17 +493,14 @@
               callbackScope: this
             });
           };
-          // Start the first spawn with a unique random initial delay per column
-          let initialDelay = Phaser.Math.Between(0, 800);
-          if (col === 0) initialDelay += 200; // Delay column 1 by 0.2s
-          if (col === 1) initialDelay = Math.max(0, initialDelay - 800); // Column 2 spawns 0.8s earlier
-          if (col === 3) initialDelay += 800; // Delay column 4 by 0.8s
-          if (col === 4) initialDelay += 1200; // Delay column 5 by 1.2s
-          this.scene.time.addEvent({
-            delay: initialDelay,
-            callback: spawnNext,
-            callbackScope: this
-          });
+          // Store the spawn function to start it when the game begins
+          this.columnSpawnFunctions[col] = () => {
+            this.scene.time.addEvent({
+              delay: initialDelay,
+              callback: spawnNext,
+              callbackScope: this
+            });
+          };
         }
       }
       
@@ -491,62 +514,128 @@
         return this.letterPool[Math.floor(Math.random() * this.letterPool.length)];
       }
       
+      createTileTexture(letter, letterScore) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = this.tileSize;
+        canvas.height = this.tileSize;
+        
+        // Draw rounded rectangle background
+        ctx.fillStyle = '#FFF5E1';
+        ctx.strokeStyle = '#B8860B';
+        ctx.lineWidth = 3;
+        
+        // Create rounded rectangle path
+        const radius = 12;
+        ctx.beginPath();
+        ctx.moveTo(radius, 0);
+        ctx.lineTo(canvas.width - radius, 0);
+        ctx.quadraticCurveTo(canvas.width, 0, canvas.width, radius);
+        ctx.lineTo(canvas.width, canvas.height - radius);
+        ctx.quadraticCurveTo(canvas.width, canvas.height, canvas.width - radius, canvas.height);
+        ctx.lineTo(radius, canvas.height);
+        ctx.quadraticCurveTo(0, canvas.height, 0, canvas.height - radius);
+        ctx.lineTo(0, radius);
+        ctx.quadraticCurveTo(0, 0, radius, 0);
+        ctx.closePath();
+        
+        ctx.fill();
+        ctx.stroke();
+        
+        // Draw inner shadow
+        ctx.fillStyle = 'rgba(139, 107, 47, 0.08)';
+        ctx.beginPath();
+        ctx.moveTo(radius - 3, 3);
+        ctx.lineTo(canvas.width - radius + 3, 3);
+        ctx.quadraticCurveTo(canvas.width - 3, 3, canvas.width - 3, radius - 3);
+        ctx.lineTo(canvas.width - 3, canvas.height - radius + 3);
+        ctx.quadraticCurveTo(canvas.width - 3, canvas.height - 3, canvas.width - radius + 3, canvas.height - 3);
+        ctx.lineTo(radius - 3, canvas.height - 3);
+        ctx.quadraticCurveTo(3, canvas.height - 3, 3, canvas.height - radius + 3);
+        ctx.lineTo(3, radius - 3);
+        ctx.quadraticCurveTo(3, 3, radius - 3, 3);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Draw letter
+        ctx.fillStyle = '#222';
+        ctx.font = 'bold 64px Inter';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Add letter shadow
+        ctx.shadowColor = '#B8860B';
+        ctx.shadowBlur = 2;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 3;
+        ctx.fillText(letter, canvas.width / 2, canvas.height / 2);
+        
+        // Reset shadow for point value
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        
+        // Draw point value in bottom right corner
+        ctx.fillStyle = '#B8860B';
+        ctx.font = 'bold 22px Inter';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        
+        // Add white stroke to point value
+        ctx.strokeStyle = '#FFF5E1';
+        ctx.lineWidth = 3;
+        ctx.strokeText(letterScore.toString(), canvas.width - 8, canvas.height - 8);
+        ctx.fillText(letterScore.toString(), canvas.width - 8, canvas.height - 8);
+        
+        return canvas;
+      }
+      
       spawnTile(col, y) {
         const letter = this.getRandomLetter();
         const x = this.columnX[col];
+        
+        // Get letter score
+        const scoreManager = this.scene.scoreManager;
+        const letterScore = scoreManager && scoreManager.letterScores ? scoreManager.letterScores[letter] : 1;
+        
+        // Create tile texture with letter and point value
+        const tileCanvas = this.createTileTexture(letter, letterScore);
+        const tileTexture = this.scene.textures.addCanvas(`tile_${letter}_${letterScore}_${Date.now()}`, tileCanvas);
+        
         // Shadow (subtle, larger, more transparent)
         const shadow = this.scene.add.rectangle(x + 3, y + 6, this.tileSize + 4, this.tileSize + 4, 0xC2A477, 0.18);
         shadow.setDepth(0);
-        // Main tile (rounded rectangle)
-        const tile = this.scene.add.rectangle(x, y, this.tileSize, this.tileSize, 0xFFF5E1);
-        tile.setStrokeStyle(3, 0xB8860B);
+        
+        // Main tile using custom texture
+        const tile = this.scene.add.image(x, y, tileTexture.key);
         tile.setDepth(1);
         tile.setInteractive();
         tile.isScrabbleTile = true;
-        tile.radius = 12;
+        
         // Inner shadow (drawn as a slightly smaller, semi-transparent rectangle)
         const innerShadow = this.scene.add.rectangle(x, y, this.tileSize - 6, this.tileSize - 6, 0x8B6B2F, 0.08);
         innerShadow.setDepth(2);
-        // Letter text
-        const text = this.scene.add.text(x, y, letter, {
-          fontFamily: 'Inter', fontSize: '64px', color: '#222', fontStyle: 'normal', fontWeight: '300',
-        }).setOrigin(0.5);
-        text.setDepth(3);
-        text.setShadow(2, 3, '#B8860B', 2, false, true);
-        
-        // Make text interactive as well to improve tap responsiveness
-        text.setInteractive();
-        text.isScrabbleTile = true;
-        text.parentTile = tile;
         
         // Apply the grid mask to all tile elements
         const mask = this.scene.gridMask;
         tile.setMask(mask);
-        text.setMask(mask);
         shadow.setMask(mask);
         innerShadow.setMask(mask);
         
         tile.letter = letter;
-        tile.text = text;
         tile.col = col;
         tile.falling = true;
         tile.shadow = shadow;
         tile.innerShadow = innerShadow;
-        
-        // Store reference to parent tile in text for tap handling
-        text.letter = letter;
-        text.col = col;
-        text.falling = true;
-        text.shadow = shadow;
-        text.innerShadow = innerShadow;
+        tile.textureKey = tileTexture.key; // Store for cleanup
         
         // Add a subtle spawn animation
         tile.setScale(0.85);
-        text.setScale(0.85);
         shadow.setScale(0.85);
         innerShadow.setScale(0.85);
         this.scene.tweens.add({
-          targets: [tile, text, shadow, innerShadow],
+          targets: [tile, shadow, innerShadow],
           scaleX: 1,
           scaleY: 1,
           duration: 300,
@@ -556,6 +645,9 @@
       }
       
       update(dt) {
+        // Don't update if paused
+        if (this.isPaused) return;
+        
         // Update fall speed based on current mode
         if (this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease) {
           this.fallSpeed = this.scene.taptileSpeedManager.getCurrentSpeed();
@@ -567,7 +659,6 @@
             const tile = colTiles[i];
             if (!tile.falling) continue;
             tile.y += this.fallSpeed * dt;
-            tile.text.y = tile.y;
             if (tile.shadow) tile.shadow.y = tile.y + 6;
             if (tile.innerShadow) tile.innerShadow.y = tile.y;
           }
@@ -575,8 +666,9 @@
           for (let i = colTiles.length - 1; i >= 0; i--) {
             const tile = colTiles[i];
             if (tile.y + this.tileSize / 2 >= this.scene.playfieldBottomY) {
+              const scene = this.scene;
               this.scene.tweens.add({
-                targets: [tile, tile.text, tile.shadow, tile.innerShadow],
+                targets: [tile, tile.shadow, tile.innerShadow],
                 scaleX: 0.8,
                 scaleY: 0.8,
                 alpha: 0,
@@ -584,9 +676,17 @@
                 ease: 'Power2',
                 onComplete: () => {
                   tile.destroy();
-                  tile.text.destroy();
-                  if (tile.shadow) tile.shadow.destroy();
-                  if (tile.innerShadow) tile.innerShadow.destroy();
+                  if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
+                  if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
+                  // Clean up texture
+                  if (
+                    scene &&
+                    scene.textures &&
+                    tile.textureKey &&
+                    scene.textures.exists(tile.textureKey)
+                  ) {
+                    scene.textures.remove(tile.textureKey);
+                  }
                 }
               });
               colTiles.splice(i, 1);
@@ -607,9 +707,17 @@
             const tile = colTiles[i];
             if (tile && !tile.destroyed) {
               tile.destroy();
-              if (tile.text && !tile.text.destroyed) tile.text.destroy();
               if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
               if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
+              // Clean up texture
+              if (
+                this.scene &&
+                this.scene.textures &&
+                tile.textureKey &&
+                this.scene.textures.exists(tile.textureKey)
+              ) {
+                this.scene.textures.remove(tile.textureKey);
+              }
             }
           }
           this.columnsTiles[col] = [];
@@ -625,6 +733,54 @@
           });
           this.columnTimers = [];
         }
+      }
+      
+      pause() {
+        // Pause all column timers
+        if (this.columnTimers) {
+          this.columnTimers.forEach(timer => {
+            if (timer) {
+              timer.paused = true;
+            }
+          });
+        }
+        this.isPaused = true;
+      }
+      
+      startSpawning() {
+        // Unpause the spawner first
+        this.isPaused = false;
+        
+        // Start spawning for all columns with staggered timing
+        if (this.columnSpawnFunctions) {
+          this.columnSpawnFunctions.forEach((spawnFunc, col) => {
+            if (spawnFunc) {
+              // Add staggered delay based on column to maintain natural flow
+              const staggerDelay = col * 300; // 300ms delay between columns for more spread
+              this.scene.time.delayedCall(staggerDelay, () => {
+                spawnFunc();
+              });
+            }
+          });
+        }
+      }
+      
+      resume() {
+        // Resume all column timers with staggered timing
+        if (this.columnTimers) {
+          this.columnTimers.forEach((timer, col) => {
+            if (timer) {
+              // Add staggered delay based on column to maintain natural flow
+              const staggerDelay = col * 300; // 300ms delay between columns for more spread
+              this.scene.time.delayedCall(staggerDelay, () => {
+                if (timer && timer.paused) {
+                  timer.paused = false;
+                }
+              });
+            }
+          });
+        }
+        this.isPaused = false;
       }
     }
 
@@ -652,6 +808,26 @@
         if (this.scene && this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease) {
           if (this.scene.registerInteraction) this.scene.registerInteraction();
         }
+        
+        // Check if click is outside the play area to deselect tiles
+        if (this.selectedTiles.length > 0) {
+          const gridBounds = {
+            x: this.scene.gridX,
+            y: this.scene.gridY,
+            width: this.scene.gridWidth,
+            height: this.scene.gridHeight
+          };
+          
+          // If click is outside the grid bounds, clear the selection
+          if (pointer.x < gridBounds.x || 
+              pointer.x > gridBounds.x + gridBounds.width ||
+              pointer.y < gridBounds.y || 
+              pointer.y > gridBounds.y + gridBounds.height) {
+            this.clearBuffer();
+            return;
+          }
+        }
+        
         // Removed call to origOnPointerDownWithInactivity
         // If you need to add custom pointer down logic, do it here.
         // No super call needed.
@@ -710,6 +886,9 @@
         this.lastTappedTile = actualTile;
         this.lastTapTime = now;
         this.resetAutoClearTimer();
+        if (this.scene && this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease) {
+          if (this.scene.registerInteraction) this.scene.registerInteraction();
+        }
       }
       
       selectTileAt(x, y) {
@@ -746,13 +925,11 @@
       highlightTile(tile, highlight) {
         if (!tile || tile.destroyed) return;
         if (highlight) {
-          tile.setFillStyle(0x90EE90); // Light green
-          tile.setStrokeStyle(3, 0x228B22); // Dark green border
-          if (tile.text && !tile.text.destroyed) tile.text.setColor('#006400');
+          // For image-based tiles, use tint for highlighting
+          tile.setTint(0x90EE90); // Light green tint
         } else {
-          tile.setFillStyle(0xFFF5E1); // Original color
-          tile.setStrokeStyle(3, 0xB8860B); // Original border
-          if (tile.text && !tile.text.destroyed) tile.text.setColor('#222');
+          // Remove tint to return to original appearance
+          tile.clearTint();
         }
       }
       
@@ -775,9 +952,17 @@
           // Only destroy tiles when clearing buffer for unsuccessful selections
           if (!skipDestruction && tile && !tile.destroyed) {
             tile.destroy();
-            if (tile.text && !tile.text.destroyed) tile.text.destroy();
             if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
             if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
+            // Clean up texture
+            if (
+              this.scene &&
+              this.scene.textures &&
+              tile.textureKey &&
+              this.scene.textures.exists(tile.textureKey)
+            ) {
+              this.scene.textures.remove(tile.textureKey);
+            }
           }
         });
         this.selectedTiles = [];
@@ -799,6 +984,9 @@
           word: word,
           tiles: tiles
         });
+        if (this.scene && this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease) {
+          if (this.scene.registerInteraction) this.scene.registerInteraction();
+        }
       }
       
       update() {
@@ -854,6 +1042,16 @@
         this.clearChainWindow();
         this.chainWindowActive = true;
         this.shouldIncrementChain = false;
+        let duration = this.chainWindowDuration;
+        // Use taptileSpeedManager's timeWindow if in Taptile mode
+        if (
+          this.scene &&
+          this.scene.gameModeManager &&
+          this.scene.gameModeManager.getCurrentMode().speedIncrease &&
+          this.scene.taptileSpeedManager
+        ) {
+          duration = this.scene.taptileSpeedManager.timeWindow * 1000;
+        }
         this.chainWindowTimeout = setTimeout(() => {
           this.resetChain();
           this.chainWindowActive = false;
@@ -862,7 +1060,7 @@
             const scene = window.game.scene.keys['GameScene'];
             if (scene.updateUI) scene.updateUI();
           }
-        }, this.chainWindowDuration);
+        }, duration);
       }
       
       clearChainWindow() {
@@ -989,11 +1187,7 @@
         this.highestChain = 1;
         this.gameOver = false;
         this.gameStartTime = Date.now();
-        
-        // Start taptile mode if active
-        if (this.gameModeManager.getCurrentMode().speedIncrease) {
-          this.taptileSpeedManager.start();
-        }
+        this.gameStarted = false; // New flag to track if game has started
         
         // Listen for word submissions
         this.events.on('wordSubmitted', this.handleWordSubmission, this);
@@ -1022,20 +1216,87 @@
         }
         this.hasInteracted = false;
         this.clearInactivityTimeout();
-        if (this.gameModeManager.getCurrentMode().speedIncrease) {
-          this.startInactivityTimeout();
+        
+        // Create "Tap to Play" overlay
+        this.createTapToPlayOverlay();
+        
+        // Set up tap to start functionality
+        this.input.on('pointerdown', this.onTapToStart, this);
+      }
+      
+      createTapToPlayOverlay() {
+        // Create semi-transparent overlay
+        this.tapToPlayOverlay = this.add.rectangle(
+          400, 600, 800, 1200, 0x000000, 0.3
+        );
+        this.tapToPlayOverlay.setDepth(1000);
+        
+        // Create "Tap to Play" text
+        this.tapToPlayText = this.add.text(400, 500, 'TAP TO PLAY', {
+          fontFamily: 'Inter',
+          fontSize: '48px',
+          color: '#FFFFFF',
+          fontStyle: 'bold',
+          stroke: '#000000',
+          strokeThickness: 4
+        }).setOrigin(0.5);
+        this.tapToPlayText.setDepth(1001);
+        
+        // Create play icon (hand pointer)
+        this.playIcon = this.add.text(400, 600, '👆', {
+          fontSize: '64px'
+        }).setOrigin(0.5);
+        this.playIcon.setDepth(1001);
+        
+        // Add pulsing animation to the text and icon
+        this.tweens.add({
+          targets: [this.tapToPlayText, this.playIcon],
+          scaleX: 1.1,
+          scaleY: 1.1,
+          duration: 1000,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+        
+        // Pause the tile spawner initially
+        this.tileSpawner.pause();
+      }
+      
+      onTapToStart(pointer) {
+        if (this.gameStarted) return; // Already started
+        
+        console.log('Game started by user tap');
+        this.gameStarted = true;
+        this.hasInteracted = false;
+        this.clearInactivityTimeout();
+        
+        // Remove the overlay
+        if (this.tapToPlayOverlay) {
+          this.tapToPlayOverlay.destroy();
         }
-
-        // --- ADDED: Clear selection on background click in Taptile mode ---
-        if (this.input && this.inputHandler && this.gameModeManager.getCurrentMode().speedIncrease) {
-          this.input.on('pointerdown', (pointer, currentlyOver) => {
-            // Only clear if not clicking on a tile (currentlyOver is empty)
-            if (!currentlyOver || currentlyOver.length === 0) {
-              if (!this.gameOver) {
-                this.inputHandler.clearBuffer();
-              }
+        if (this.tapToPlayText) {
+          this.tapToPlayText.destroy();
+        }
+        if (this.playIcon) {
+          this.playIcon.destroy();
+        }
+        
+        // Remove the tap to start listener
+        this.input.off('pointerdown', this.onTapToStart, this);
+        
+        // Start the game
+        this.tileSpawner.startSpawning();
+        
+        // Start taptile mode if active
+        if (this.gameModeManager.getCurrentMode().speedIncrease) {
+          this.taptileSpeedManager.start();
+          // Set inactivity timeout: if no interaction in 20s, return to tap to play
+          this.inactivityTimeout = setTimeout(() => {
+            if (!this.hasInteracted && this.gameStarted && this.gameModeManager.getCurrentMode().speedIncrease) {
+              this.returnToTapToPlay();
             }
-          });
+          }, 20000);
         }
       }
 
@@ -1063,7 +1324,7 @@
       }
 
       update(time, delta) {
-        if (this.gameOver) return;
+        if (this.gameOver || !this.gameStarted) return;
         const dt = delta / 1000;
         this.tileSpawner.update(dt);
         this.inputHandler.update();
@@ -1130,27 +1391,59 @@
         }
         if (!isValid) {
           this.showFlashMessage(`"${word}" - Not a valid English word!`, '#ff6b6b');
-          // Destroy tiles for invalid words (buffer already cleared)
+          // Destroy tiles for invalid words with animation
           tiles.forEach(tile => {
-            if (tile && !tile.destroyed) {
-              tile.destroy();
-              if (tile.text && !tile.text.destroyed) tile.text.destroy();
-              if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
-              if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
-            }
+            const scene = this.scene;
+            this.tweens.add({
+              targets: [tile, tile.shadow, tile.innerShadow],
+              scaleX: 0,
+              scaleY: 0,
+              duration: 300,
+              ease: 'Power2',
+              onComplete: () => {
+                tile.destroy();
+                if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
+                if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
+                // Clean up texture
+                if (
+                  scene &&
+                  scene.textures &&
+                  tile.textureKey &&
+                  scene.textures.exists(tile.textureKey)
+                ) {
+                  scene.textures.remove(tile.textureKey);
+                }
+              }
+            });
           });
           return;
         }
         if (isProper) {
           this.showFlashMessage(`"${word}" is a proper name. No proper names allowed!`, '#ff6b6b');
-          // Destroy tiles for invalid words (buffer already cleared)
+          // Destroy tiles for invalid words with animation
           tiles.forEach(tile => {
-            if (tile && !tile.destroyed) {
-              tile.destroy();
-              if (tile.text && !tile.text.destroyed) tile.text.destroy();
-              if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
-              if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
-            }
+            const scene = this.scene;
+            this.tweens.add({
+              targets: [tile, tile.shadow, tile.innerShadow],
+              scaleX: 0,
+              scaleY: 0,
+              duration: 300,
+              ease: 'Power2',
+              onComplete: () => {
+                tile.destroy();
+                if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
+                if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
+                // Clean up texture
+                if (
+                  scene &&
+                  scene.textures &&
+                  tile.textureKey &&
+                  scene.textures.exists(tile.textureKey)
+                ) {
+                  scene.textures.remove(tile.textureKey);
+                }
+              }
+            });
           });
           return;
         }
@@ -1169,17 +1462,26 @@
         this.showFlashMessage(`"${word}" - ${score} pts${chainText}`, '#51cf66');
         this.scoredWords.push({ word, score });
         tiles.forEach(tile => {
+          const scene = this.scene;
           this.tweens.add({
-            targets: [tile, tile.text, tile.shadow, tile.innerShadow],
+            targets: [tile, tile.shadow, tile.innerShadow],
             scaleX: 0,
             scaleY: 0,
             duration: 300,
             ease: 'Power2',
             onComplete: () => {
               tile.destroy();
-              if (tile.text) tile.text.destroy();
-              if (tile.shadow) tile.shadow.destroy();
-              if (tile.innerShadow) tile.innerShadow.destroy();
+              if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
+              if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
+              // Clean up texture
+              if (
+                this.scene &&
+                this.scene.textures &&
+                tile.textureKey &&
+                this.scene.textures.exists(tile.textureKey)
+              ) {
+                this.scene.textures.remove(tile.textureKey);
+              }
             }
           });
         });
@@ -1262,28 +1564,80 @@
       
       // Check if the current score is a new high score for Taptile
       checkTaptileHighScore(currentScore) {
+        const playerName = this.leaderboardManager ? this.leaderboardManager.getPlayerName() : null;
         const playerIdentifier = this.leaderboardManager ? this.leaderboardManager.getPlayerIdentifier() : null;
-        if (!playerIdentifier) return false; // If no player ID, don't treat as new high score
         
-        const highScoreKey = `taptile_high_score_${playerIdentifier}`;
+        if (!playerIdentifier) {
+          console.log('checkTaptileHighScore: No player identifier found - not treating as new high score');
+          return false;
+        }
+        
+        // Use player name if available, otherwise use player identifier
+        const identifier = playerName || playerIdentifier;
+        const highScoreKey = `taptile_high_score_${identifier}`;
         const storedHighScore = localStorage.getItem(highScoreKey);
         
+        // Migrate high score from player name to player identifier if needed
+        if (playerName && playerName !== playerIdentifier) {
+          this.migrateHighScoreFromNameToIdentifier(playerName, playerIdentifier);
+        }
+        
+        console.log('checkTaptileHighScore:', {
+          currentScore,
+          playerName,
+          playerIdentifier,
+          identifier,
+          highScoreKey,
+          storedHighScore,
+          hasLeaderboardManager: !!this.leaderboardManager
+        });
+        
         if (storedHighScore === null) {
-          // First time playing - treat as new high score
+          // First time playing with this identifier - treat as new high score
+          console.log('checkTaptileHighScore: First time playing with this identifier - treating as new high score');
           return true;
         }
         
         const currentHighScore = parseInt(storedHighScore);
-        return currentScore > currentHighScore;
+        const isNewHighScore = currentScore > currentHighScore;
+        console.log('checkTaptileHighScore: Comparing scores:', { 
+          currentScore, 
+          currentHighScore, 
+          isNewHighScore,
+          storedHighScore: storedHighScore,
+          parsedHighScore: currentHighScore
+        });
+        return isNewHighScore;
+      }
+      
+      // Migrate high score from player name to player identifier
+      migrateHighScoreFromNameToIdentifier(playerName, playerIdentifier) {
+        const nameKey = `taptile_high_score_${playerName}`;
+        const identifierKey = `taptile_high_score_${playerIdentifier}`;
+        
+        const nameHighScore = localStorage.getItem(nameKey);
+        const identifierHighScore = localStorage.getItem(identifierKey);
+        
+        if (nameHighScore && !identifierHighScore) {
+          // Migrate the high score from name to identifier
+          localStorage.setItem(identifierKey, nameHighScore);
+          localStorage.removeItem(nameKey);
+          console.log(`Migrated high score from ${playerName} to ${playerIdentifier}: ${nameHighScore}`);
+        }
       }
       
       // Update the player's high score for Taptile
       updateTaptileHighScore(score) {
+        const playerName = this.leaderboardManager ? this.leaderboardManager.getPlayerName() : null;
         const playerIdentifier = this.leaderboardManager ? this.leaderboardManager.getPlayerIdentifier() : null;
+        
         if (!playerIdentifier) return;
         
-        const highScoreKey = `taptile_high_score_${playerIdentifier}`;
+        // Use player name if available, otherwise use player identifier
+        const identifier = playerName || playerIdentifier;
+        const highScoreKey = `taptile_high_score_${identifier}`;
         localStorage.setItem(highScoreKey, score.toString());
+        console.log('Updated high score for', identifier, 'to', score);
       }
       
       // Show confetti animation
@@ -1432,8 +1786,16 @@
           
           // Check if this is a new high score for Taptile
           const isNewHighScore = this.checkTaptileHighScore(finalScore);
+          console.log('Game Over - High Score Check Result:', {
+            finalScore,
+            isNewHighScore,
+            gameMode: currentMode.speedIncrease ? 'taptile' : 'daily',
+            playerName: this.leaderboardManager ? this.leaderboardManager.getPlayerName() : 'no leaderboard manager',
+            hasLeaderboardManager: !!this.leaderboardManager
+          });
           
           if (isNewHighScore) {
+            console.log('🎉 NEW HIGH SCORE DETECTED! Showing confetti and modal...');
             // Show confetti and high score modal
             this.showConfetti();
             this.showHighScoreModal(finalScore, timeSurvived, taptileStats.maxSpeed, wordsUsed, topWord, topWordScore, highestChain);
@@ -1837,6 +2199,100 @@
             this.inputHandler.scene.input.off('pointerup', this.inputHandler.onPointerUp, this.inputHandler);
             this.inputHandler.scene.input.off('gameobjectdown', this.inputHandler.onTileTap, this.inputHandler);
           }
+        }
+      }
+      
+      // Temporary test function for debugging high scores
+      testHighScoreDetection() {
+        const playerName = this.leaderboardManager ? this.leaderboardManager.getPlayerName() : null;
+        const playerIdentifier = this.leaderboardManager ? this.leaderboardManager.getPlayerIdentifier() : null;
+        const identifier = playerName || playerIdentifier;
+        const highScoreKey = `taptile_high_score_${identifier}`;
+        const storedHighScore = localStorage.getItem(highScoreKey);
+        
+        console.log('=== HIGH SCORE DEBUG INFO ===');
+        console.log('Player Name:', playerName);
+        console.log('Player Identifier:', playerIdentifier);
+        console.log('Identifier Used:', identifier);
+        console.log('High Score Key:', highScoreKey);
+        console.log('Stored High Score:', storedHighScore);
+        console.log('Current Score:', this.scoreManager.getTotalScore());
+        
+        // Create a test modal
+        const modal = document.createElement('div');
+        modal.className = 'responsive-modal';
+        modal.innerHTML = `
+          <div class="responsive-modal-content standard">
+            <button class="responsive-close-btn" onclick="this.closest('.responsive-modal').remove()">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+            <h2>🔧 High Score Debug</h2>
+            <div style="text-align: left; margin: 20px 0;">
+              <p><strong>Player Name:</strong> ${playerName || 'None'}</p>
+              <p><strong>Player Identifier:</strong> ${playerIdentifier || 'None'}</p>
+              <p><strong>Identifier Used:</strong> ${identifier || 'None'}</p>
+              <p><strong>High Score Key:</strong> ${highScoreKey}</p>
+              <p><strong>Stored High Score:</strong> ${storedHighScore || 'None'}</p>
+              <p><strong>Current Score:</strong> ${this.scoreManager.getTotalScore()}</p>
+              <p><strong>Would be new high score:</strong> ${this.checkTaptileHighScore(this.scoreManager.getTotalScore()) ? 'YES' : 'NO'}</p>
+            </div>
+            <div class="modal-actions">
+              <button onclick="game.testHighScoreDetectionReset()" class="secondary">Reset High Score</button>
+              <button onclick="game.testHighScoreDetectionSimulate()" class="primary">Simulate New High Score</button>
+              <button onclick="game.testSetPlayerName()" class="secondary">Set Player Name</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+      }
+      
+      // Reset high score for testing
+      testHighScoreDetectionReset() {
+        const playerName = this.leaderboardManager ? this.leaderboardManager.getPlayerName() : null;
+        const playerIdentifier = this.leaderboardManager ? this.leaderboardManager.getPlayerIdentifier() : null;
+        const identifier = playerName || playerIdentifier;
+        
+        if (identifier) {
+          const highScoreKey = `taptile_high_score_${identifier}`;
+          localStorage.removeItem(highScoreKey);
+          console.log('Reset high score for:', identifier);
+          alert('High score reset! Try playing again to test.');
+        }
+        // Close the modal
+        const modal = document.querySelector('.responsive-modal');
+        if (modal) modal.remove();
+      }
+      
+      // Simulate new high score for testing
+      testHighScoreDetectionSimulate() {
+        const currentScore = this.scoreManager.getTotalScore();
+        console.log('Simulating new high score with score:', currentScore);
+        
+        // Close the modal first
+        const modal = document.querySelector('.responsive-modal');
+        if (modal) modal.remove();
+        
+        // Show confetti and modal
+        this.showConfetti();
+        const taptileStats = this.taptileSpeedManager ? this.taptileSpeedManager.getStats() : { maxSpeed: 1.0 };
+        const timeSurvived = this.gameStartTime ? (Date.now() - this.gameStartTime) / 1000 : 0;
+        this.showHighScoreModal(currentScore, timeSurvived, taptileStats.maxSpeed, this.wordsUsed, this.topWord || '-', this.topWordScore || 0, this.chainTracker ? this.chainTracker.getHighestChain() : 1);
+      }
+      
+      // Set player name for testing
+      testSetPlayerName() {
+        const playerName = prompt('Enter your player name for testing:');
+        if (playerName && playerName.trim()) {
+          localStorage.setItem('fallphabet_player_name', playerName.trim());
+          console.log('✅ Set player name for testing:', playerName.trim());
+          alert(`Player name set to: ${playerName.trim()}\n\nNow try playing again to test high score detection!`);
+          
+          // Close the modal
+          const modal = document.querySelector('.responsive-modal');
+          if (modal) modal.remove();
         }
       }
     }
@@ -2376,11 +2832,25 @@
       this.clearChainWindow();
       this.chainWindowActive = true;
       this.shouldIncrementChain = false;
+      let duration = this.chainWindowDuration;
+      // Use taptileSpeedManager's timeWindow if in Taptile mode
+      if (
+        this.scene &&
+        this.scene.gameModeManager &&
+        this.scene.gameModeManager.getCurrentMode().speedIncrease &&
+        this.scene.taptileSpeedManager
+      ) {
+        duration = this.scene.taptileSpeedManager.timeWindow * 1000;
+      }
       this.chainWindowTimeout = setTimeout(() => {
         this.resetChain();
         this.chainWindowActive = false;
         this.shouldIncrementChain = false;
-      }, this.chainWindowDuration);
+        if (window && window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+          const scene = window.game.scene.keys['GameScene'];
+          if (scene.updateUI) scene.updateUI();
+        }
+      }, duration);
     };
     // Patch ChainTracker.clearChainWindow to always clear timer and active state
     ChainTracker.prototype.clearChainWindow = function() {
@@ -2560,6 +3030,27 @@
     function hideModal(modalId) {
       hideResponsiveModal(modalId);
     }
+
+    // Return to Tap to Play overlay and pause the game
+    GameScene.prototype.returnToTapToPlay = function() {
+      this.gameStarted = false;
+      this.tileSpawner.pause();
+      this.createTapToPlayOverlay();
+      this.input.on('pointerdown', this.onTapToStart, this);
+    };
+    
+    // Add keyboard shortcut for high score debugging (Ctrl+Shift+H)
+    document.addEventListener('keydown', function(event) {
+      if (event.ctrlKey && event.shiftKey && event.key === 'H') {
+        event.preventDefault();
+        if (window.game && window.game.testHighScoreDetection) {
+          console.log('🔧 High Score Debug shortcut triggered');
+          window.game.testHighScoreDetection();
+        } else {
+          console.log('Game not initialized yet');
+        }
+      }
+    });
   </script>
 </body>
 </html>
