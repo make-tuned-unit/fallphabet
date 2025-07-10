@@ -9,11 +9,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=107">
+      <link rel="stylesheet" href="style.css?v=110">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
-      <script src="leaderboard-integration.js?v=16-2025-07-10-17-30"></script>
+      <script src="leaderboard-integration.js?v=19-2025-07-10-20-00"></script>
   <!-- Open Graph and Twitter Card for social sharing -->
   <meta property="og:title" content="Fallphabet" />
   <meta property="og:description" content="Try to win with as few words as possible!" />
@@ -328,12 +328,13 @@
       }
       
       onWordSubmitted() {
-        // Don't reset lastWordTime here - it should be reset when starting a new word
-        // Add a small grace period to prevent immediate game over
+        // Reset the timer when a word is submitted to give player time to start next word
+        this.lastWordTime = Date.now();
+        // Add a grace period to prevent immediate game over - use current timeWindow
         this.gracePeriod = true;
         setTimeout(() => {
           this.gracePeriod = false;
-        }, 100); // 100ms grace period
+        }, this.timeWindow * 1000); // Use current timeWindow instead of fixed 500ms
       }
       
       onWordStarted() {
@@ -345,11 +346,24 @@
         // Always allow time window check since lastWordTime is set on start
         // But respect grace period after word submission
         if (this.gracePeriod) {
+          console.log('checkTimeWindow: Grace period active, allowing time window');
           return true;
         }
         const now = Date.now();
         const timeSinceLastWord = (now - this.lastWordTime) / 1000;
-        return timeSinceLastWord <= this.timeWindow;
+        const isWithinWindow = timeSinceLastWord <= this.timeWindow;
+        
+        // Debug logging for time window issues
+        if (!isWithinWindow && this.wordsUsed > 0) {
+          console.log('checkTimeWindow: Time window exceeded!', {
+            timeSinceLastWord: timeSinceLastWord.toFixed(2),
+            timeWindow: this.timeWindow.toFixed(2),
+            lastWordTime: new Date(this.lastWordTime).toLocaleTimeString(),
+            now: new Date(now).toLocaleTimeString()
+          });
+        }
+        
+        return isWithinWindow;
       }
       
       getCurrentSpeed() {
