@@ -2760,12 +2760,18 @@
             // Regular sharing logic
             let wordsUsed = '';
             let highestChain = '';
+            let totalScore = '';
+            let isTaptileMode = false;
+            
             // Try to get from GameScene if available
             if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
               const scene = window.game.scene.keys['GameScene'];
               wordsUsed = scene.wordsUsed || '';
               highestChain = scene.chainTracker && scene.chainTracker.getHighestChain ? 'x' + scene.chainTracker.getHighestChain() : '';
+              totalScore = scene.scoreManager && scene.scoreManager.getTotalScore ? scene.scoreManager.getTotalScore() : '';
+              isTaptileMode = scene.gameModeManager && scene.gameModeManager.getCurrentMode().speedIncrease;
             }
+            
             // Fallback to DOM if needed
             if (!wordsUsed) {
               const modal = document.getElementById('gameover-modal');
@@ -2775,9 +2781,21 @@
               const modal = document.getElementById('gameover-modal');
               highestChain = modal.querySelector('#modal-highest-chain')?.textContent || '';
             }
+            if (!totalScore) {
+              const scoreDisplay = document.getElementById('score-display');
+              totalScore = scoreDisplay ? scoreDisplay.textContent : '';
+            }
+            
+            // Create share text based on mode
+            let shareText;
+            if (isTaptileMode) {
+              shareText = `I got ${totalScore} points today with ${wordsUsed} words used! Think you can beat me? Try now to join the leaderboard`;
+            } else {
+              shareText = `It took me ${wordsUsed} words with a top chain of ${highestChain} to beat the Fallphabet today! Think you can beat me?`;
+            }
+            
             // Try Web Share API first
             if (navigator.share) {
-              const shareText = `It took me ${wordsUsed} words with a top chain of ${highestChain} to beat the Fallphabet today! Think you can beat me?`;
               navigator.share({
                 title: 'Fallphabet',
                 text: shareText,
@@ -2785,12 +2803,12 @@
               });
             } else {
               // Fallback: open iMessage/SMS if on iOS, else copy to clipboard
-              const shareText = `It took me ${wordsUsed} words with a top chain of ${highestChain} to beat the Fallphabet today! Think you can beat me? https://fallphabet.com`;
+              const fullShareText = `${shareText} https://fallphabet.com`;
               const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
               if (isiOS) {
-                window.location.href = `sms:&body=${encodeURIComponent(shareText)}`;
+                window.location.href = `sms:&body=${encodeURIComponent(fullShareText)}`;
               } else {
-                navigator.clipboard.writeText(shareText);
+                navigator.clipboard.writeText(fullShareText);
                 alert('Share text copied to clipboard!');
               }
             }
