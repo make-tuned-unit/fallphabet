@@ -378,13 +378,13 @@ body {
 /* iPhone 14 Pro Max specific fixes */
 @media screen and (max-width: 430px) and (min-height: 932px) {
   #main-content {
-    margin-top: 55px !important;
-    height: calc(100vh - 55px) !important;
-    height: calc(100dvh - 55px) !important;
+    margin-top: 20px !important;
+    height: calc(100vh - 20px) !important;
+    height: calc(100dvh - 20px) !important;
     padding-top: env(safe-area-inset-top);
   }
   .game-header {
-    margin-top: 5px !important;
+    margin-top: 0 !important;
     padding-top: 0 !important;
   }
   .game-title {
