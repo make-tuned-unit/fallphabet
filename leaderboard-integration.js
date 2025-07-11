@@ -136,7 +136,8 @@ class GlobalLeaderboardManager {
           .from('daily_challenge_leaderboard')
           .select('*')
           .eq('attempt_date', today)
-          .order('score', { ascending: false })
+          .order('words_used', { ascending: true })
+          .order('top_word_score', { ascending: false })
           .limit(limit);
         data = result.data;
         error = result.error;
@@ -222,13 +223,29 @@ class GlobalLeaderboardManager {
       let count, error;
       if (gameMode === 'daily_challenge') {
         const today = new Date().toISOString().split('T')[0];
+        // For Daily Challenge, rank is based on words_used (ascending) and top_word_score (descending)
+        // We need to get all entries and calculate rank manually since we can't easily count with multiple sort criteria
         const result = await this.supabase
           .from('daily_challenge_leaderboard')
-          .select('*', { count: 'exact', head: true })
+          .select('*')
           .eq('attempt_date', today)
-          .gt('score', score);
-        count = result.count;
-        error = result.error;
+          .order('words_used', { ascending: true })
+          .order('top_word_score', { ascending: false });
+        if (result.error) {
+          error = result.error;
+        } else {
+          // Find the player's entry and calculate their rank
+          const playerEntry = result.data.find(entry => entry.score === score);
+          if (playerEntry) {
+            count = result.data.findIndex(entry => 
+              entry.words_used < playerEntry.words_used || 
+              (entry.words_used === playerEntry.words_used && entry.top_word_score > playerEntry.top_word_score)
+            );
+            count = count === -1 ? 0 : count;
+          } else {
+            count = result.data.length; // Player not found, rank at the end
+          }
+        }
       } else {
         const result = await this.supabase
           .from('taptile_leaderboard')
@@ -716,7 +733,7 @@ class GlobalLeaderboardManager {
     const playTaptileBtn = modal.querySelector('#play-taptile-btn');
     const viewLeaderboardBtn = modal.querySelector('#view-leaderboard-btn');
     const closeBtn = modal.querySelector('#close-modal-btn');
-    const closeModalBtn = modal.querySelector('#close-modal-btn');
+    const xCloseBtn = modal.querySelector('#daily-attempted-close');
 
     const closeModal = () => {
       modal.classList.remove('show');
@@ -768,7 +785,7 @@ class GlobalLeaderboardManager {
     });
 
     closeBtn.addEventListener('click', closeModal);
-    closeModalBtn.addEventListener('click', closeModal);
+    xCloseBtn.addEventListener('click', closeModal);
 
     // Close on outside click
     modal.addEventListener('click', (e) => {
@@ -967,7 +984,8 @@ class GlobalLeaderboardManager {
         .from('daily_challenge_leaderboard')
         .select('*')
         .eq('attempt_date', today)
-        .order('score', { ascending: false })
+        .order('words_used', { ascending: true })
+        .order('top_word_score', { ascending: false })
         .limit(20);
       console.log('Daily leaderboard query result - data:', data, 'error:', error);
       if (error) {
@@ -987,12 +1005,11 @@ class GlobalLeaderboardManager {
         const rank = index + 1;
         const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
         html += `
-          <div class="leaderboard-entry ${isCurrentPlayer ? 'current-player' : ''}">
-            <div class="rank">${medal} ${rank}</div>
-            <div class="player-name">${this.escapeHtml(entry.player_name)}</div>
-            <div class="score">${entry.score.toLocaleString()}</div>
-            <div class="details">
-              <span class="words">${entry.words_used} words</span>
+          <div class="leaderboard-entry ${isCurrentPlayer ? 'current-player' : ''}" style="display: flex; align-items: center;">
+            <div class="rank" style="width: 48px; min-width: 48px; text-align: center;">${medal} ${rank}</div>
+            <div class="player-name" style="flex: 1; text-align: left; font-weight: 600;">${this.escapeHtml(entry.player_name)}</div>
+            <div class="details" style="flex: 2; text-align: left;">
+              <span class="words"><strong>${entry.words_used}</strong> words</span>
               ${entry.top_word ? `<span class="top-word">"${this.escapeHtml(entry.top_word)}" (${entry.top_word_score} pts)</span>` : ''}
             </div>
           </div>
@@ -1079,14 +1096,12 @@ class GlobalLeaderboardManager {
         const rank = index + 1;
         const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
         html += `
-          <div class="leaderboard-entry ${isCurrentPlayer ? 'current-player' : ''}">
-            <div class="rank">${medal} ${rank}</div>
-            <div class="player-name">${this.escapeHtml(entry.player_name)}</div>
-            <div class="score">${entry.score.toLocaleString()}</div>
-            <div class="details">
-              <span class="speed">${entry.max_chain_multiplier ? entry.max_chain_multiplier.toFixed(1) + 'x' : '1.0x'}</span>
-              <span class="time">${entry.game_duration_seconds ? entry.game_duration_seconds.toFixed(1) + 's' : '0s'}</span>
-              <span class="words">${entry.words_used || 0} words</span>
+          <div class="leaderboard-entry ${isCurrentPlayer ? 'current-player' : ''}" style="display: flex; align-items: center;">
+            <div class="rank" style="width: 48px; min-width: 48px; text-align: center;">${medal} ${rank}</div>
+            <div class="player-name" style="flex: 1; text-align: left; font-weight: 600;">${this.escapeHtml(entry.player_name)}</div>
+            <div class="score" style="width: 72px; min-width: 72px; text-align: right; font-weight: bold; color: #a259e6; font-size: 20px; padding-right: 16px;">${entry.score.toLocaleString()}</div>
+            <div class="details" style="flex: 1; text-align: left;">
+              <strong>${(entry.chain_multiplier ?? 1).toFixed(1)}x</strong> ${(entry.game_duration_seconds ?? 0).toFixed(1)}s <strong>${entry.words_used ?? 0} words</strong>
             </div>
           </div>
         `;

@@ -1130,6 +1130,11 @@
         this.hasInteracted = false;
       }
       
+      preload() {
+        // Load the pointer finger PNG for the Tap to Play overlay
+        this.load.image('pointer-finger', 'assets/pointer-finger.png');
+      }
+      
       create() {
         // Get playfield dimensions
         const playfieldWidth = 800;
@@ -1239,39 +1244,45 @@
       }
       
       createTapToPlayOverlay() {
-        // Create semi-transparent overlay
+        // Create semi-transparent purple overlay (matching .game-title color #7c3aed at 20% opacity)
         this.tapToPlayOverlay = this.add.rectangle(
-          400, 600, 800, 1200, 0x000000, 0.3
+          this.cameras.main.centerX,
+          this.cameras.main.centerY,
+          this.cameras.main.width,
+          this.cameras.main.height,
+          0x7c3aed,
+          0.2
         );
         this.tapToPlayOverlay.setDepth(1000);
         
-        // Create "Tap to Play" text
-        this.tapToPlayText = this.add.text(400, 500, 'TAP TO PLAY', {
+        // Create "Tap to Play" text higher up
+        this.tapToPlayText = this.add.text(400, 350, 'TAP TO PLAY', {
           fontFamily: 'Inter',
           fontSize: '48px',
           color: '#FFFFFF',
           fontStyle: 'bold',
           stroke: '#000000',
-          strokeThickness: 4
+          strokeThickness: 3
         }).setOrigin(0.5);
         this.tapToPlayText.setDepth(1001);
         
-        // Create play icon (hand pointer)
-        this.playIcon = this.add.text(400, 600, '👆', {
-          fontSize: '64px'
-        }).setOrigin(0.5);
+        // Add PNG pointer icon below the text (no SVG logic) - set to 30x30 px
+        this.playIcon = this.add.image(400, 600, 'pointer-finger').setDisplaySize(30, 30).setOrigin(0.5);
         this.playIcon.setDepth(1001);
         
-        // Add pulsing animation to the text and icon
+        // Pulse only the text, keep icon static
         this.tweens.add({
-          targets: [this.tapToPlayText, this.playIcon],
-          scaleX: 1.1,
-          scaleY: 1.1,
+          targets: this.tapToPlayText,
+          scaleX: 1.05,
+          scaleY: 1.05,
           duration: 1000,
           yoyo: true,
           repeat: -1,
           ease: 'Sine.easeInOut'
         });
+        
+        // Ensure the PNG stays at its original scale (no animation)
+        this.playIcon.setScale(1, 1);
         
         // Pause the tile spawner initially
         this.tileSpawner.pause();

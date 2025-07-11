@@ -53,6 +53,7 @@ export default class GameScene extends Phaser.Scene {
     this.gridY = 120;
     this.gridHeight = 520;
     this.grid = this.add.rectangle(200, this.gridY + this.gridHeight/2, 320, this.gridHeight, 0xFFF5E1, 0.15);
+    this.grid.setStrokeStyle(2, 0x000000); // 2px black border
 
     // Flash message area (bottom)
     this.flashText = this.add.text(200, 670, '', {
@@ -63,6 +64,17 @@ export default class GameScene extends Phaser.Scene {
       stroke: '#000',
       strokeThickness: 3,
     }).setOrigin(0.5, 1);
+
+    // Tap to Play overlay (purple, matches Phaser game config area exactly)
+    this.tapToPlayOverlay = this.add.rectangle(
+      200, // centerX (config.width / 2)
+      350, // centerY (config.height / 2)
+      400, // config.width
+      700, // config.height
+      0x7c3aed,
+      0.2
+    );
+    this.tapToPlayOverlay.setDepth(999); // Just below the playfield border
 
     // Initialize modules
     console.log('Initializing modules...');

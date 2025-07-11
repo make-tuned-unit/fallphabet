@@ -118,21 +118,21 @@ body {
 
 .stat-label {
   font-family: 'Arial', 'Helvetica', sans-serif;
-  font-size: 22.5px;
+  font-size: 22.5px !important;
   font-weight: 700;
   color: #000;
 }
 
 .stat-value {
   font-family: 'Arial', 'Helvetica', sans-serif;
-  font-size: 25px;
+  font-size: 25px !important;
   font-weight: 700;
   color: #000;
 }
 
 .chain-svg {
-  width: 27.5px !important;
-  height: 27.5px !important;
+  width: 16px !important;
+  height: 16px !important;
 }
 
 /* Taptile Stats */
@@ -141,7 +141,8 @@ body {
   gap: 20px;
 }
 
-.taptile-stats .stat-label {
+/* Remove Taptile-specific font size overrides - use unified sizes */
+/* .taptile-stats .stat-label {
   font-size: 16px !important;
 }
 
@@ -149,7 +150,6 @@ body {
   font-size: 18px !important;
 }
 
-/* When Taptile mode is active, make Points and Chain match Speed and Time sizes */
 .taptile-mode .game-stats .stat-label {
   font-size: 16px !important;
 }
@@ -159,9 +159,9 @@ body {
 }
 
 .taptile-mode .chain-svg {
-  width: 16px !important;
-  height: 16px !important;
-}
+  width: 27.5px !important;
+  height: 27.5px !important;
+} */
 
 .clock-icon {
   color: #000;
@@ -290,12 +290,13 @@ body {
   .taptile-stats {
     gap: 15px;
   }
-  .taptile-stats .stat-label {
+  /* Remove Taptile-specific responsive font size overrides - use unified sizes */
+  /* .taptile-stats .stat-label {
     font-size: 14px !important;
   }
   .taptile-stats .stat-value {
     font-size: 16px !important;
-  }
+  } */
 }
 
 @media (min-height: 800px) and (max-width: 430px) {
@@ -1512,5 +1513,11 @@ body {
     transform: translateY(100vh) rotate(720deg);
     opacity: 0;
   }
+}
+
+#leaderboard-btn svg {
+  vertical-align: middle;
+  display: inline-block;
+  margin-top: -1px; /* Move up slightly for perfect alignment */
 }
 
