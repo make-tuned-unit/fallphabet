@@ -275,14 +275,14 @@ body {
   #playfield-container {
     min-height: 350px;
     height: auto;
-    max-height: calc(100vh - 180px);
-    max-height: calc(100dvh - 180px);
+    max-height: calc(100vh - 170px);
+    max-height: calc(100dvh - 170px);
   }
   .game-title {
     font-size: 8vw !important;
     width: 100%;
     letter-spacing: 1vw;
-    margin: 0 0 3px 0;
+    margin: 0 0 2px 0;
   }
   .game-stats {
     gap: 20px;
@@ -385,22 +385,22 @@ body {
     padding-top: 0;
   }
   .game-header {
-    margin-top: 2px !important;
+    margin-top: 5px !important;
     padding-top: 0 !important;
   }
   .game-title {
     font-size: 7.5vw !important;
     letter-spacing: 0.8vw;
-    margin: 0 0 5px 0;
+    margin: 0 0 3px 0;
     line-height: 1.1;
   }
   .game-stats {
-    margin-top: 3px;
+    margin-top: 2px;
     gap: 18px;
   }
   #playfield-container {
-    max-height: calc(100vh - 200px);
-    max-height: calc(100dvh - 200px);
+    max-height: calc(100vh - 190px);
+    max-height: calc(100dvh - 190px);
   }
 }
 
