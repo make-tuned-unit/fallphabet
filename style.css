@@ -76,7 +76,7 @@ body {
 /* Header Section */
 .game-header {
   text-align: center;
-  margin-top: 20px;
+  margin-top: 10px;
   margin-bottom: 0;
   background: none;
   border: none;
@@ -269,7 +269,7 @@ body {
     overflow: visible !important;
   }
   .game-header {
-    margin-top: 5px;
+    margin-top: 5px !important;
   }
 
   #playfield-container {
@@ -307,7 +307,7 @@ body {
     height: calc(100dvh - 50px) !important;
   }
   .game-header {
-    margin-top: 5px;
+    margin-top: 5px !important;
   }
 
   #playfield-container {
@@ -364,7 +364,7 @@ body {
 /* iPhone 14 Pro Max and similar large mobile devices */
 @media (max-width: 600px) and (min-height: 800px) {
   .game-header {
-    margin-top: 5px;
+    margin-top: 5px !important;
   }
   
   .game-title {
@@ -425,7 +425,7 @@ body {
   }
   
   .game-header {
-    margin-top: 5px;
+    margin-top: 5px !important;
   }
   
   .game-title {
