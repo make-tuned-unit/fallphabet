@@ -44,6 +44,25 @@
       display: block;
       margin: auto;
     }
+    
+    /* Force mobile spacing fix */
+    @media (max-width: 600px) {
+      .game-header {
+        margin-top: 5px !important;
+      }
+      .game-title {
+        margin: 0 0 2px 0 !important;
+      }
+    }
+    
+    @media screen and (max-width: 430px) and (min-height: 932px) {
+      .game-header {
+        margin-top: 5px !important;
+      }
+      .game-title {
+        margin: 0 0 3px 0 !important;
+      }
+    }
   </style>
 </head>
 <body>
