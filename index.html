@@ -391,13 +391,13 @@
     // Taptile Speed Manager
     class TaptileSpeedManager {
       constructor() {
-        this.baseSpeed = 100; // Reduced from 150 for slower initial speed
+        this.baseSpeed = 60; // Reduced from 100 for much slower initial speed
         this.currentSpeed = this.baseSpeed;
         this.speedMultiplier = 1.0;
         this.timeWindow = 5.0;
         this.lastWordTime = 0;
-        this.speedIncreaseInterval = 45; // Increase speed every 45 seconds (was 30)
-        this.speedIncreaseAmount = 0.12; // 12% increase (was 20%)
+        this.speedIncreaseInterval = 60; // Increase speed every 60 seconds (was 45) - more gradual
+        this.speedIncreaseAmount = 0.08; // 8% increase (was 12%) - more gradual progression
         this.timeWindowDecrease = 0.25; // 0.25 second decrease (was 0.5)
         this.minTimeWindow = 1.0; // Minimum 1 second
         this.maxSpeedMultiplier = 2.0; // Maximum 2.0x speed (was 2.5)
@@ -525,7 +525,7 @@
         this.tileMargin = (this.gridWidth / this.columns - this.tileSize) / 2; // Larger margin
         // Reduce the vertical gap between tiles
         this.tileSpacing = 8; // Reduced from 24 to 8 for tighter vertical spacing
-        this.fallSpeed = 100; // pixels/sec, reduced from 150 for slower initial speed
+        this.fallSpeed = 60; // pixels/sec, reduced from 100 for much slower initial speed
         this.letters = {
           'E': 10, 'A': 8, 'I': 7, 'N': 6, 'O': 7, 'R': 6, 'T': 6, 'L': 5, 'S': 5, 'U': 4,
           'D': 4, 'P': 3, 'M': 3, 'H': 3, 'G': 3, 'B': 3, 'F': 3, 'Y': 2, 'W': 2, 'K': 2,
@@ -541,7 +541,7 @@
         }
         // Set up per-column spawn timers for natural cascade
         this.columnTimers = [];
-        this.baseSpawnInterval = 1000; // ms, base interval for 1x speed
+        this.baseSpawnInterval = 1500; // ms, increased from 1000 for slower spawning
         this.isPaused = false; // Track pause state
         // Store spawn functions for each column to start them when the game begins
         this.columnSpawnFunctions = [];
@@ -598,7 +598,7 @@
               const currentSpeed = this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease 
                 ? this.scene.taptileSpeedManager.getCurrentSpeed() 
                 : this.fallSpeed;
-              const speedMultiplier = currentSpeed / 100; // 100 is the new base speed
+              const speedMultiplier = currentSpeed / 60; // 60 is the new base speed
               delay = Math.max(100, this.baseSpawnInterval / speedMultiplier); // Ensure minimum 100ms delay
             }
             this.columnTimers[col] = this.scene.time.addEvent({
