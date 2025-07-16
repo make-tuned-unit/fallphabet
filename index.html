@@ -3,13 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>FALLPHABET</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=113">
+      <link rel="stylesheet" href="style.css?v=114">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -48,24 +51,60 @@
     /* Force mobile spacing fix */
     @media (max-width: 600px) {
       .game-header {
-        margin-top: 2px !important;
+        margin-top: 0px !important;
+        padding-top: 0px !important;
       }
       .game-title {
-        margin: 0 0 1px 0 !important;
+        margin: 0px 0 0px 0 !important;
+        padding: 0px !important;
+        line-height: 1 !important;
       }
     }
     
     @media screen and (max-width: 430px) and (min-height: 932px) {
       .game-header {
-        margin-top: 2px !important;
+        margin-top: 0px !important;
+        padding-top: 0px !important;
       }
       .game-title {
-        margin: 0 0 1px 0 !important;
+        margin: 0px 0 0px 0 !important;
+        padding: 0px !important;
+        line-height: 1 !important;
       }
     }
   </style>
 </head>
 <body>
+  <style>
+    /* ULTRA AGGRESSIVE MOBILE SPACING FIX */
+    @media (max-width: 600px) {
+      .game-header {
+        margin-top: 0px !important;
+        padding-top: 0px !important;
+        margin-bottom: 0px !important;
+        padding-bottom: 0px !important;
+      }
+      .game-title {
+        margin: 0px !important;
+        padding: 0px !important;
+        line-height: 1 !important;
+      }
+    }
+    
+    @media screen and (max-width: 430px) and (min-height: 932px) {
+      .game-header {
+        margin-top: 0px !important;
+        padding-top: 0px !important;
+        margin-bottom: 0px !important;
+        padding-bottom: 0px !important;
+      }
+      .game-title {
+        margin: 0px !important;
+        padding: 0px !important;
+        line-height: 1 !important;
+      }
+    }
+  </style>
   <style>
     /* Force mobile spacing fix - highest priority */
     @media (max-width: 600px) {
@@ -74,11 +113,13 @@
         margin-top: 0 !important;
       }
       .game-header {
-        margin-top: 2px !important;
-        padding-top: 0 !important;
+        margin-top: 0px !important;
+        padding-top: 0px !important;
       }
       .game-title {
-        margin: 0 0 1px 0 !important;
+        margin: 0px 0 0px 0 !important;
+        padding: 0px !important;
+        line-height: 1 !important;
       }
     }
     
@@ -88,11 +129,13 @@
         margin-top: 0 !important;
       }
       .game-header {
-        margin-top: 2px !important;
-        padding-top: 0 !important;
+        margin-top: 0px !important;
+        padding-top: 0px !important;
       }
       .game-title {
-        margin: 0 0 1px 0 !important;
+        margin: 0px 0 0px 0 !important;
+        padding: 0px !important;
+        line-height: 1 !important;
       }
     }
   </style>
