@@ -256,12 +256,12 @@
         <p>• Tap tiles in sequence to build words</p>
         <p>• Double-tap last letter to submit</p>
         <p>• Tap outside grid to reset current word</p>
-        <p>• Selection auto-clears after 1.25 seconds</p>
+        <p>• Selection auto-clears after 2.0 seconds</p>
         
         <h3>Scoring & Chains</h3>
         <p>• Letters have point values (like Scrabble)</p>
         <p>• Longer words = more points</p>
-        <p>• Start new word within 1.25 seconds to build chain</p>
+        <p>• Start new word within 2.0 seconds to build chain</p>
         <p>• Chain multiplier: 2nd word x2, 3rd word x3, etc.</p>
         <p>• Miss timing = chain resets to x1</p>
         
@@ -870,7 +870,7 @@
           this.columnSpawnFunctions.forEach((spawnFunc, col) => {
             if (spawnFunc) {
               // Add staggered delay based on column to maintain natural flow
-              const staggerDelay = col * 300; // 300ms delay between columns for more spread
+              const staggerDelay = col * 500; // 500ms delay between columns for more spread
               this.scene.time.delayedCall(staggerDelay, () => {
                 spawnFunc();
               });
@@ -885,7 +885,7 @@
           this.columnTimers.forEach((timer, col) => {
             if (timer) {
               // Add staggered delay based on column to maintain natural flow
-              const staggerDelay = col * 300; // 300ms delay between columns for more spread
+              const staggerDelay = col * 500; // 500ms delay between columns for more spread
               this.scene.time.delayedCall(staggerDelay, () => {
                 if (timer && timer.paused) {
                   timer.paused = false;
@@ -1051,7 +1051,7 @@
         this.clearAutoClearTimer();
         this.autoClearTimeout = setTimeout(() => {
           this.clearBuffer();
-        }, 1250); // 1.25 seconds
+        }, 2000); // 2.0 seconds
       }
 
       clearAutoClearTimer() {
@@ -1146,7 +1146,7 @@
         this.chainLevel = 1;
         this.highestChain = 1;
         this.lastWordTime = 0;
-        this.chainWindowDuration = 1250; // 1.25 seconds
+        this.chainWindowDuration = 2000; // 2.0 seconds
         this.chainWindowTimeout = null;
         this.chainWindowActive = false;
         this.shouldIncrementChain = false;
