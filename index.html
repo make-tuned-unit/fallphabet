@@ -865,8 +865,6 @@
         this.scene.input.on('pointerup', this.onPointerUp, this);
         // Also allow tap-to-select
         this.scene.input.on('gameobjectdown', this.onTileTap, this);
-        
-        console.log('✅ Input handlers set up for mobile/desktop');
       }
       
       onPointerDown(pointer) {
@@ -909,7 +907,6 @@
       }
       
       onTileTap(pointer, tile) {
-        console.log('🎯 Tile tap detected:', tile ? tile.letter : 'no tile');
         // Handle taps on both tile rectangles and text elements
         let actualTile = tile;
         if (tile && tile.parentTile) {
@@ -917,10 +914,7 @@
           actualTile = tile.parentTile;
         }
         
-        if (!actualTile || !actualTile.isScrabbleTile) {
-          console.log('❌ Invalid tile tap:', actualTile);
-          return;
-        }
+        if (!actualTile || !actualTile.isScrabbleTile) return;
         
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
@@ -2271,7 +2265,6 @@
         }
       }
       disableInput() {
-        console.log('🔄 Disabling input...');
         if (this.inputHandler) {
           // Remove all input event listeners
           if (this.inputHandler.scene && this.inputHandler.scene.input) {
@@ -2279,17 +2272,11 @@
             this.inputHandler.scene.input.off('pointermove', this.inputHandler.onPointerMove, this.inputHandler);
             this.inputHandler.scene.input.off('pointerup', this.inputHandler.onPointerUp, this.inputHandler);
             this.inputHandler.scene.input.off('gameobjectdown', this.inputHandler.onTileTap, this.inputHandler);
-            console.log('✅ Input handlers disabled');
-          } else {
-            console.log('❌ Cannot disable input: scene or input not available');
           }
-        } else {
-          console.log('❌ Cannot disable input: inputHandler not available');
         }
       }
       
       enableInput() {
-        console.log('🔄 Attempting to enable input...');
         if (this.inputHandler) {
           // Re-enable all input event listeners
           if (this.inputHandler.scene && this.inputHandler.scene.input) {
@@ -2297,12 +2284,7 @@
             this.inputHandler.scene.input.on('pointermove', this.inputHandler.onPointerMove, this.inputHandler);
             this.inputHandler.scene.input.on('pointerup', this.inputHandler.onPointerUp, this.inputHandler);
             this.inputHandler.scene.input.on('gameobjectdown', this.inputHandler.onTileTap, this.inputHandler);
-            console.log('✅ Input handlers re-enabled');
-          } else {
-            console.log('❌ Cannot enable input: scene or input not available');
           }
-        } else {
-          console.log('❌ Cannot enable input: inputHandler not available');
         }
       }
       
