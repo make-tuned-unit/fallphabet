@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=116">
+      <link rel="stylesheet" href="style.css?v=117">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -267,7 +267,7 @@
         
         <h3 id="goal-title">Goal</h3>
         <div id="daily-goal">
-          <p>• Reach 200 points with fewest words possible</p>
+          <p>• Reach 500 points with fewest words possible</p>
           <p>• No time limit - make words as long as possible</p>
         </div>
         <div id="taptile-goal" style="display: none;">
@@ -326,7 +326,7 @@
         this.modes = {
           daily: {
             name: 'Daily Challenge',
-            goal: 200,
+            goal: 500,
             timeLimit: null,
             speedIncrease: false,
             leaderboard: false
@@ -1650,14 +1650,14 @@
         chainDisplay.textContent = `x${currentChain}`;
         chainDisplay.style.fontFamily = 'Arial, Helvetica, sans-serif';
         
-        // Check for game over based on mode (only for Daily Challenge reaching 200+ points)
+        // Check for game over based on mode (only for Daily Challenge reaching 500+ points)
         const currentMode = this.gameModeManager.getCurrentMode();
-        if (!currentMode.speedIncrease && this.scoreManager.getTotalScore() >= 200 && !this.gameOver) {
+        if (!currentMode.speedIncrease && this.scoreManager.getTotalScore() >= 500 && !this.gameOver) {
           this.endGame();
         }
         
-        // Note: Removed the old game over condition that ended Daily Challenge when tiles reached bottom, since we only want the game to end when reaching 200+ points.
-        // Now Daily Challenge only ends when player reaches 200+ points
+        // Note: Removed the old game over condition that ended Daily Challenge when tiles reached bottom, since we only want the game to end when reaching 500+ points.
+        // Now Daily Challenge only ends when player reaches 500+ points
 
         // Add a container for the word list
         const modalStats = document.querySelector('.modal-stats');
@@ -2084,10 +2084,10 @@
           
         } else {
           // Daily challenge mode
-          if (finalScore >= 200) {
-            // Win condition - player reached 200+ points
+          if (finalScore >= 500) {
+            // Win condition - player reached 500+ points
             if (title) title.textContent = 'You Did It!';
-            if (stats) stats.innerHTML = `<span style="font-family: Arial, Helvetica, sans-serif; font-size: 1.2rem; color: #222; display: block;">It took you <strong>${wordsUsed}</strong> words to hit 200 points today.<br><br>Your Top Word was <strong>${topWord}</strong> earning you <strong>${topWordScore}</strong> points.<br><br>You chained <strong>${highestChain}</strong> words together today!<br><br>Come back tomorrow to see if you can beat your score.<br><br>Share with friends to see who can beat the Fallphabet with the fewest words.</span>`;
+            if (stats) stats.innerHTML = `<span style="font-family: Arial, Helvetica, sans-serif; font-size: 1.2rem; color: #222; display: block;">It took you <strong>${wordsUsed}</strong> words to hit 500 points today.<br><br>Your Top Word was <strong>${topWord}</strong> earning you <strong>${topWordScore}</strong> points.<br><br>You chained <strong>${highestChain}</strong> words together today!<br><br>Come back tomorrow to see if you can beat your score.<br><br>Share with friends to see who can beat the Fallphabet with the fewest words.</span>`;
             
             // Add "Play Taptile" button for successful daily challenge completion
             const modalActions = document.querySelector('.modal-actions');
@@ -2126,7 +2126,7 @@
               }
             }
             
-            // Submit to Daily Challenge leaderboard only when reaching 200+ points
+            // Submit to Daily Challenge leaderboard only when reaching 500+ points
             console.log('Daily Challenge: About to submit to leaderboard');
             console.log('Daily Challenge: Leaderboard manager:', this.leaderboardManager);
             if (this.leaderboardManager) {
@@ -2255,13 +2255,13 @@
             }
             
           } else {
-            // Normal game over - player failed to reach 200 points
+            // Normal game over - player failed to reach 500 points
             if (title) title.textContent = 'Game Over!';
             if (stats) {
-              stats.innerHTML = `<div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x${highestChain}</span></div><div style="margin-top: 15px; color: #dc3545; font-weight: bold;">You need 200 points to complete today's challenge. Try again!</div>`;
+              stats.innerHTML = `<div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x${highestChain}</span></div><div style="margin-top: 15px; color: #dc3545; font-weight: bold;">You need 500 points to complete today's challenge. Try again!</div>`;
             }
             
-            // For failed attempts (under 200 points), show restart button
+            // For failed attempts (under 500 points), show restart button
             const restartBtn = document.getElementById('modal-restart-btn');
             if (restartBtn) {
               restartBtn.textContent = 'Try Again';
@@ -2353,9 +2353,9 @@
               const currentMode = this.gameModeManager.getCurrentMode();
               const finalScore = this.scoreManager.getTotalScore();
               
-              // If this was a successful daily challenge completion (200+ points), 
+              // If this was a successful daily challenge completion (500+ points), 
               // the game should be in a completed state and input is disabled
-              if (!currentMode.speedIncrease && finalScore >= 200) {
+              if (!currentMode.speedIncrease && finalScore >= 500) {
                 console.log('Daily challenge completed - modal closed, game should be in completed state');
                 // The game is intentionally left in completed state for daily challenge
                 // Player can switch to Taptile mode to continue playing
