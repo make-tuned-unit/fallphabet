@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=115">
+      <link rel="stylesheet" href="style.css?v=116">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -2089,6 +2089,43 @@
             if (title) title.textContent = 'You Did It!';
             if (stats) stats.innerHTML = `<span style="font-family: Arial, Helvetica, sans-serif; font-size: 1.2rem; color: #222; display: block;">It took you <strong>${wordsUsed}</strong> words to hit 200 points today.<br><br>Your Top Word was <strong>${topWord}</strong> earning you <strong>${topWordScore}</strong> points.<br><br>You chained <strong>${highestChain}</strong> words together today!<br><br>Come back tomorrow to see if you can beat your score.<br><br>Share with friends to see who can beat the Fallphabet with the fewest words.</span>`;
             
+            // Add "Play Taptile" button for successful daily challenge completion
+            const modalActions = document.querySelector('.modal-actions');
+            if (modalActions) {
+              // Remove any existing "Play Taptile" button
+              const existingTaptileBtn = modalActions.querySelector('#modal-play-taptile-btn');
+              if (existingTaptileBtn) {
+                existingTaptileBtn.remove();
+              }
+              
+              // Add new "Play Taptile" button
+              const playTaptileBtn = document.createElement('button');
+              playTaptileBtn.id = 'modal-play-taptile-btn';
+              playTaptileBtn.className = 'modal-btn primary';
+              playTaptileBtn.textContent = 'Play Taptile Mode';
+              playTaptileBtn.onclick = () => {
+                console.log('Play Taptile button clicked from daily challenge completion modal');
+                
+                // Hide modal immediately
+                const modal = document.getElementById('gameover-modal');
+                modal.classList.remove('show');
+                modal.style.display = 'none';
+                
+                // Switch to Taptile mode
+                if (window.switchToTaptileMode) {
+                  window.switchToTaptileMode();
+                }
+              };
+              
+              // Insert before the share button
+              const shareBtn = modalActions.querySelector('#modal-share-btn');
+              if (shareBtn) {
+                modalActions.insertBefore(playTaptileBtn, shareBtn);
+              } else {
+                modalActions.appendChild(playTaptileBtn);
+              }
+            }
+            
             // Submit to Daily Challenge leaderboard only when reaching 200+ points
             console.log('Daily Challenge: About to submit to leaderboard');
             console.log('Daily Challenge: Leaderboard manager:', this.leaderboardManager);
@@ -2311,6 +2348,61 @@
             modal.classList.remove('show');
             setTimeout(() => {
               modal.style.display = 'none';
+              
+              // After closing modal, check if we need to restart the game
+              const currentMode = this.gameModeManager.getCurrentMode();
+              const finalScore = this.scoreManager.getTotalScore();
+              
+              // If this was a successful daily challenge completion (200+ points), 
+              // the game should be in a completed state and input is disabled
+              if (!currentMode.speedIncrease && finalScore >= 200) {
+                console.log('Daily challenge completed - modal closed, game should be in completed state');
+                // The game is intentionally left in completed state for daily challenge
+                // Player can switch to Taptile mode to continue playing
+              } else if (this.gameOver) {
+                // For other game over scenarios, restart the game
+                console.log('Game over modal closed - restarting game...');
+                
+                // Reset game state and restart scene
+                if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
+                  const scene = window.game.scene.keys['GameScene'];
+                  
+                  // Reset game state
+                  scene.gameOver = false;
+                  scene.wordsUsed = 0;
+                  scene.topWord = '';
+                  scene.topWordScore = 0;
+                  scene.scoredWords = [];
+                  scene.gameStartTime = Date.now();
+                  
+                  // Reset managers
+                  if (scene.scoreManager) scene.scoreManager.reset();
+                  if (scene.chainTracker) scene.chainTracker.resetChain();
+                  if (scene.taptileSpeedManager) scene.taptileSpeedManager.start();
+                  
+                  // Clear any existing tiles
+                  if (scene.tileSpawner) {
+                    scene.tileSpawner.clearAllTiles();
+                  }
+                  
+                  // Clear input buffer
+                  if (scene.inputHandler) {
+                    scene.inputHandler.clearBuffer();
+                  }
+                  
+                  // Clear inactivity timer
+                  if (scene.clearInactivityTimeout) scene.clearInactivityTimeout();
+                  
+                  // Restart the scene
+                  window.game.scene.stop('GameScene');
+                  window.game.scene.remove('GameScene');
+                  window.game.scene.add('GameScene', GameScene, true);
+                  
+                  console.log('Game restarted successfully after modal close');
+                } else {
+                  console.error('Game scene not available for restart');
+                }
+              }
             }, 300);
           };
         }
