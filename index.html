@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="style.css?v=118">
+      <link rel="stylesheet" href="style.css?v=119">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js?v=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -160,7 +160,7 @@
           <span class="stat-label chain-label" title="Chain Multiplier">
             <svg class="chain-svg" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" width="22" height="22" style="vertical-align:middle;margin-right:4px;"><rect x="12.7835" y="2.38351" width="6" height="10" rx="3" transform="rotate(33.0385 12.7835 2.38351)" stroke="#000000" stroke-width="2" stroke-linecap="round"></rect> <rect x="7.83558" y="6.32284" width="6" height="10" rx="3" transform="rotate(33.0385 7.83558 6.32284)" stroke="#000000" stroke-width="2" stroke-linecap="round"></rect></svg>
           </span>
-          <span id="chain-display" class="stat-value">x1</span>
+          <span id="chain-display" class="stat-value">1</span>
         </div>
         <!-- Taptile mode specific stats -->
         <div id="taptile-stats" class="taptile-stats" style="display: none;">
@@ -227,7 +227,7 @@
       <div class="modal-stats">
         <div><strong>Words Used:</strong> <span id="modal-words-used">0</span></div>
         <div><strong>Top Word:</strong> <span id="modal-top-word">-</span></div>
-        <div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x1</span></div>
+        <div><strong>Highest Chain:</strong> <span id="modal-highest-chain">1</span></div>
         <!-- Taptile mode specific stats -->
         <div id="taptile-modal-stats" style="display: none;">
           <div><strong>Max Speed:</strong> <span id="modal-max-speed">1x</span></div>
@@ -262,8 +262,8 @@
         <p>• Letters have point values (like Scrabble)</p>
         <p>• Longer words = more points</p>
         <p>• Start new word within 2.0 seconds to build chain</p>
-        <p>• Chain multiplier: 2nd word x2, 3rd word x3, etc.</p>
-        <p>• Miss timing = chain resets to x1</p>
+        <p>• Chain multiplier: 2nd word 2, 3rd word 3, etc.</p>
+        <p>• Miss timing = chain resets to 1</p>
         
         <h3 id="goal-title">Goal</h3>
         <div id="daily-goal">
@@ -1327,7 +1327,7 @@
         const scoreDisplay = document.getElementById('score-display');
         if (scoreDisplay) scoreDisplay.textContent = '0';
         const chainDisplay = document.getElementById('chain-display');
-        if (chainDisplay) chainDisplay.textContent = 'x1';
+        if (chainDisplay) chainDisplay.textContent = '1';
 
         // In GameScene create() or init(), clear any word buffer and selected tiles
         if (this.inputHandler) {
@@ -1647,7 +1647,7 @@
         scoreDisplay.textContent = currentScore;
         scoreDisplay.style.fontFamily = 'Arial, Helvetica, sans-serif';
         
-        chainDisplay.textContent = `x${currentChain}`;
+        chainDisplay.textContent = `${currentChain}`;
         chainDisplay.style.fontFamily = 'Arial, Helvetica, sans-serif';
         
         // Check for game over based on mode (only for Daily Challenge reaching 500+ points)
@@ -1828,7 +1828,7 @@
             <div class="modal-stats">
               <div><strong>Words Used:</strong> ${wordsUsed}</div>
               <div><strong>Top Word:</strong> ${topWord} (${topWordScore})</div>
-              <div><strong>Highest Chain:</strong> x${highestChain}</div>
+              <div><strong>Highest Chain:</strong> ${highestChain}</div>
               <div><strong>Time Survived:</strong> ${timeSurvived.toFixed(1)}s</div>
               <div><strong>Max Speed:</strong> ${maxSpeed.toFixed(2)}</div>
             </div>
@@ -1886,7 +1886,7 @@
         const wordsUsed = this.wordsUsed;
         const topWord = this.topWord || '-';
         const topWordScore = this.topWordScore || 0;
-        const highestChain = this.chainTracker && this.chainTracker.getHighestChain ? 'x' + this.chainTracker.getHighestChain() : '';
+        const highestChain = this.chainTracker && this.chainTracker.getHighestChain ? this.chainTracker.getHighestChain() : '';
         const finalScore = this.scoreManager.getTotalScore();
         
         const currentMode = this.gameModeManager.getCurrentMode();
@@ -1898,7 +1898,7 @@
           
           if (title) title.textContent = 'Game Over!';
           if (stats) {
-            stats.innerHTML = `<div><strong>Points:</strong> <span id="modal-final-score">${finalScore}</span></div><div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x${highestChain}</span></div>`;
+            stats.innerHTML = `<div><strong>Points:</strong> <span id="modal-final-score">${finalScore}</span></div><div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">${highestChain}</span></div>`;
           }
           
           // Show taptile specific stats
@@ -1956,7 +1956,7 @@
             // Not a new high score - just show regular game over with Try Again
             if (title) title.textContent = 'Game Over!';
             if (stats) {
-              stats.innerHTML = `<div><strong>Points:</strong> <span id="modal-final-score">${finalScore}</span></div><div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x${highestChain}</span></div>`;
+              stats.innerHTML = `<div><strong>Points:</strong> <span id="modal-final-score">${finalScore}</span></div><div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">${highestChain}</span></div>`;
             }
             
             // Show taptile specific stats
@@ -2258,7 +2258,7 @@
             // Normal game over - player failed to reach 500 points
             if (title) title.textContent = 'Game Over!';
             if (stats) {
-              stats.innerHTML = `<div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">x${highestChain}</span></div><div style="margin-top: 15px; color: #dc3545; font-weight: bold;">You need 500 points to complete today's challenge. Try again!</div>`;
+              stats.innerHTML = `<div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">${highestChain}</span></div><div style="margin-top: 15px; color: #dc3545; font-weight: bold;">You need 500 points to complete today's challenge. Try again!</div>`;
             }
             
             // For failed attempts (under 500 points), show restart button
@@ -2935,7 +2935,7 @@
               if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
                 const scene = window.game.scene.keys['GameScene'];
                 wordsUsed = scene.wordsUsed || '';
-                highestChain = scene.chainTracker && scene.chainTracker.getHighestChain ? 'x' + scene.chainTracker.getHighestChain() : '';
+                highestChain = scene.chainTracker && scene.chainTracker.getHighestChain ? scene.chainTracker.getHighestChain() : '';
                 topWord = scene.topWord || '';
                 topWordScore = scene.topWordScore || '';
               }
@@ -2982,7 +2982,7 @@
             if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
               const scene = window.game.scene.keys['GameScene'];
               wordsUsed = scene.wordsUsed || '';
-              highestChain = scene.chainTracker && scene.chainTracker.getHighestChain ? 'x' + scene.chainTracker.getHighestChain() : '';
+              highestChain = scene.chainTracker && scene.chainTracker.getHighestChain ? scene.chainTracker.getHighestChain() : '';
               totalScore = scene.scoreManager && scene.scoreManager.getTotalScore ? scene.scoreManager.getTotalScore() : '';
               isTaptileMode = scene.gameModeManager && scene.gameModeManager.getCurrentMode().speedIncrease;
             }
