@@ -232,7 +232,7 @@ class GlobalLeaderboardManager {
           .order('words_used', { ascending: true })
           .order('top_word_score', { ascending: false });
         if (result.error) {
-          error = result.error;
+        error = result.error;
         } else {
           // Find the player's entry and calculate their rank
           const playerEntry = result.data.find(entry => entry.score === score);
