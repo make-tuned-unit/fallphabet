@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -322,6 +322,10 @@
     function setTextContent(id, value) {
       const node = document.getElementById(id);
       if (node && node.textContent !== value) node.textContent = value;
+    }
+
+    function isCompactMobileLayout() {
+      return window.matchMedia('(max-width: 600px)').matches;
     }
 
     function pulseStat(id) {
@@ -1584,10 +1588,14 @@
 
       updateComposerUI() {
         const letters = this.inputHandler ? this.inputHandler.buffer : [];
-        const currentWord = letters.length ? letters.join('') : 'Tap tiles to compose a word.';
+        const currentWord = letters.length
+          ? letters.join('')
+          : (isCompactMobileLayout() ? 'Tap tiles to build a word.' : 'Tap tiles to compose a word.');
         const currentMeta = letters.length
           ? `${letters.length} letters selected${letters.length >= 3 ? ' • ready to bank' : ' • need at least 3'}`
-          : 'Minimum 3 letters. Double-tap the last tile or use Bank Word.';
+          : (isCompactMobileLayout()
+            ? 'Need 3+ letters to bank.'
+            : 'Minimum 3 letters. Double-tap the last tile or use Bank Word.');
         setTextContent('current-word-display', currentWord);
         setTextContent('current-word-meta', currentMeta);
         const submitButton = document.getElementById('submit-word-btn');
