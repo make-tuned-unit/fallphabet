@@ -311,6 +311,14 @@
       };
     }
 
+    function getPraiseMessage(wordLength, chainLevel) {
+      if (chainLevel >= 5) return "You're on fire!";
+      if (chainLevel >= 3) return "Amazing!";
+      if (wordLength >= 7) return "Wow!";
+      if (wordLength >= 5) return "Nice!";
+      return '';
+    }
+
     function setTextContent(id, value) {
       const node = document.getElementById(id);
       if (node && node.textContent !== value) node.textContent = value;
@@ -1863,15 +1871,17 @@
           this.topWordScore = score;
           this.topWord = word;
         }
+        const praise = getPraiseMessage(word.length, chainLevel);
         const chainText = chainLevel > 1 ? ` • x${chainLevel} chain` : '';
         const sourceText = validation.source === 'fallback' ? ' • offline list' : '';
         const unlockText = unlocks.frontPageBonus && moment.tier === 'Front Page' ? ' • unlock bonus' : '';
-        this.showFlashMessage(`${moment.tier}: ${word.toUpperCase()} for ${score} pts${chainText}${sourceText}${unlockText}`, '#f4d58d');
+        const praisePrefix = praise ? `${praise} ` : '';
+        this.showFlashMessage(`${praisePrefix}${moment.tier}: ${word.toUpperCase()} for ${score} pts${chainText}${sourceText}${unlockText}`, '#f4d58d');
         if (chainLevel > 1) {
           pulseStat('chain-display');
-          this.announceGameEvent(`Chain x${chainLevel} active. Start the next word before the window closes.`);
+          this.announceGameEvent(`${praise || 'Chain active!'} x${chainLevel} combo. Start the next word before the window closes.`);
         } else {
-          this.setEncouragement(moment.tier, moment.note);
+          this.setEncouragement(praise || moment.tier, praise ? `${praise} ${moment.note}` : moment.note);
         }
         this.scoredWords.push({ word, score });
 
