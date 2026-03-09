@@ -361,15 +361,19 @@ canvas {
   aspect-ratio: 2 / 3;
   min-height: 640px;
   margin: 0 auto;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+  padding: 4px;
+  border: 4px solid #121212;
+  border-radius: 28px;
+  background: #121212;
+  box-shadow: var(--shadow);
   position: relative;
   overflow: hidden;
   display: grid;
   place-items: center;
+}
+
+#playfield-container canvas {
+  border-radius: 22px;
 }
 
 .flash-message {
@@ -653,7 +657,7 @@ canvas {
   #playfield-container {
     width: 100%;
     min-height: clamp(480px, 72vw, 720px);
-    padding: 0;
+    padding: 4px;
   }
 }
 
@@ -773,14 +777,15 @@ canvas {
     height: auto;
     min-height: clamp(420px, 112vw, 760px);
     aspect-ratio: 2 / 3;
-    border-radius: 0;
-    padding: 0;
+    border-radius: 24px;
+    padding: 4px;
     margin-bottom: 2px;
   }
 
   #playfield-container canvas {
     width: 100% !important;
     height: auto !important;
+    border-radius: 18px;
   }
 
   .top-menu {
