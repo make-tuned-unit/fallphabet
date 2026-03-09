@@ -540,7 +540,7 @@
         this.baseSpeed = 150;
         this.currentSpeed = this.baseSpeed;
         this.speedMultiplier = 1.0;
-        this.spawnInterval = 1400;
+        this.spawnInterval = 2000;
         this.stageDuration = 30000;
         this.currentStage = 0;
         this.pauseUntil = 0;
@@ -549,7 +549,7 @@
       start() {
         this.currentSpeed = this.baseSpeed;
         this.speedMultiplier = 1.0;
-        this.spawnInterval = 1400;
+        this.spawnInterval = 2000;
         this.currentStage = 0;
         this.pauseUntil = 0;
         this.updateUI();
@@ -561,7 +561,7 @@
           this.currentStage = nextStage;
           this.speedMultiplier = 1 + this.currentStage * 0.12;
           this.currentSpeed = this.baseSpeed * this.speedMultiplier;
-          this.spawnInterval = Math.max(520, 1400 - this.currentStage * 110);
+          this.spawnInterval = Math.max(650, 2000 - this.currentStage * 140);
           this.showSpeedUpMessage();
           pulseStat('speed-display');
           this.updateUI();
@@ -640,10 +640,14 @@
         this.tileSpacing = 14;
         this.fallSpeed = 60; // pixels/sec, reduced from 100 for much slower initial speed
         this.letters = {
-          'E': 10, 'A': 8, 'I': 7, 'N': 6, 'O': 7, 'R': 6, 'T': 6, 'L': 5, 'S': 5, 'U': 4,
-          'D': 4, 'P': 3, 'M': 3, 'H': 3, 'G': 3, 'B': 3, 'F': 3, 'Y': 2, 'W': 2, 'K': 2,
-          'V': 2, 'X': 1, 'Z': 1, 'J': 1, 'Q': 1, 'C': 4
+          'E': 15, 'A': 12, 'I': 10, 'O': 10, 'U': 7, 'Y': 4,
+          'R': 9, 'S': 9, 'T': 9, 'N': 8, 'L': 7, 'D': 6, 'C': 5, 'M': 5, 'P': 4, 'H': 4,
+          'B': 3, 'G': 3, 'F': 3, 'W': 3, 'K': 2, 'V': 2,
+          'J': 1, 'X': 1, 'Z': 1, 'Q': 1
         };
+        this.vowels = new Set(['A', 'E', 'I', 'O', 'U', 'Y']);
+        this.commonLetters = ['E', 'A', 'I', 'O', 'R', 'S', 'T', 'N', 'L', 'D'];
+        this.rareLetters = new Set(['Q', 'J', 'X', 'Z']);
         this.letterPool = [];
         this.buildLetterPool();
         this.useDailySeed = !!(window.gameModeManager && window.gameModeManager.currentMode === 'daily');
@@ -657,10 +661,9 @@
         this.columnTimers = [];
         this.isPaused = false; // Track pause state
         this.activeTiles = [];
-        this.activeSpawnCap = 5;
+        this.activeSpawnCap = 1;
         this.nextLetters = [];
         this.nextSpawnAt = 0;
-        this.spawnStaggerFactor = 0.22;
         this.fillQueue();
       }
       
@@ -678,9 +681,23 @@
         return this.letterPool[Math.floor(this.random() * this.letterPool.length)];
       }
 
+      getPlayableLetter() {
+        const queueHasVowel = this.nextLetters.some(letter => this.vowels.has(letter));
+        if (!queueHasVowel && this.random() < 0.72) {
+          return ['A', 'E', 'I', 'O', 'U'][this.randomBetween(0, 4)];
+        }
+
+        const rareCount = this.nextLetters.filter(letter => this.rareLetters.has(letter)).length;
+        if (rareCount >= 1 && this.random() < 0.85) {
+          return this.commonLetters[this.randomBetween(0, this.commonLetters.length - 1)];
+        }
+
+        return this.getRandomLetter();
+      }
+
       fillQueue() {
-        while (this.nextLetters.length < 5) {
-          this.nextLetters.push(this.getRandomLetter());
+        while (this.nextLetters.length < 3) {
+          this.nextLetters.push(this.getPlayableLetter());
         }
         if (this.scene.updateQueueUI) this.scene.updateQueueUI(this.nextLetters);
       }
@@ -893,8 +910,8 @@
         const letter = this.dequeueLetter();
         const spawnY = this.gridY - this.tileSize * 0.8;
         this.activeTiles.push(this.spawnTile(col, spawnY, letter));
-        const spawnInterval = this.scene.taptileSpeedManager ? this.scene.taptileSpeedManager.getSpawnInterval() : 1400;
-        this.nextSpawnAt = Date.now() + Math.max(110, spawnInterval * this.spawnStaggerFactor);
+        const spawnInterval = this.scene.taptileSpeedManager ? this.scene.taptileSpeedManager.getSpawnInterval() : 2000;
+        this.nextSpawnAt = Date.now() + spawnInterval;
       }
 
       settleActiveTile(tile, index) {
@@ -923,17 +940,39 @@
       }
 
       removeTiles(tiles) {
-        tiles.forEach(tile => {
-          if (!tile || tile.row === null || tile.col === null) return;
+        const removableTiles = tiles.filter(tile => tile && tile.row !== null && tile.col !== null);
+        if (!removableTiles.length) return;
+        let remainingAnimations = removableTiles.length;
+
+        removableTiles.forEach(tile => {
           if (this.gridTiles[tile.row] && this.gridTiles[tile.row][tile.col] === tile) {
             this.gridTiles[tile.row][tile.col] = null;
           }
           const colTiles = this.columnsTiles[tile.col];
           const idx = colTiles.indexOf(tile);
           if (idx >= 0) colTiles.splice(idx, 1);
-          this.destroyTile(tile);
+          tile.disableInteractive();
+
+          const effectTargets = [tile];
+          if (tile.shadow && !tile.shadow.destroyed) effectTargets.push(tile.shadow);
+          if (tile.innerShadow && !tile.innerShadow.destroyed) effectTargets.push(tile.innerShadow);
+
+          this.scene.tweens.add({
+            targets: effectTargets,
+            scaleX: 1.22,
+            scaleY: 1.22,
+            alpha: 0,
+            duration: 170,
+            ease: 'Quad.easeOut',
+            onComplete: () => {
+              this.destroyTile(tile);
+              remainingAnimations--;
+              if (remainingAnimations === 0) {
+                this.collapseBoard();
+              }
+            }
+          });
         });
-        this.collapseBoard();
       }
 
       collapseBoard() {
@@ -994,21 +1033,16 @@
           }
         }
 
-        const now = Date.now();
-        let spawnAttempts = 0;
-        while (
-          now >= this.nextSpawnAt &&
+        if (
+          Date.now() >= this.nextSpawnAt &&
           !this.isPaused &&
-          this.activeTiles.length < this.activeSpawnCap &&
-          spawnAttempts < this.activeSpawnCap
+          this.activeTiles.length < this.activeSpawnCap
         ) {
           const previousCount = this.activeTiles.length;
           this.spawnNextActiveTile();
           if (this.activeTiles.length === previousCount) {
-            this.nextSpawnAt = now + 120;
-            break;
+            this.nextSpawnAt = Date.now() + 180;
           }
-          spawnAttempts++;
         }
       }
       
@@ -1074,13 +1108,13 @@
       
       startSpawning() {
         this.isPaused = false;
-        this.nextSpawnAt = Date.now() + 80;
+        this.nextSpawnAt = Date.now() + 220;
         this.fillQueue();
       }
       
       resume() {
         this.isPaused = false;
-        this.nextSpawnAt = Date.now() + 80;
+        this.nextSpawnAt = Date.now() + 220;
       }
     }
 
