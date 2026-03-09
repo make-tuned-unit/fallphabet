@@ -858,7 +858,8 @@
         const tile = this.scene.add.image(x, y, tileTexture.key);
         tile.setDepth(1);
         tile.isScrabbleTile = true;
-        tile.isSelectable = false;
+        tile.isSelectable = true;
+        tile.setInteractive();
         
         // Inner shadow (drawn as a slightly smaller, semi-transparent rectangle)
         const innerShadow = this.scene.add.rectangle(x, y, this.tileSize - 10, this.tileSize - 10, 0xffffff, 0.09);
@@ -955,18 +956,24 @@
       }
 
       removeTiles(tiles) {
-        const removableTiles = tiles.filter(tile => tile && tile.row !== null && tile.col !== null);
+        const removableTiles = tiles.filter(tile => tile && tile.col !== null);
         if (!removableTiles.length) return;
         let remainingAnimations = removableTiles.length;
+        let removedSettledTile = false;
 
         removableTiles.forEach(tile => {
-          if (this.gridTiles[tile.row] && this.gridTiles[tile.row][tile.col] === tile) {
+          const activeIndex = this.activeTiles.indexOf(tile);
+          if (activeIndex >= 0) {
+            this.activeTiles.splice(activeIndex, 1);
+          }
+          if (tile.row !== null && this.gridTiles[tile.row] && this.gridTiles[tile.row][tile.col] === tile) {
             this.gridTiles[tile.row][tile.col] = null;
+            removedSettledTile = true;
           }
           const colTiles = this.columnsTiles[tile.col];
           const idx = colTiles.indexOf(tile);
           if (idx >= 0) colTiles.splice(idx, 1);
-          tile.disableInteractive();
+          if (tile.input) tile.disableInteractive();
 
           const effectTargets = [tile];
           if (tile.shadow && !tile.shadow.destroyed) effectTargets.push(tile.shadow);
@@ -983,7 +990,9 @@
               this.destroyTile(tile);
               remainingAnimations--;
               if (remainingAnimations === 0) {
-                this.collapseBoard();
+                if (removedSettledTile) {
+                  this.collapseBoard();
+                }
               }
             }
           });
