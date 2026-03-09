@@ -362,31 +362,34 @@ canvas {
   min-height: 640px;
   margin: 0 auto;
   padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 32px;
-  background: linear-gradient(180deg, #fff 0%, #f6f2eb 100%);
-  box-shadow: var(--shadow);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  position: relative;
   overflow: hidden;
   display: grid;
   place-items: center;
 }
 
 .flash-message {
-  position: fixed;
+  position: absolute;
   left: 50%;
-  bottom: 24px;
+  top: 18px;
   transform: translateX(-50%);
   display: none;
   min-width: 260px;
-  max-width: min(92vw, 680px);
-  padding: 14px 20px;
-  border-radius: 999px;
-  background: rgba(17, 17, 17, 0.94);
+  max-width: min(calc(100% - 24px), 680px);
+  padding: 12px 18px;
+  border-radius: 18px;
+  background: rgba(17, 17, 17, 0.88);
   color: #fff;
   text-align: center;
   font-size: 14px;
   font-weight: 700;
-  z-index: 4000;
+  line-height: 1.35;
+  pointer-events: none;
+  z-index: 20;
   box-shadow: var(--shadow-strong);
 }
 
@@ -650,7 +653,7 @@ canvas {
   #playfield-container {
     width: 100%;
     min-height: clamp(480px, 72vw, 720px);
-    padding: 12px;
+    padding: 0;
   }
 }
 
@@ -770,8 +773,8 @@ canvas {
     height: auto;
     min-height: clamp(420px, 112vw, 760px);
     aspect-ratio: 2 / 3;
-    border-radius: 24px;
-    padding: 8px;
+    border-radius: 0;
+    padding: 0;
     margin-bottom: 2px;
   }
 

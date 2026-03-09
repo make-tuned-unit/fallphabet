@@ -122,11 +122,10 @@
     </section>
       
     <!-- Playfield Container (only one, centered) -->
-    <div id="playfield-container"></div>
+    <div id="playfield-container">
+      <div id="flash-message" class="flash-message"></div>
+    </div>
   </div>
-
-  <!-- Flash Message Area -->
-  <div id="flash-message" class="flash-message"></div>
 
   <!-- Game Over Modal -->
   <div id="gameover-modal" class="responsive-modal">
@@ -1527,11 +1526,11 @@
         const playfieldHeight = 1200;
 
         // Center the board inside the fixed game canvas so the shell and play area align visually
-        const boardFrameWidth = 642;
-        const boardFrameHeight = 982;
+        const boardFrameWidth = 752;
+        const boardFrameHeight = 1148;
         const boardFrameX = (playfieldWidth - boardFrameWidth) / 2;
         const boardFrameY = (playfieldHeight - boardFrameHeight) / 2;
-        const innerInset = 24;
+        const innerInset = 10;
         
         // Grid setup
         this.gridX = boardFrameX + innerInset;
@@ -1553,24 +1552,16 @@
         console.log('Creating GameScene...');
         this.dailySeed = getCurrentDailySeed();
         
-        const boardCenterX = boardFrameX + boardFrameWidth / 2;
-        const boardCenterY = boardFrameY + boardFrameHeight / 2;
-        this.add.rectangle(boardCenterX + 6, boardCenterY + 12, boardFrameWidth + 18, boardFrameHeight + 18, 0xd7cec0, 0.45);
-        this.add.rectangle(boardCenterX, boardCenterY, boardFrameWidth + 20, boardFrameHeight + 20, 0xfffcf7, 1)
-          .setStrokeStyle(1, 0xd6cec2, 1);
-        this.add.rectangle(boardCenterX, boardCenterY, boardFrameWidth, boardFrameHeight, 0xddc7bb, 0.96)
-          .setStrokeStyle(1, 0xc7aea1, 0.9);
-
         // Create grid outline
         this.grid = this.add.rectangle(
           this.gridX + this.gridWidth / 2,
           this.gridY + this.gridHeight / 2,
           this.gridWidth,
           this.gridHeight,
-          0xf6f6f6,
+          0xf6f2eb,
           1
         );
-        this.grid.setStrokeStyle(3, 0x73685f, 0.95);
+        this.grid.setStrokeStyle(0, 0x73685f, 0);
         
         // Create a geometry mask for the playfield
         const maskShape = this.add.graphics();
