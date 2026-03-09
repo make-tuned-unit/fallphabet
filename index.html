@@ -541,11 +541,11 @@
     // Taptile Speed Manager
     class TaptileSpeedManager {
       constructor() {
-        this.baseSpeed = 150;
+        this.baseSpeed = 230;
         this.currentSpeed = this.baseSpeed;
         this.speedMultiplier = 1.0;
-        this.spawnInterval = 2000;
-        this.stageDuration = 30000;
+        this.spawnInterval = 900;
+        this.stageDuration = 22000;
         this.currentStage = 0;
         this.pauseUntil = 0;
       }
@@ -553,7 +553,7 @@
       start() {
         this.currentSpeed = this.baseSpeed;
         this.speedMultiplier = 1.0;
-        this.spawnInterval = 2000;
+        this.spawnInterval = 900;
         this.currentStage = 0;
         this.pauseUntil = 0;
         this.updateUI();
@@ -563,9 +563,9 @@
         const nextStage = Math.floor(elapsedMs / this.stageDuration);
         if (nextStage > this.currentStage) {
           this.currentStage = nextStage;
-          this.speedMultiplier = 1 + this.currentStage * 0.12;
+          this.speedMultiplier = 1 + this.currentStage * 0.16;
           this.currentSpeed = this.baseSpeed * this.speedMultiplier;
-          this.spawnInterval = Math.max(650, 2000 - this.currentStage * 140);
+          this.spawnInterval = Math.max(300, 900 - this.currentStage * 85);
           this.showSpeedUpMessage();
           pulseStat('speed-display');
           this.updateUI();
@@ -639,10 +639,12 @@
         this.gridHeight = gridHeight;
         this.columns = columns;
         this.rows = rows;
-        this.tileSize = (this.gridWidth / this.columns) * 0.75; // Smaller tiles for more margin
-        this.tileMargin = (this.gridWidth / this.columns - this.tileSize) / 2; // Larger margin
-        this.tileSpacing = 14;
-        this.fallSpeed = 60; // pixels/sec, reduced from 100 for much slower initial speed
+        this.tileSize = (this.gridWidth / this.columns) * 0.84;
+        this.tileMargin = (this.gridWidth / this.columns - this.tileSize) / 2;
+        this.tileSpacing = 10;
+        this.baseFallSpeed = 60;
+        this.arcadeOpeningFallSpeed = 90;
+        this.fallSpeed = this.baseFallSpeed;
         this.letters = {
           'E': 15, 'A': 12, 'I': 10, 'O': 10, 'U': 7, 'Y': 4,
           'R': 9, 'S': 9, 'T': 9, 'N': 8, 'L': 7, 'D': 6, 'C': 5, 'M': 5, 'P': 4, 'H': 4,
@@ -665,7 +667,6 @@
         this.columnTimers = [];
         this.isPaused = false; // Track pause state
         this.activeTiles = [];
-        this.activeSpawnCap = 1;
         this.nextLetters = [];
         this.nextSpawnAt = 0;
         this.fillQueue();
@@ -700,7 +701,7 @@
       }
 
       fillQueue() {
-        while (this.nextLetters.length < 3) {
+        while (this.nextLetters.length < 5) {
           this.nextLetters.push(this.getPlayableLetter());
         }
         if (this.scene.updateQueueUI) this.scene.updateQueueUI(this.nextLetters);
@@ -725,6 +726,10 @@
           if (!this.gridTiles[row][col]) return row;
         }
         return -1;
+      }
+
+      getActiveSpawnCap() {
+        return this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease ? 3 : 1;
       }
       
       createTileTexture(letter, letterScore) {
@@ -898,7 +903,7 @@
       }
 
       spawnNextActiveTile() {
-        if (this.isPaused || this.activeTiles.length >= this.activeSpawnCap) return;
+        if (this.isPaused || this.activeTiles.length >= this.getActiveSpawnCap()) return;
         if (this.scene.gameModeManager.getCurrentMode().speedIncrease && this.scene.taptileSpeedManager && !this.scene.taptileSpeedManager.canSpawn()) {
           return;
         }
@@ -914,7 +919,9 @@
         const letter = this.dequeueLetter();
         const spawnY = this.gridY - this.tileSize * 0.8;
         this.activeTiles.push(this.spawnTile(col, spawnY, letter));
-        const spawnInterval = this.scene.taptileSpeedManager ? this.scene.taptileSpeedManager.getSpawnInterval() : 2000;
+        const spawnInterval = this.scene.gameModeManager.getCurrentMode().speedIncrease && this.scene.taptileSpeedManager
+          ? this.scene.taptileSpeedManager.getSpawnInterval()
+          : 2000;
         this.nextSpawnAt = Date.now() + spawnInterval;
       }
 
@@ -1015,6 +1022,8 @@
         // Update fall speed based on current mode
         if (this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease) {
           this.fallSpeed = this.scene.taptileSpeedManager.getCurrentSpeed();
+        } else {
+          this.fallSpeed = this.baseFallSpeed;
         }
 
         for (let i = this.activeTiles.length - 1; i >= 0; i--) {
@@ -1040,7 +1049,7 @@
         if (
           Date.now() >= this.nextSpawnAt &&
           !this.isPaused &&
-          this.activeTiles.length < this.activeSpawnCap
+          this.activeTiles.length < this.getActiveSpawnCap()
         ) {
           const previousCount = this.activeTiles.length;
           this.spawnNextActiveTile();
@@ -1112,13 +1121,21 @@
       
       startSpawning() {
         this.isPaused = false;
-        this.nextSpawnAt = Date.now() + 220;
+        this.nextSpawnAt = Date.now() + 120;
         this.fillQueue();
+        if (this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease) {
+          this.fallSpeed = this.arcadeOpeningFallSpeed;
+          for (let i = 0; i < 2; i++) {
+            this.spawnNextActiveTile();
+          }
+        } else {
+          this.fallSpeed = this.baseFallSpeed;
+        }
       }
       
       resume() {
         this.isPaused = false;
-        this.nextSpawnAt = Date.now() + 220;
+        this.nextSpawnAt = Date.now() + 120;
       }
     }
 
