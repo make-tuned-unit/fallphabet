@@ -208,79 +208,75 @@ canvas {
   gap: 12px;
 }
 
-.briefing-strip {
+.status-strip {
   display: grid;
-  grid-template-columns: 1.05fr 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 20px;
-}
-
-.mobile-briefing-bar {
-  display: none;
-}
-
-.briefing-card {
-  min-height: 150px;
-  padding: 18px 18px 16px;
+  grid-template-columns: minmax(0, 1.4fr) auto minmax(280px, 0.9fr);
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 16px 18px;
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  border-radius: 20px;
   background: var(--surface);
   box-shadow: var(--shadow);
 }
 
-.briefing-card.primary {
-  background: linear-gradient(180deg, #faf7f1 0%, #f2eee5 100%);
+.status-main,
+.status-side {
+  min-width: 0;
 }
 
-.briefing-card.accent {
-  background: linear-gradient(135deg, #171717 0%, #2a241e 100%);
-  border-color: #2a241e;
-  color: #f4efe6;
-}
-
-.briefing-label {
-  margin-bottom: 12px;
+.status-kicker {
+  margin-bottom: 6px;
   color: var(--ink-soft);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
-.briefing-card.accent .briefing-label,
-.briefing-card.accent .encouragement-note,
-.briefing-card.accent .encouragement-tier,
-.briefing-card.accent .supporting-meta {
-  color: #f4efe6;
-}
-
-.current-word-display,
-.progress-headline,
-.encouragement-note {
+.status-word {
   font-family: "Roboto Slab", Georgia, serif;
-  font-size: clamp(22px, 2.2vw, 34px);
-  line-height: 1.15;
-  color: var(--ink);
-}
-
-.current-word-display {
-  min-height: 78px;
+  font-size: clamp(22px, 2.2vw, 36px);
+  line-height: 1.05;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
-.current-word-meta,
-.progress-caption,
-.encouragement-tier,
-.supporting-meta {
-  margin-top: 8px;
+.status-headline {
+  font-family: "Inter", Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.status-meta,
+.event-feed,
+.status-footnotes {
+  margin-top: 6px;
   color: var(--ink-soft);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.45;
+}
+
+.event-feed {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.status-footnotes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.status-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .submit-word-btn {
-  margin-top: 14px;
   padding: 12px 18px;
   font-size: 14px;
   font-weight: 700;
@@ -567,18 +563,13 @@ canvas {
   color: var(--ink);
 }
 
-.mobile-panel-content {
-  color: var(--ink);
-  font-size: 15px;
-  line-height: 1.6;
-}
-
 #leaderboard-btn svg {
   display: block;
+  margin: 0 auto;
 }
 
 @media (max-width: 1100px) {
-  .briefing-strip {
+  .status-strip {
     grid-template-columns: 1fr;
   }
 }
@@ -671,37 +662,10 @@ canvas {
     height: 38px;
   }
 
-  .mobile-briefing-bar {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
-
-  .mobile-panel-btn {
-    appearance: none;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: var(--surface);
-    color: var(--ink);
-    padding: 10px 12px;
-    font: inherit;
-    font-size: 13px;
-    font-weight: 700;
-  }
-
-  .briefing-card {
-    min-height: unset;
-    padding: 16px;
-  }
-
-  .current-word-display,
-  .progress-headline,
-  .encouragement-note {
-    font-size: 24px;
-  }
-
-  .briefing-strip {
-    display: none;
+  .status-strip {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 14px;
   }
 
   #playfield-container {
@@ -722,10 +686,6 @@ canvas {
     padding: 24px 18px 18px;
     border-radius: 22px 22px 0 0;
     max-height: min(82dvh, 760px);
-  }
-
-  .mobile-sheet {
-    width: 100%;
   }
 
   .leaderboard-entry {

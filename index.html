@@ -40,7 +40,7 @@
         <span id="today-label" class="edition-date"></span>
       </div>
       <h1 class="game-title">FALLPHABET</h1>
-      <p class="game-subtitle">A daily word descent with newsroom polish: bank elegant words, build a live chain, and chase a cleaner finish.</p>
+      <p class="game-subtitle">Build words fast, keep the chain alive, and beat the daily board in as few words as possible.</p>
       <div class="game-stats">
         <div class="stat-item">
           <span class="stat-label">Pts:</span>
@@ -97,34 +97,27 @@
       </div>
     </div>
 
-    <div class="mobile-briefing-bar" aria-label="Game details">
-      <button class="mobile-panel-btn" type="button" data-panel="word">Word</button>
-      <button class="mobile-panel-btn" type="button" data-panel="brief">Brief</button>
-      <button class="mobile-panel-btn" type="button" data-panel="desk">Desk</button>
-    </div>
-
-    <section class="briefing-strip">
-      <div class="briefing-card primary">
-        <div class="briefing-label">Current Word</div>
-        <div id="current-word-display" class="current-word-display">Tap tiles to compose a word.</div>
-        <div id="current-word-meta" class="current-word-meta">Minimum 3 letters. Double-tap the last tile or use Bank Word.</div>
+    <section class="status-strip">
+      <div class="status-main">
+        <div class="status-kicker">Current Word</div>
+        <div id="current-word-display" class="status-word">Tap tiles to compose a word.</div>
+        <div id="current-word-meta" class="status-meta">Minimum 3 letters. Double-tap the last tile or use Bank Word.</div>
+      </div>
+      <div class="status-actions">
         <button id="submit-word-btn" class="submit-word-btn" type="button">Bank Word</button>
       </div>
-      <div class="briefing-card">
-        <div class="briefing-label">Daily Brief</div>
-        <div id="progress-headline" class="progress-headline">Reach 250 points in as few words as possible.</div>
+      <div class="status-side">
+        <div id="progress-headline" class="status-headline">Reach 250 points in as few words as possible.</div>
         <div class="progress-shell">
           <div id="progress-fill" class="progress-fill"></div>
         </div>
-        <div id="progress-caption" class="progress-caption">0 / 250 points</div>
-        <div id="daily-seed-display" class="supporting-meta">Edition seed: ---</div>
-      </div>
-      <div class="briefing-card accent">
-        <div class="briefing-label">Word Desk</div>
-        <div id="encouragement-note" class="encouragement-note">Open with a sturdy 5-letter word and keep your chain alive.</div>
-        <div id="encouragement-tier" class="encouragement-tier">Awaiting your first standout word</div>
-        <div id="streak-display" class="supporting-meta inverse">Streak: 0 days • Best solve: --</div>
-        <div id="unlock-display" class="supporting-meta inverse">Taptile unlocks: none yet</div>
+        <div id="progress-caption" class="status-meta">0 / 250 points</div>
+        <div id="event-feed" class="event-feed">Chain starts at x1. Speed rises over time in Taptile.</div>
+        <div class="status-footnotes">
+          <span id="daily-seed-display">Edition seed: ---</span>
+          <span id="streak-display">Streak: 0 days • Best solve: --</span>
+          <span id="unlock-display">Taptile unlocks: none yet</span>
+        </div>
       </div>
     </section>
       
@@ -240,19 +233,6 @@
     </div>
   </div>
 
-  <div id="mobile-panel-modal" class="responsive-modal">
-    <div class="responsive-modal-content compact mobile-sheet">
-      <button class="responsive-close-btn" id="mobile-panel-close">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
-      <h2 id="mobile-panel-title">Details</h2>
-      <div id="mobile-panel-content" class="mobile-panel-content"></div>
-    </div>
-  </div>
-  
   <script>
     const COMMON_WORD_FALLBACKS = new Set([
       'able', 'about', 'above', 'ache', 'acid', 'acorn', 'acre', 'act', 'actor', 'adapt', 'adder', 'after', 'again', 'aged', 'agent',
@@ -335,38 +315,7 @@
 
     function setTextContent(id, value) {
       const node = document.getElementById(id);
-      if (node) node.textContent = value;
-    }
-
-    function buildMobilePanelContent(panel) {
-      const currentWord = document.getElementById('current-word-display')?.textContent || '';
-      const currentMeta = document.getElementById('current-word-meta')?.textContent || '';
-      const progressHeadline = document.getElementById('progress-headline')?.textContent || '';
-      const progressCaption = document.getElementById('progress-caption')?.textContent || '';
-      const seed = document.getElementById('daily-seed-display')?.textContent || '';
-      const note = document.getElementById('encouragement-note')?.textContent || '';
-      const tier = document.getElementById('encouragement-tier')?.textContent || '';
-      const streak = document.getElementById('streak-display')?.textContent || '';
-      const unlocks = document.getElementById('unlock-display')?.textContent || '';
-
-      if (panel === 'word') {
-        return {
-          title: 'Current Word',
-          html: `<div><strong>${currentWord}</strong></div><div style="margin-top:8px;">${currentMeta}</div>`
-        };
-      }
-
-      if (panel === 'brief') {
-        return {
-          title: 'Daily Brief',
-          html: `<div><strong>${progressHeadline}</strong></div><div style="margin-top:8px;">${progressCaption}</div><div style="margin-top:8px;">${seed}</div>`
-        };
-      }
-
-      return {
-        title: 'Word Desk',
-        html: `<div><strong>${note}</strong></div><div style="margin-top:8px;">${tier}</div><div style="margin-top:8px;">${streak}</div><div style="margin-top:8px;">${unlocks}</div>`
-      };
+      if (node && node.textContent !== value) node.textContent = value;
     }
 
     function hashSeed(input) {
@@ -712,7 +661,10 @@
         if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
           const scene = window.game.scene.keys['GameScene'];
           if (scene.showFlashMessage) {
-            scene.showFlashMessage('Speeding up!', '#ff6b6b');
+            scene.showFlashMessage(`Speed up! ${this.speedMultiplier.toFixed(1)}x`, '#ffcf7d');
+          }
+          if (scene.announceGameEvent) {
+            scene.announceGameEvent(`Speed up: ${this.speedMultiplier.toFixed(1)}x speed, ${this.timeWindow.toFixed(1)}s to start the next word.`);
           }
         }
       }
@@ -1632,8 +1584,11 @@
       }
 
       setEncouragement(tier, note) {
-        setTextContent('encouragement-tier', tier);
-        setTextContent('encouragement-note', note);
+        setTextContent('event-feed', `${tier}: ${note}`);
+      }
+
+      announceGameEvent(message) {
+        setTextContent('event-feed', message);
       }
 
       async validateWord(word) {
@@ -1750,7 +1705,7 @@
         }).setOrigin(0.5);
         this.tapToPlayText.setDepth(1001);
 
-        this.tapToPlaySubtext = this.add.text(400, 405, 'Build polished words before the column fills.', {
+        this.tapToPlaySubtext = this.add.text(400, 405, 'Build words before the column fills.', {
           fontFamily: 'Inter',
           fontSize: '22px',
           color: '#FFF7E8',
@@ -1912,7 +1867,11 @@
         const sourceText = validation.source === 'fallback' ? ' • offline list' : '';
         const unlockText = unlocks.frontPageBonus && moment.tier === 'Front Page' ? ' • unlock bonus' : '';
         this.showFlashMessage(`${moment.tier}: ${word.toUpperCase()} for ${score} pts${chainText}${sourceText}${unlockText}`, '#f4d58d');
-        this.setEncouragement(moment.tier, moment.note);
+        if (chainLevel > 1) {
+          this.announceGameEvent(`Chain x${chainLevel} active. Start the next word before the window closes.`);
+        } else {
+          this.setEncouragement(moment.tier, moment.note);
+        }
         this.scoredWords.push({ word, score });
 
         tiles.forEach(tile => {
@@ -1986,18 +1945,18 @@
       }
       
       updateUI() {
-        // Update HTML elements instead of Phaser text
         const scoreDisplay = document.getElementById('score-display');
         const chainDisplay = document.getElementById('chain-display');
         
         const currentScore = this.scoreManager.getTotalScore();
         const currentChain = this.chainTracker.getChainLevel();
         
-        scoreDisplay.textContent = currentScore;
-        scoreDisplay.style.fontFamily = 'Arial, Helvetica, sans-serif';
-        
-        chainDisplay.textContent = `${currentChain}`;
-        chainDisplay.style.fontFamily = 'Arial, Helvetica, sans-serif';
+        if (scoreDisplay && scoreDisplay.textContent !== String(currentScore)) {
+          scoreDisplay.textContent = String(currentScore);
+        }
+        if (chainDisplay && chainDisplay.textContent !== String(currentChain)) {
+          chainDisplay.textContent = String(currentChain);
+        }
         this.updateComposerUI();
         this.updateProgressUI();
         
@@ -2005,36 +1964,6 @@
         const currentMode = this.gameModeManager.getCurrentMode();
         if (!currentMode.speedIncrease && this.scoreManager.getTotalScore() >= 250 && !this.gameOver) {
           this.endGame();
-        }
-        
-        // Note: Removed the old game over condition that ended Daily Challenge when tiles reached bottom, since we only want the game to end when reaching 250+ points.
-        // Now Daily Challenge only ends when player reaches 250+ points
-
-        // Add a container for the word list
-        const modalStats = document.querySelector('.modal-stats');
-        let wordListDiv = document.getElementById('modal-word-list');
-        if (!wordListDiv) {
-          wordListDiv = document.createElement('div');
-          wordListDiv.id = 'modal-word-list';
-          wordListDiv.style.maxHeight = '160px';
-          wordListDiv.style.overflowY = 'auto';
-          wordListDiv.style.margin = '18px 0 0 0';
-          wordListDiv.style.textAlign = 'left';
-          wordListDiv.style.fontSize = '1.05rem';
-          wordListDiv.style.lineHeight = '1.4';
-          wordListDiv.style.background = '#fff9ef';
-          wordListDiv.style.border = '1px solid #e5c9a8';
-          wordListDiv.style.borderRadius = '8px';
-          wordListDiv.style.padding = '10px 12px';
-          modalStats.parentNode.insertBefore(wordListDiv, modalStats.nextSibling);
-        }
-        // Populate the list on win
-        if (this.scoredWords && this.scoredWords.length) {
-          wordListDiv.innerHTML = '<strong>Words you scored:</strong><ul style="margin:8px 0 0 0;padding:0;list-style:none;">' +
-            this.scoredWords.map(w => `<li style='display:flex;justify-content:space-between;'><span>${w.word}</span><span style='color:#7c3aed;font-weight:bold;'>${w.score} pts</span></li>`).join('') +
-            '</ul>';
-        } else {
-          wordListDiv.innerHTML = '';
         }
       }
       
@@ -3240,30 +3169,6 @@
           leaderboardCloseBtn.onclick = () => {
             hideResponsiveModal('leaderboard-modal');
           };
-        }
-
-        const mobilePanelModal = document.getElementById('mobile-panel-modal');
-        const mobilePanelTitle = document.getElementById('mobile-panel-title');
-        const mobilePanelContent = document.getElementById('mobile-panel-content');
-        const mobilePanelClose = document.getElementById('mobile-panel-close');
-        document.querySelectorAll('.mobile-panel-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const panel = btn.getAttribute('data-panel');
-            const content = buildMobilePanelContent(panel);
-            if (mobilePanelTitle) mobilePanelTitle.textContent = content.title;
-            if (mobilePanelContent) mobilePanelContent.innerHTML = content.html;
-            showResponsiveModal('mobile-panel-modal', 'compact');
-          });
-        });
-        if (mobilePanelClose) {
-          mobilePanelClose.onclick = () => hideResponsiveModal('mobile-panel-modal');
-        }
-        if (mobilePanelModal) {
-          mobilePanelModal.addEventListener('click', (event) => {
-            if (event.target === mobilePanelModal) {
-              hideResponsiveModal('mobile-panel-modal');
-            }
-          });
         }
         
         // Restart button functionality
