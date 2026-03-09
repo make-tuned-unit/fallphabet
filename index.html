@@ -103,7 +103,7 @@
         <button id="clear-word-btn" class="submit-word-btn secondary-action" type="button">Clear</button>
       </div>
       <div class="status-side">
-        <div id="progress-headline" class="status-headline">Score as many points as you can before the stack reaches the top.</div>
+        <div id="progress-headline" class="status-headline">Score as many points as you can before there is no room for a new tile.</div>
         <div class="progress-shell">
           <div id="progress-fill" class="progress-fill"></div>
         </div>
@@ -184,7 +184,7 @@
         
         <h3 id="goal-title">Goal</h3>
         <div id="daily-goal">
-          <p>• Daily Challenge ends when the stack reaches the top</p>
+          <p>• Daily Challenge ends only when the stack reaches the top and there is no room for a new tile</p>
           <p>• Post the best score you can for today&apos;s board</p>
           <p>• The pace ramps up, but more gently than Arcade</p>
         </div>
@@ -194,7 +194,7 @@
           <p>• Spell words from touching tiles anywhere on the pile</p>
           <p>• Valid words clear and the board collapses downward</p>
           <p>• Arcade starts at the same pace as Daily, then keeps speeding up for long runs</p>
-          <p>• If the stack reaches the top danger band, the run ends</p>
+          <p>• The run ends only when the stack reaches the top and there is no room for a new tile</p>
           <p>• Long clears earn breathing room and stronger combos</p>
         </div>
       </div>
@@ -969,6 +969,9 @@
           if (this.getLandingRow(col) >= 0 && !hasActiveInColumn) availableColumns.push(col);
         }
         if (!availableColumns.length) {
+          if (!this.activeTiles.length) {
+            this.scene.endGame();
+          }
           return;
         }
         const col = availableColumns[this.randomBetween(0, availableColumns.length - 1)];
@@ -998,9 +1001,6 @@
         this.gridTiles[landingRow][tile.col] = tile;
         this.columnsTiles[tile.col].push(tile);
         this.activeTiles.splice(index, 1);
-        if (landingRow <= 1) {
-          this.scene.endGame();
-        }
       }
 
       removeTiles(tiles) {
@@ -1711,7 +1711,7 @@
           const topOccupiedRow = this.tileSpawner ? this.tileSpawner.getTopOccupiedRow() : this.rows - 1;
           const filledRows = topOccupiedRow === null ? 0 : this.rows - topOccupiedRow;
           ratio = Math.max(0, Math.min(1, filledRows / this.rows));
-          if (progressHeadline) progressHeadline.textContent = 'Score as many points as you can before the stack reaches the top.';
+          if (progressHeadline) progressHeadline.textContent = 'Score as many points as you can before there is no room for a new tile.';
           if (progressCaption) progressCaption.textContent = `${score} pts • ${filledRows} rows active`;
           if (dailySeedDisplay) {
             dailySeedDisplay.textContent = `Edition seed: ${this.dailySeed.replace('fallphabet-', '')}`;
@@ -2485,7 +2485,7 @@
           // Daily challenge mode
           if (title) title.textContent = 'Board Filled';
           if (stats) {
-            stats.innerHTML = `<div><strong>Points:</strong> <span id="modal-final-score">${finalScore}</span></div><div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">${highestChain}</span></div><div style="margin-top: 15px; color: #121212; font-weight: bold;">Today's edition ends when the stack reaches the top. Come back tomorrow and try to post a bigger score.</div>`;
+            stats.innerHTML = `<div><strong>Points:</strong> <span id="modal-final-score">${finalScore}</span></div><div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">${highestChain}</span></div><div style="margin-top: 15px; color: #121212; font-weight: bold;">Today's edition ends only when the stack reaches the top and no new tile can spawn. Come back tomorrow and try to post a bigger score.</div>`;
           }
 
           const modalActions = document.querySelector('.modal-actions');
