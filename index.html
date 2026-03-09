@@ -894,37 +894,6 @@
         return tile;
       }
 
-      placeTileInCell(col, row, letter = this.getRandomLetter()) {
-        const cell = this.getCellCenter(col, row);
-        const tile = this.spawnTile(col, cell.y, letter);
-        tile.y = cell.y;
-        tile.row = row;
-        tile.falling = false;
-        tile.isSelectable = true;
-        tile.setInteractive();
-        if (tile.shadow && !tile.shadow.destroyed) tile.shadow.y = tile.y + 8;
-        if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.y = tile.y;
-        this.gridTiles[row][col] = tile;
-        this.columnsTiles[col].push(tile);
-        return tile;
-      }
-
-      prefillArcadeBoard(tileCount = 12) {
-        let placed = 0;
-        while (placed < tileCount) {
-          const availableColumns = [];
-          for (let col = 0; col < this.columns; col++) {
-            if (this.getLandingRow(col) >= 0) availableColumns.push(col);
-          }
-          if (!availableColumns.length) break;
-          const col = availableColumns[this.randomBetween(0, availableColumns.length - 1)];
-          const row = this.getLandingRow(col);
-          const letter = this.dequeueLetter();
-          this.placeTileInCell(col, row, letter);
-          placed++;
-        }
-      }
-
       destroyTile(tile) {
         if (!tile) return;
         if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
@@ -1161,9 +1130,6 @@
         this.fallSpeed = this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease
           ? this.arcadeOpeningFallSpeed
           : this.baseFallSpeed;
-        if (!this.getSelectableTiles().length) {
-          this.prefillArcadeBoard(12);
-        }
         for (let i = 0; i < 4; i++) {
           this.spawnNextActiveTile();
         }
