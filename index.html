@@ -103,11 +103,11 @@
         <button id="clear-word-btn" class="submit-word-btn secondary-action" type="button">Clear</button>
       </div>
       <div class="status-side">
-        <div id="progress-headline" class="status-headline">Reach 250 points in as few words as possible.</div>
+        <div id="progress-headline" class="status-headline">Score as many points as you can before the stack reaches the top.</div>
         <div class="progress-shell">
           <div id="progress-fill" class="progress-fill"></div>
         </div>
-        <div id="progress-caption" class="status-meta">0 / 250 points</div>
+        <div id="progress-caption" class="status-meta">0 pts • 0 rows active</div>
         <div class="next-preview">
           <span class="status-kicker">Next</span>
           <div id="next-letters-display" class="next-letters-display"></div>
@@ -115,7 +115,7 @@
         <div id="event-feed" class="event-feed">Chain starts at x1. Speed rises over time in Arcade.</div>
         <div class="status-footnotes">
           <span id="daily-seed-display">Edition seed: ---</span>
-          <span id="streak-display">Streak: 0 days • Best solve: --</span>
+          <span id="streak-display">Streak: 0 days • Best score: --</span>
           <span id="unlock-display">Arcade unlocks: none yet</span>
         </div>
       </div>
@@ -182,8 +182,8 @@
         
         <h3 id="goal-title">Goal</h3>
         <div id="daily-goal">
-          <p>• Reach 250 points with fewest words possible</p>
-          <p>• No time limit - make words as long as possible</p>
+          <p>• Score as many points as possible before the board fills up</p>
+          <p>• Longer words and chains buy more breathing room on the board</p>
         </div>
         <div id="taptile-goal" style="display: none;">
           <h4>Arcade Mode</h4>
@@ -380,13 +380,13 @@
     function getDailyProgressSummary() {
       const runs = getStoredRuns().sort((a, b) => a.date.localeCompare(b.date));
       let streak = 0;
-      let bestWords = Infinity;
+      let bestScore = 0;
       let latestDate = null;
       const today = new Date(new Date().toISOString().split('T')[0]);
 
       runs.forEach(run => {
         if (run.completed) {
-          bestWords = Math.min(bestWords, run.wordsUsed || Infinity);
+          bestScore = Math.max(bestScore, run.score || 0);
         }
       });
 
@@ -413,7 +413,7 @@
 
       return {
         streak,
-        bestWords: Number.isFinite(bestWords) ? bestWords : null,
+        bestScore: bestScore || null,
         weekKey: getCurrentWeekKey(),
         weeklyRuns: runs.filter(run => run.weekKey === getCurrentWeekKey() && run.completed).length
       };
@@ -475,17 +475,21 @@
         this.modes = {
           daily: {
             name: 'Daily Challenge',
-            goal: 250,
+            goal: null,
             timeLimit: null,
             speedIncrease: false,
-            leaderboard: false
+            leaderboard: false,
+            rampRate: 0.1,
+            minSpawnInterval: 260
           },
           taptile: {
             name: 'Fallphabet Arcade',
             goal: null,
             timeLimit: null,
             speedIncrease: true,
-            leaderboard: true
+            leaderboard: true,
+            rampRate: 0.2,
+            minSpawnInterval: 180
           }
         };
       }
@@ -561,10 +565,11 @@
       update(elapsedMs) {
         const nextStage = Math.floor(elapsedMs / this.stageDuration);
         if (nextStage > this.currentStage) {
+          const currentMode = window.gameModeManager ? window.gameModeManager.getCurrentMode() : { rampRate: 0.2, minSpawnInterval: 180 };
           this.currentStage = nextStage;
-          this.speedMultiplier = 1 + this.currentStage * 0.2;
+          this.speedMultiplier = 1 + this.currentStage * (currentMode.rampRate || 0.2);
           this.currentSpeed = this.baseSpeed * this.speedMultiplier;
-          this.spawnInterval = Math.max(180, 380 - this.currentStage * 28);
+          this.spawnInterval = Math.max(currentMode.minSpawnInterval || 180, 380 - this.currentStage * 28);
           this.showSpeedUpMessage();
           pulseStat('speed-display');
           this.updateUI();
@@ -733,7 +738,7 @@
       }
 
       getSpawnInterval() {
-        return this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease && this.scene.taptileSpeedManager
+        return this.scene.taptileSpeedManager
           ? this.scene.taptileSpeedManager.getSpawnInterval()
           : this.baseSpawnInterval;
       }
@@ -952,7 +957,7 @@
 
       spawnNextActiveTile() {
         if (this.isPaused || this.activeTiles.length >= this.getActiveSpawnCap()) return;
-        if (this.scene.gameModeManager.getCurrentMode().speedIncrease && this.scene.taptileSpeedManager && !this.scene.taptileSpeedManager.canSpawn()) {
+        if (this.scene.taptileSpeedManager && !this.scene.taptileSpeedManager.canSpawn()) {
           return;
         }
         const availableColumns = [];
@@ -1075,7 +1080,7 @@
         if (this.isPaused) return;
         
         // Update fall speed based on current mode
-        if (this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease) {
+        if (this.scene.taptileSpeedManager) {
           this.fallSpeed = this.scene.taptileSpeedManager.getCurrentSpeed();
         } else {
           this.fallSpeed = this.baseFallSpeed;
@@ -1178,9 +1183,7 @@
         this.isPaused = false;
         this.nextSpawnAt = Date.now() + 80;
         this.fillQueue();
-        this.fallSpeed = this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease
-          ? this.arcadeOpeningFallSpeed
-          : this.baseFallSpeed;
+        this.fallSpeed = this.scene.taptileSpeedManager ? this.arcadeOpeningFallSpeed : this.baseFallSpeed;
         for (let i = 0; i < 4; i++) {
           this.spawnNextActiveTile();
         }
@@ -1702,13 +1705,18 @@
             dangerDisplay.textContent = label;
           }
         } else {
-          ratio = Math.max(0, Math.min(1, score / currentMode.goal));
-          if (progressHeadline) progressHeadline.textContent = 'Reach 250 points in as few words as possible.';
-          if (progressCaption) progressCaption.textContent = `${score} / ${currentMode.goal} points`;
+          const topOccupiedRow = this.tileSpawner ? this.tileSpawner.getTopOccupiedRow() : this.rows - 1;
+          const filledRows = topOccupiedRow === null ? 0 : this.rows - topOccupiedRow;
+          ratio = Math.max(0, Math.min(1, filledRows / this.rows));
+          if (progressHeadline) progressHeadline.textContent = 'Score as many points as you can before the stack reaches the top.';
+          if (progressCaption) progressCaption.textContent = `${score} pts • ${filledRows} rows active`;
           if (dailySeedDisplay) {
             dailySeedDisplay.textContent = `Edition seed: ${this.dailySeed.replace('fallphabet-', '')}`;
           }
-          if (dangerDisplay) dangerDisplay.textContent = 'Low';
+          if (dangerDisplay) {
+            const label = ratio > 0.8 ? 'Critical' : ratio > 0.6 ? 'High' : ratio > 0.35 ? 'Rising' : 'Low';
+            dangerDisplay.textContent = label;
+          }
         }
 
         if (progressFill) {
@@ -1717,7 +1725,7 @@
 
         setTextContent(
           'streak-display',
-          `Streak: ${summary.streak} day${summary.streak === 1 ? '' : 's'} • Best solve: ${summary.bestWords ?? '--'} words`
+          `Streak: ${summary.streak} day${summary.streak === 1 ? '' : 's'} • Best score: ${summary.bestScore ?? '--'}`
         );
         setTextContent('unlock-display', `Arcade unlocks: ${describeUnlocks(unlocks)}`);
       }
@@ -1803,7 +1811,7 @@
         const summary = upsertDailyRun({
           date: new Date().toISOString().split('T')[0],
           weekKey: getCurrentWeekKey(),
-          completed: stats.finalScore >= 250,
+          completed: true,
           wordsUsed: stats.wordsUsed,
           topWord: stats.topWord,
           topWordScore: stats.topWordScore,
@@ -1813,12 +1821,11 @@
         });
         setTextContent(
           'streak-display',
-          `Streak: ${summary.streak} day${summary.streak === 1 ? '' : 's'} • Best solve: ${summary.bestWords ?? '--'} words`
+          `Streak: ${summary.streak} day${summary.streak === 1 ? '' : 's'} • Best score: ${summary.bestScore ?? '--'}`
         );
-        const par = stats.finalScore >= 250 ? this.getParResult(stats.wordsUsed) : 'Incomplete';
         recap.innerHTML = `
-          <strong>Edition recap:</strong> ${par} result. ${summary.streak} day${summary.streak === 1 ? '' : 's'} on streak, ${summary.weeklyRuns} clears this week.<br><br>
-          Tomorrow's target: beat <strong>${summary.bestWords ?? stats.wordsUsed}</strong> words and keep your chain above <strong>x${Math.max(stats.highestChain, 3)}</strong>.
+          <strong>Edition recap:</strong> ${summary.streak} day${summary.streak === 1 ? '' : 's'} on streak, ${summary.weeklyRuns} runs this week.<br><br>
+          Tomorrow's target: beat <strong>${Math.max(summary.bestScore ?? 0, stats.finalScore)}</strong> points and keep your chain above <strong>x${Math.max(stats.highestChain, 3)}</strong>.
         `;
       }
       
@@ -1942,7 +1949,7 @@
       update(time, delta) {
         if (this.gameOver || !this.gameStarted) return;
         const dt = delta / 1000;
-        if (this.gameModeManager && this.gameModeManager.getCurrentMode().speedIncrease && this.taptileSpeedManager) {
+        if (this.gameModeManager && this.taptileSpeedManager) {
           this.taptileSpeedManager.update(Date.now() - this.gameStartTime);
         }
         this.tileSpawner.update(dt);
@@ -2013,12 +2020,9 @@
         this.tileSpawner.removeTiles(tiles);
         // Check for game over based on mode
         const currentMode = this.gameModeManager.getCurrentMode();
-        if (currentMode.goal && this.scoreManager.getTotalScore() >= currentMode.goal) {
-          this.endGame();
-        }
         
         // Update taptile speed manager
-        if (currentMode.speedIncrease) {
+        if (this.taptileSpeedManager) {
           this.taptileSpeedManager.onWordSubmitted(word.length);
         }
         
@@ -2061,12 +2065,6 @@
         }
         this.updateComposerUI();
         this.updateProgressUI();
-        
-        // Check for game over based on mode (only for Daily Challenge reaching 250+ points)
-        const currentMode = this.gameModeManager.getCurrentMode();
-        if (!currentMode.speedIncrease && this.scoreManager.getTotalScore() >= 250 && !this.gameOver) {
-          this.endGame();
-        }
       }
       
       // Check if the current score is a new high score for Taptile
@@ -2482,234 +2480,71 @@
           
         } else {
           // Daily challenge mode
-          if (finalScore >= 250) {
-            // Win condition - player reached 250+ points
-            if (title) title.textContent = 'You Did It!';
-            if (stats) stats.innerHTML = `<span style="font-family: Arial, Helvetica, sans-serif; font-size: 1.2rem; color: #222; display: block;">It took you <strong>${wordsUsed}</strong> words to hit 250 points today.<br><br>Your Top Word was <strong>${topWord}</strong> earning you <strong>${topWordScore}</strong> points.<br><br>You chained <strong>${highestChain}</strong> words together today!<br><br>Come back tomorrow to see if you can beat your score.<br><br>Share with friends to see who can beat the Fallphabet with the fewest words.</span>`;
-            
-            // Add "Play Taptile" button for successful daily challenge completion
-            const modalActions = document.querySelector('.modal-actions');
-            if (modalActions) {
-              // Remove any existing "Play Taptile" button
-              const existingTaptileBtn = modalActions.querySelector('#modal-play-taptile-btn');
-              if (existingTaptileBtn) {
-                existingTaptileBtn.remove();
-              }
-              
-              // Add new "Play Taptile" button
-              const playTaptileBtn = document.createElement('button');
-              playTaptileBtn.id = 'modal-play-taptile-btn';
-              playTaptileBtn.className = 'modal-btn primary';
-              playTaptileBtn.textContent = 'Play Taptile Mode';
-              playTaptileBtn.onclick = () => {
-                console.log('Play Taptile button clicked from daily challenge completion modal');
-                
-                // Hide modal immediately
-                const modal = document.getElementById('gameover-modal');
-                modal.classList.remove('show');
-                modal.style.display = 'none';
-                
-                // Switch to Taptile mode
-                if (window.switchToTaptileMode) {
-                  window.switchToTaptileMode();
+          if (title) title.textContent = 'Board Filled';
+          if (stats) {
+            stats.innerHTML = `<div><strong>Points:</strong> <span id="modal-final-score">${finalScore}</span></div><div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">${highestChain}</span></div><div style="margin-top: 15px; color: #121212; font-weight: bold;">Today's edition ends when the stack reaches the top. Come back tomorrow and try to post a bigger score.</div>`;
+          }
+
+          const modalActions = document.querySelector('.modal-actions');
+          if (modalActions) {
+            const existingTaptileBtn = modalActions.querySelector('#modal-play-taptile-btn');
+            if (existingTaptileBtn) existingTaptileBtn.remove();
+          }
+
+          const restartBtn = document.getElementById('modal-restart-btn');
+          if (restartBtn) {
+            restartBtn.style.display = 'none';
+          }
+
+          const scoreData = {
+            score: finalScore,
+            gameMode: 'daily_challenge',
+            wordsUsed: wordsUsed,
+            topWord: topWord,
+            topWordScore: topWordScore,
+            maxChainMultiplier: this.chainTracker ? this.chainTracker.getHighestChain() : 1
+          };
+
+          if (this.leaderboardManager) {
+            const handleDailyResult = (result) => {
+              if (result.success) {
+                const rankText = result.rank ? `You ranked #${result.rank} out of ${result.totalParticipants} players today!` : '';
+                if (rankText) {
+                  const statsDiv = document.querySelector('.modal-stats');
+                  if (statsDiv) {
+                    statsDiv.innerHTML += `<div style="margin-top: 15px; color: #7c3aed; font-weight: bold;">${rankText}</div>`;
+                  }
                 }
-              };
-              
-              // Insert before the share button
-              const shareBtn = modalActions.querySelector('#modal-share-btn');
-              if (shareBtn) {
-                modalActions.insertBefore(playTaptileBtn, shareBtn);
-              } else {
-                modalActions.appendChild(playTaptileBtn);
+                const today = new Date().toISOString().split('T')[0];
+                localStorage.setItem(`daily_challenge_completed_${today}`, 'true');
+              } else if (result.error && result.error.includes('already completed')) {
+                const statsDiv = document.querySelector('.modal-stats');
+                if (statsDiv) {
+                  statsDiv.innerHTML += `<div style="margin-top: 15px; color: #dc3545; font-weight: bold;">${result.error}</div>`;
+                }
               }
-            }
-            
-            // Submit to Daily Challenge leaderboard only when reaching 250+ points
-            console.log('Daily Challenge: About to submit to leaderboard');
-            console.log('Daily Challenge: Leaderboard manager:', this.leaderboardManager);
-            if (this.leaderboardManager) {
-              console.log('Daily Challenge: Leaderboard manager available');
-              const scoreData = {
-                score: finalScore,
-                gameMode: 'daily_challenge',
-                wordsUsed: wordsUsed,
-                topWord: topWord,
-                topWordScore: topWordScore,
-                maxChainMultiplier: this.chainTracker ? this.chainTracker.getHighestChain() : 1
-              };
-              
-              // Check if player name exists, if not show name input modal
-              const playerName = this.leaderboardManager.getPlayerName();
-              console.log('Daily Challenge: Player name check:', playerName ? 'exists' : 'missing');
-              
-              if (playerName) {
-                // Player name exists, submit directly
-                console.log('Daily Challenge: Submitting with existing name:', playerName);
-                this.leaderboardManager.submitScore({
-                  playerName: playerName,
-                  ...scoreData
-                }).then(result => {
-                  console.log('Daily Challenge: Submission result:', result);
-                  if (result.success) {
-                    // Show rank in modal
-                    const rankText = result.rank ? `You ranked #${result.rank} out of ${result.totalParticipants} players today!` : '';
-                    if (rankText) {
-                      const statsDiv = document.querySelector('.modal-stats');
-                      if (statsDiv) {
-                        statsDiv.innerHTML += `<div style="margin-top: 15px; color: #7c3aed; font-weight: bold;">${rankText}</div>`;
-                      }
-                    }
-                    
-                    // Mark daily challenge as completed for today
-                    const today = new Date().toISOString().split('T')[0];
-                    localStorage.setItem(`daily_challenge_completed_${today}`, 'true');
-                    
-                    // For successful submissions, hide restart button (one attempt per day)
-                    const restartBtn = document.getElementById('modal-restart-btn');
-                    if (restartBtn) {
-                      restartBtn.style.display = 'none';
-                    }
-                    
-                  } else if (result.error && result.error.includes('already completed')) {
-                    // Player has already attempted today
-                    const statsDiv = document.querySelector('.modal-stats');
-                    if (statsDiv) {
-                      statsDiv.innerHTML += `<div style="margin-top: 15px; color: #dc3545; font-weight: bold;">${result.error}</div>`;
-                    }
-                    
-                    // Hide restart button for already completed attempts
-                    const restartBtn = document.getElementById('modal-restart-btn');
-                    if (restartBtn) {
-                      restartBtn.style.display = 'none';
-                    }
-                    
-                  } else {
-                    // For other errors, allow retry
-                    const restartBtn = document.getElementById('modal-restart-btn');
-                    if (restartBtn) {
-                      restartBtn.textContent = 'Try Again';
-                      restartBtn.style.display = '';
-                    }
-                  }
-                });
-              } else {
-                // No player name, show name input modal
-                console.log('Daily Challenge: Showing name input modal');
-                this.leaderboardManager.showNameInputModal(scoreData, (result) => {
-                  console.log('Daily Challenge: Name input result:', result);
-                  console.log('Daily Challenge: Result type:', typeof result);
-                  console.log('Daily Challenge: Result keys:', result ? Object.keys(result) : 'null');
-                  if (result.success) {
-                    // Show rank in modal
-                    const rankText = result.rank ? `You ranked #${result.rank} out of ${result.totalParticipants} players today!` : '';
-                    if (rankText) {
-                      const statsDiv = document.querySelector('.modal-stats');
-                      if (statsDiv) {
-                        statsDiv.innerHTML += `<div style="margin-top: 15px; color: #7c3aed; font-weight: bold;">${rankText}</div>`;
-                      }
-                    }
-                    
-                    // Mark daily challenge as completed for today
-                    const today = new Date().toISOString().split('T')[0];
-                    localStorage.setItem(`daily_challenge_completed_${today}`, 'true');
-                    
-                    // For successful submissions, hide restart button (one attempt per day)
-                    const restartBtn = document.getElementById('modal-restart-btn');
-                    if (restartBtn) {
-                      restartBtn.style.display = 'none';
-                    }
-                    
-                  } else if (result.error && result.error.includes('already completed')) {
-                    // Player has already attempted today
-                    const statsDiv = document.querySelector('.modal-stats');
-                    if (statsDiv) {
-                      statsDiv.innerHTML += `<div style="margin-top: 15px; color: #dc3545; font-weight: bold;">${result.error}</div>`;
-                    }
-                    
-                    // Hide restart button for already completed attempts
-                    const restartBtn = document.getElementById('modal-restart-btn');
-                    if (restartBtn) {
-                      restartBtn.style.display = 'none';
-                    }
-                    
-                  } else if (!result.cancelled) {
-                    // For other errors, allow retry
-                    const restartBtn = document.getElementById('modal-restart-btn');
-                    if (restartBtn) {
-                      restartBtn.textContent = 'Try Again';
-                      restartBtn.style.display = '';
-                    }
-                  }
-                });
-              }
+            };
+
+            const playerName = this.leaderboardManager.getPlayerName();
+            if (playerName) {
+              this.leaderboardManager.submitScore({
+                playerName: playerName,
+                ...scoreData
+              }).then(handleDailyResult);
             } else {
-              console.log('Daily Challenge: No leaderboard manager available');
-              // Fallback for when leaderboard manager is not available
-              const restartBtn = document.getElementById('modal-restart-btn');
-              // Hide restart button for Daily Challenge mode (one attempt per day)
-              if (restartBtn) {
-                restartBtn.style.display = 'none';
-              }
-            }
-            
-          } else {
-            // Normal game over - player failed to reach 250 points
-            if (title) title.textContent = 'Game Over!';
-            if (stats) {
-              stats.innerHTML = `<div><strong>Words Used:</strong> <span id="modal-words-used">${wordsUsed}</span></div><div><strong>Top Word:</strong> <span id="modal-top-word">${topWord}</span></div><div><strong>Highest Chain:</strong> <span id="modal-highest-chain">${highestChain}</span></div><div style="margin-top: 15px; color: #dc3545; font-weight: bold;">You need 250 points to complete today's challenge. Try again!</div>`;
-            }
-            
-            // For failed attempts (under 250 points), show restart button
-            const restartBtn = document.getElementById('modal-restart-btn');
-            if (restartBtn) {
-              restartBtn.textContent = 'Try Again';
-              restartBtn.style.display = '';
-              restartBtn.onclick = () => {
-                console.log('Daily Challenge restart button clicked - restarting game...');
-                
-                // Hide modal immediately
-                const modal = document.getElementById('gameover-modal');
-                modal.classList.remove('show');
-                modal.style.display = 'none';
-                
-                // Reset game state and restart scene
-                if (window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
-                  const scene = window.game.scene.keys['GameScene'];
-                  
-                  // Reset game state
-                  scene.gameOver = false;
-                  scene.wordsUsed = 0;
-                  scene.topWord = '';
-                  scene.topWordScore = 0;
-                  scene.scoredWords = [];
-                  scene.gameStartTime = Date.now();
-                  
-                  // Reset managers
-                  if (scene.scoreManager) scene.scoreManager.reset();
-                  if (scene.chainTracker) scene.chainTracker.resetChain();
-                  
-                  // Clear any existing tiles
-                  if (scene.tileSpawner) {
-                    scene.tileSpawner.clearAllTiles();
-                  }
-                  
-                  // Clear input buffer
-                  if (scene.inputHandler) {
-                    scene.inputHandler.clearBuffer();
-                  }
-                  
-                  // Restart the scene
-                  window.game.scene.stop('GameScene');
-                  window.game.scene.remove('GameScene');
-                  window.game.scene.add('GameScene', GameScene, true);
-                  
-                  console.log('Daily Challenge game restarted successfully');
-                } else {
-                  console.error('Game scene not available for restart');
-                }
-              };
+              this.leaderboardManager.showNameInputModal(scoreData, (result) => {
+                if (!result.cancelled) handleDailyResult(result);
+              });
             }
           }
+
+          this.renderModalRecap(currentMode, {
+            finalScore,
+            wordsUsed,
+            topWord,
+            topWordScore,
+            highestChain
+          });
           
           // Hide taptile stats
           const taptileModalStats = document.getElementById('taptile-modal-stats');
@@ -2720,13 +2555,6 @@
           // Save game stats to localStorage
           const today = new Date().toLocaleDateString();
           saveGameToHistory({ date: today, wordsUsed, topWord, topWordScore, highestChain, score: finalScore, longestWord: this.topWord });
-          this.renderModalRecap(currentMode, {
-            finalScore,
-            wordsUsed,
-            topWord,
-            topWordScore,
-            highestChain
-          });
         }
         
         // Ensure modal is visible and properly positioned
@@ -2758,12 +2586,8 @@
               const currentMode = this.gameModeManager.getCurrentMode();
               const finalScore = this.scoreManager.getTotalScore();
               
-              // If this was a successful daily challenge completion (250+ points), 
-              // the game should be in a completed state and input is disabled
-              if (!currentMode.speedIncrease && finalScore >= 250) {
-                console.log('Daily challenge completed - modal closed, game should be in completed state');
-                // The game is intentionally left in completed state for daily challenge
-                // Player can switch to Taptile mode to continue playing
+              if (!currentMode.speedIncrease) {
+                console.log('Daily challenge finished - modal closed, game remains in completed state');
               } else if (this.gameOver) {
                 // For other game over scenarios, restart the game
                 console.log('Game over modal closed - restarting game...');
@@ -2959,7 +2783,7 @@
       const summary = getDailyProgressSummary();
       setTextContent(
         'streak-display',
-        `Streak: ${summary.streak} day${summary.streak === 1 ? '' : 's'} • Best solve: ${summary.bestWords ?? '--'} words`
+        `Streak: ${summary.streak} day${summary.streak === 1 ? '' : 's'} • Best score: ${summary.bestScore ?? '--'}`
       );
       setTextContent('unlock-display', `Arcade unlocks: ${describeUnlocks(getTaptileUnlocks())}`);
       setTextContent('daily-seed-display', `Edition seed: ${getCurrentDailySeed().replace('fallphabet-', '')}`);
