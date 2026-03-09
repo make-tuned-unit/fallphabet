@@ -361,11 +361,11 @@ canvas {
   aspect-ratio: 2 / 3;
   min-height: 640px;
   margin: 0 auto;
-  padding: 2px;
-  border: 2px solid #121212;
-  border-radius: 24px;
-  background: #121212;
-  box-shadow: var(--shadow);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   position: relative;
   overflow: hidden;
   display: grid;
@@ -373,7 +373,9 @@ canvas {
 }
 
 #playfield-container canvas {
-  border-radius: 20px;
+  border: 2px solid #121212;
+  border-radius: 22px;
+  box-shadow: var(--shadow);
 }
 
 .flash-message {
@@ -657,7 +659,7 @@ canvas {
   #playfield-container {
     width: 100%;
     min-height: clamp(480px, 72vw, 720px);
-    padding: 2px;
+    padding: 0;
   }
 }
 
@@ -777,15 +779,15 @@ canvas {
     height: auto;
     min-height: clamp(420px, 112vw, 760px);
     aspect-ratio: 2 / 3;
-    border-radius: 20px;
-    padding: 2px;
+    border-radius: 0;
+    padding: 0;
     margin-bottom: 2px;
   }
 
   #playfield-container canvas {
     width: 100% !important;
     height: auto !important;
-    border-radius: 16px;
+    border-radius: 18px;
   }
 
   .top-menu {
