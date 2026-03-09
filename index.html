@@ -3271,10 +3271,7 @@
               shareText = `I posted ${totalScore} points in Fallphabet Taptile with ${wordsUsed} words and a x${highestChain} chain. Active desk tools: ${unlocks}.`;
             } else {
               const summary = getDailyProgressSummary();
-              const par = window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']
-                ? window.game.scene.keys['GameScene'].getParResult(Number(wordsUsed))
-                : 'Completed';
-              shareText = `Fallphabet ${getCurrentDailySeed().replace('fallphabet-', '')}: ${wordsUsed} words, x${highestChain} chain, ${par} result. Current streak: ${summary.streak}.`;
+              shareText = `Fallphabet ${getCurrentDailySeed().replace('fallphabet-', '')}: ${wordsUsed} words, ${totalScore} points, x${highestChain} chain. Current streak: ${summary.streak}.`;
             }
             
             // Try Web Share API first
