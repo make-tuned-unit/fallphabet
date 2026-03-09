@@ -3270,8 +3270,7 @@
               const unlocks = describeUnlocks(getTaptileUnlocks());
               shareText = `I posted ${totalScore} points in Fallphabet Taptile with ${wordsUsed} words and a x${highestChain} chain. Active desk tools: ${unlocks}.`;
             } else {
-              const summary = getDailyProgressSummary();
-              shareText = `Fallphabet ${getCurrentDailySeed().replace('fallphabet-', '')}: ${wordsUsed} words, ${totalScore} points, x${highestChain} chain. Current streak: ${summary.streak}.`;
+              shareText = `Think you can beat me? My Fallphabet Daily score was ${totalScore} with ${wordsUsed} words!`;
             }
             
             // Try Web Share API first
