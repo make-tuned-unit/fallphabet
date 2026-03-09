@@ -318,6 +318,17 @@
       if (node && node.textContent !== value) node.textContent = value;
     }
 
+    function pulseStat(id) {
+      const node = document.getElementById(id);
+      const pill = node ? node.closest('.stat-item') : null;
+      if (!pill) return;
+      pill.classList.remove('is-live');
+      requestAnimationFrame(() => {
+        pill.classList.add('is-live');
+        setTimeout(() => pill.classList.remove('is-live'), 520);
+      });
+    }
+
     function hashSeed(input) {
       let hash = 1779033703 ^ input.length;
       for (let i = 0; i < input.length; i++) {
@@ -565,6 +576,8 @@
           this.showSpeedUpMessage();
         }
         
+        pulseStat('speed-display');
+        pulseStat('time-display');
         this.updateUI();
       }
       
@@ -684,8 +697,7 @@
         this.rows = rows;
         this.tileSize = (this.gridWidth / this.columns) * 0.75; // Smaller tiles for more margin
         this.tileMargin = (this.gridWidth / this.columns - this.tileSize) / 2; // Larger margin
-        // Reduce the vertical gap between tiles
-        this.tileSpacing = 8; // Reduced from 24 to 8 for tighter vertical spacing
+        this.tileSpacing = 14;
         this.fallSpeed = 60; // pixels/sec, reduced from 100 for much slower initial speed
         this.letters = {
           'E': 10, 'A': 8, 'I': 7, 'N': 6, 'O': 7, 'R': 6, 'T': 6, 'L': 5, 'S': 5, 'U': 4,
@@ -801,15 +813,16 @@
         canvas.width = this.tileSize;
         canvas.height = this.tileSize;
         
-        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-        gradient.addColorStop(0, '#fff8ea');
-        gradient.addColorStop(1, '#ead8b3');
-        ctx.fillStyle = gradient;
-        ctx.strokeStyle = '#6a4b17';
-        ctx.lineWidth = 3;
+        const outerGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        outerGradient.addColorStop(0, '#fcf4df');
+        outerGradient.addColorStop(0.54, '#ead7ae');
+        outerGradient.addColorStop(1, '#ddc18e');
+        ctx.fillStyle = outerGradient;
+        ctx.strokeStyle = '#86662e';
+        ctx.lineWidth = 2.5;
         
         // Create rounded rectangle path
-        const radius = 12;
+        const radius = 14;
         ctx.beginPath();
         ctx.moveTo(radius, 0);
         ctx.lineTo(canvas.width - radius, 0);
@@ -824,6 +837,24 @@
         
         ctx.fill();
         ctx.stroke();
+
+        const inset = 7;
+        const innerGradient = ctx.createLinearGradient(0, 0, 0, canvas.height - inset * 2);
+        innerGradient.addColorStop(0, 'rgba(255,255,255,0.78)');
+        innerGradient.addColorStop(1, 'rgba(255,255,255,0.12)');
+        ctx.fillStyle = innerGradient;
+        ctx.beginPath();
+        ctx.moveTo(radius, inset);
+        ctx.lineTo(canvas.width - radius, inset);
+        ctx.quadraticCurveTo(canvas.width - inset, inset, canvas.width - inset, radius);
+        ctx.lineTo(canvas.width - inset, canvas.height - radius);
+        ctx.quadraticCurveTo(canvas.width - inset, canvas.height - inset, canvas.width - radius, canvas.height - inset);
+        ctx.lineTo(radius, canvas.height - inset);
+        ctx.quadraticCurveTo(inset, canvas.height - inset, inset, canvas.height - radius);
+        ctx.lineTo(inset, radius);
+        ctx.quadraticCurveTo(inset, inset, radius, inset);
+        ctx.closePath();
+        ctx.fill();
         
         ctx.fillStyle = 'rgba(120, 85, 24, 0.08)';
         ctx.beginPath();
@@ -840,16 +871,16 @@
         ctx.fill();
         
         // Draw letter
-        ctx.fillStyle = '#171717';
-        ctx.font = 'bold 60px Roboto Slab';
+        ctx.fillStyle = '#151515';
+        ctx.font = `bold ${Math.round(this.tileSize * 0.46)}px Roboto Slab`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
-        ctx.shadowColor = 'rgba(106, 75, 23, 0.35)';
-        ctx.shadowBlur = 2;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 3;
-        ctx.fillText(letter, canvas.width / 2, canvas.height / 2);
+        ctx.shadowColor = 'rgba(106, 75, 23, 0.22)';
+        ctx.shadowBlur = 1;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 2;
+        ctx.fillText(letter, canvas.width / 2, canvas.height / 2 - this.tileSize * 0.04);
         
         // Reset shadow for point value
         ctx.shadowColor = 'transparent';
@@ -858,15 +889,15 @@
         ctx.shadowOffsetY = 0;
         
         // Draw point value in bottom right corner
-        ctx.fillStyle = '#7a2d22';
-        ctx.font = 'bold 22px Inter';
+        ctx.fillStyle = '#7b4b1b';
+        ctx.font = `700 ${Math.max(16, Math.round(this.tileSize * 0.17))}px Inter`;
         ctx.textAlign = 'right';
         ctx.textBaseline = 'bottom';
         
-        ctx.strokeStyle = '#fff8ea';
-        ctx.lineWidth = 3;
-        ctx.strokeText(letterScore.toString(), canvas.width - 8, canvas.height - 8);
-        ctx.fillText(letterScore.toString(), canvas.width - 8, canvas.height - 8);
+        ctx.strokeStyle = 'rgba(255,248,234,0.85)';
+        ctx.lineWidth = 2;
+        ctx.strokeText(letterScore.toString(), canvas.width - 10, canvas.height - 10);
+        ctx.fillText(letterScore.toString(), canvas.width - 10, canvas.height - 10);
         
         return canvas;
       }
@@ -884,7 +915,7 @@
         const tileTexture = this.scene.textures.addCanvas(`tile_${letter}_${letterScore}_${Date.now()}`, tileCanvas);
         
         // Shadow (subtle, larger, more transparent)
-        const shadow = this.scene.add.rectangle(x + 3, y + 6, this.tileSize + 4, this.tileSize + 4, 0xC2A477, 0.18);
+        const shadow = this.scene.add.rectangle(x + 4, y + 8, this.tileSize + 6, this.tileSize + 6, 0x8c6a3e, 0.12);
         shadow.setDepth(0);
         
         // Main tile using custom texture
@@ -894,7 +925,7 @@
         tile.isScrabbleTile = true;
         
         // Inner shadow (drawn as a slightly smaller, semi-transparent rectangle)
-        const innerShadow = this.scene.add.rectangle(x, y, this.tileSize - 6, this.tileSize - 6, 0x8B6B2F, 0.08);
+        const innerShadow = this.scene.add.rectangle(x, y, this.tileSize - 10, this.tileSize - 10, 0xffffff, 0.09);
         innerShadow.setDepth(2);
         
         // Apply the grid mask to all tile elements
@@ -906,6 +937,8 @@
         tile.letter = letter;
         tile.col = col;
         tile.falling = true;
+        tile.fallVelocity = this.fallSpeed * (0.92 + this.random() * 0.16);
+        tile.speedFactor = 0.96 + this.random() * 0.1;
         tile.shadow = shadow;
         tile.innerShadow = innerShadow;
         tile.textureKey = tileTexture.key; // Store for cleanup
@@ -914,11 +947,12 @@
         tile.setScale(0.85);
         shadow.setScale(0.85);
         innerShadow.setScale(0.85);
+        tile.y -= 6;
         this.scene.tweens.add({
           targets: [tile, shadow, innerShadow],
           scaleX: 1,
           scaleY: 1,
-          duration: 300,
+          duration: 320,
           ease: 'Back.easeOut'
         });
         return tile;
@@ -938,7 +972,9 @@
           for (let i = 0; i < colTiles.length; i++) {
             const tile = colTiles[i];
             if (!tile.falling) continue;
-            tile.y += this.fallSpeed * dt;
+            const targetVelocity = this.fallSpeed * (tile.speedFactor || 1);
+            tile.fallVelocity = Phaser.Math.Linear(tile.fallVelocity || targetVelocity, targetVelocity, Math.min(1, dt * 3.2));
+            tile.y += tile.fallVelocity * dt;
             if (tile.shadow) tile.shadow.y = tile.y + 6;
             if (tile.innerShadow) tile.innerShadow.y = tile.y;
           }
@@ -1419,12 +1455,19 @@
         // Get playfield dimensions
         const playfieldWidth = 800;
         const playfieldHeight = 1200;
+
+        // Center the board inside the fixed game canvas so the shell and play area align visually
+        const boardFrameWidth = 642;
+        const boardFrameHeight = 982;
+        const boardFrameX = (playfieldWidth - boardFrameWidth) / 2;
+        const boardFrameY = (playfieldHeight - boardFrameHeight) / 2;
+        const innerInset = 24;
         
         // Grid setup
-        this.gridX = 50;
-        this.gridY = 50;
-        this.gridWidth = playfieldWidth - 100;
-        this.gridHeight = playfieldHeight - 100;
+        this.gridX = boardFrameX + innerInset;
+        this.gridY = boardFrameY + innerInset;
+        this.gridWidth = boardFrameWidth - innerInset * 2;
+        this.gridHeight = boardFrameHeight - innerInset * 2;
         this.playfieldBottomY = this.gridY + this.gridHeight;
         
         // Change columns to 5 for a 5-column grid
@@ -1443,16 +1486,24 @@
         console.log('Creating GameScene...');
         this.dailySeed = getCurrentDailySeed();
         
+        const boardCenterX = boardFrameX + boardFrameWidth / 2;
+        const boardCenterY = boardFrameY + boardFrameHeight / 2;
+        this.add.rectangle(boardCenterX + 6, boardCenterY + 12, boardFrameWidth + 18, boardFrameHeight + 18, 0xd7cec0, 0.45);
+        this.add.rectangle(boardCenterX, boardCenterY, boardFrameWidth + 20, boardFrameHeight + 20, 0xfffcf7, 1)
+          .setStrokeStyle(1, 0xd6cec2, 1);
+        this.add.rectangle(boardCenterX, boardCenterY, boardFrameWidth, boardFrameHeight, 0xddc7bb, 0.96)
+          .setStrokeStyle(1, 0xc7aea1, 0.9);
+
         // Create grid outline
         this.grid = this.add.rectangle(
           this.gridX + this.gridWidth / 2,
           this.gridY + this.gridHeight / 2,
           this.gridWidth,
           this.gridHeight,
-          0xf8f1e3,
-          0.92
+          0xf6f6f6,
+          1
         );
-        this.grid.setStrokeStyle(3, 0x2a241d, 0.9);
+        this.grid.setStrokeStyle(3, 0x73685f, 0.95);
         
         // Create a geometry mask for the playfield
         const maskShape = this.add.graphics();
@@ -1463,7 +1514,7 @@
         // Add column dividers for better visual separation
         for (let i = 1; i < this.columns; i++) {
           const dividerX = this.gridX + (i * this.gridWidth / this.columns);
-          this.add.line(dividerX, this.gridY, dividerX, this.gridY + this.gridHeight, 0xd9bd7a, 0.55);
+          this.add.line(dividerX, this.gridY, dividerX, this.gridY + this.gridHeight, 0xe7ddd3, 0.45);
         }
         
         // Initialize modules
@@ -1500,7 +1551,7 @@
           this.gridY + this.gridHeight,
           this.gridX + this.gridWidth,
           this.gridY + this.gridHeight,
-          0x000000,
+          0x6f665d,
           1
         ).setOrigin(0, 0).setLineWidth(3).setDepth(100);
 
@@ -1868,6 +1919,7 @@
         const unlockText = unlocks.frontPageBonus && moment.tier === 'Front Page' ? ' • unlock bonus' : '';
         this.showFlashMessage(`${moment.tier}: ${word.toUpperCase()} for ${score} pts${chainText}${sourceText}${unlockText}`, '#f4d58d');
         if (chainLevel > 1) {
+          pulseStat('chain-display');
           this.announceGameEvent(`Chain x${chainLevel} active. Start the next word before the window closes.`);
         } else {
           this.setEncouragement(moment.tier, moment.note);
