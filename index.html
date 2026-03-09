@@ -311,11 +311,11 @@
       };
     }
 
-    function getPraiseMessage(wordLength, chainLevel) {
-      if (chainLevel >= 5) return "You're on fire!";
-      if (chainLevel >= 3) return "Amazing!";
-      if (wordLength >= 7) return "Wow!";
-      if (wordLength >= 5) return "Nice!";
+    function getPraiseMessage(wordLength, chainLevel, score = 0) {
+      if (chainLevel >= 6 || score >= 55) return "You're on fire!";
+      if (chainLevel >= 4 || score >= 38) return "Amazing!";
+      if (wordLength >= 7 || score >= 24) return "Wow!";
+      if (wordLength >= 5 || score >= 14) return "Nice!";
       return '';
     }
 
@@ -910,6 +910,34 @@
         }
       }
 
+      createPoofBurst(x, y) {
+        const burstCount = 7;
+        for (let i = 0; i < burstCount; i++) {
+          const puff = this.scene.add.circle(
+            x + this.randomBetween(-8, 8),
+            y + this.randomBetween(-8, 8),
+            this.randomBetween(5, 11),
+            i % 3 === 0 ? 0xfff7df : (i % 2 === 0 ? 0xf4d58d : 0xe8c77a),
+            0.9
+          );
+          puff.setDepth(4);
+          puff.setMask(this.scene.gridMask);
+          const driftX = this.randomBetween(-34, 34);
+          const driftY = this.randomBetween(-34, 10);
+          this.scene.tweens.add({
+            targets: puff,
+            x: puff.x + driftX,
+            y: puff.y + driftY,
+            scaleX: this.randomBetween(14, 24) / 10,
+            scaleY: this.randomBetween(14, 24) / 10,
+            alpha: 0,
+            duration: this.randomBetween(180, 280),
+            ease: 'Cubic.easeOut',
+            onComplete: () => puff.destroy()
+          });
+        }
+      }
+
       spawnNextActiveTile() {
         if (this.isPaused || this.activeTiles.length >= this.getActiveSpawnCap()) return;
         if (this.scene.gameModeManager.getCurrentMode().speedIncrease && this.scene.taptileSpeedManager && !this.scene.taptileSpeedManager.canSpawn()) {
@@ -978,14 +1006,16 @@
           const effectTargets = [tile];
           if (tile.shadow && !tile.shadow.destroyed) effectTargets.push(tile.shadow);
           if (tile.innerShadow && !tile.innerShadow.destroyed) effectTargets.push(tile.innerShadow);
+          this.createPoofBurst(tile.x, tile.y);
 
           this.scene.tweens.add({
             targets: effectTargets,
-            scaleX: 1.22,
-            scaleY: 1.22,
+            scaleX: 1.34,
+            scaleY: 1.34,
+            angle: this.randomBetween(-14, 14),
             alpha: 0,
-            duration: 170,
-            ease: 'Quad.easeOut',
+            duration: 190,
+            ease: 'Back.easeIn',
             onComplete: () => {
               this.destroyTile(tile);
               remainingAnimations--;
@@ -1962,7 +1992,7 @@
           this.topWordScore = score;
           this.topWord = word;
         }
-        const praise = getPraiseMessage(word.length, chainLevel);
+        const praise = getPraiseMessage(word.length, chainLevel, score);
         const chainText = chainLevel > 1 ? ` • x${chainLevel} chain` : '';
         const sourceText = validation.source === 'fallback' ? ' • offline list' : '';
         const unlockText = unlocks.frontPageBonus && moment.tier === 'Front Page' ? ' • unlock bonus' : '';
