@@ -656,9 +656,11 @@
         }
         this.columnTimers = [];
         this.isPaused = false; // Track pause state
-        this.activeTile = null;
+        this.activeTiles = [];
+        this.activeSpawnCap = 5;
         this.nextLetters = [];
         this.nextSpawnAt = 0;
+        this.spawnStaggerFactor = 0.22;
         this.fillQueue();
       }
       
@@ -677,7 +679,7 @@
       }
 
       fillQueue() {
-        while (this.nextLetters.length < 3) {
+        while (this.nextLetters.length < 5) {
           this.nextLetters.push(this.getRandomLetter());
         }
         if (this.scene.updateQueueUI) this.scene.updateQueueUI(this.nextLetters);
@@ -875,31 +877,32 @@
       }
 
       spawnNextActiveTile() {
-        if (this.activeTile || this.isPaused) return;
+        if (this.isPaused || this.activeTiles.length >= this.activeSpawnCap) return;
         if (this.scene.gameModeManager.getCurrentMode().speedIncrease && this.scene.taptileSpeedManager && !this.scene.taptileSpeedManager.canSpawn()) {
           return;
         }
         const availableColumns = [];
         for (let col = 0; col < this.columns; col++) {
-          if (this.getLandingRow(col) >= 0) availableColumns.push(col);
+          const hasActiveInColumn = this.activeTiles.some(tile => tile && tile.col === col);
+          if (this.getLandingRow(col) >= 0 && !hasActiveInColumn) availableColumns.push(col);
         }
         if (!availableColumns.length) {
-          this.scene.endGame();
           return;
         }
         const col = availableColumns[this.randomBetween(0, availableColumns.length - 1)];
         const letter = this.dequeueLetter();
         const spawnY = this.gridY - this.tileSize * 0.8;
-        this.activeTile = this.spawnTile(col, spawnY, letter);
+        this.activeTiles.push(this.spawnTile(col, spawnY, letter));
+        const spawnInterval = this.scene.taptileSpeedManager ? this.scene.taptileSpeedManager.getSpawnInterval() : 1400;
+        this.nextSpawnAt = Date.now() + Math.max(110, spawnInterval * this.spawnStaggerFactor);
       }
 
-      settleActiveTile() {
-        if (!this.activeTile) return;
-        const tile = this.activeTile;
+      settleActiveTile(tile, index) {
+        if (!tile) return;
         const landingRow = this.getLandingRow(tile.col);
         if (landingRow < 0) {
           this.destroyTile(tile);
-          this.activeTile = null;
+          this.activeTiles.splice(index, 1);
           this.scene.endGame();
           return;
         }
@@ -913,8 +916,7 @@
         if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.y = tile.y;
         this.gridTiles[landingRow][tile.col] = tile;
         this.columnsTiles[tile.col].push(tile);
-        this.activeTile = null;
-        this.nextSpawnAt = Date.now() + (this.scene.taptileSpeedManager ? this.scene.taptileSpeedManager.getSpawnInterval() : 1400);
+        this.activeTiles.splice(index, 1);
         if (landingRow <= 1) {
           this.scene.endGame();
         }
@@ -972,26 +974,46 @@
           this.fallSpeed = this.scene.taptileSpeedManager.getCurrentSpeed();
         }
 
-        if (this.activeTile && !this.activeTile.destroyed && this.activeTile.active) {
-          const landingRow = this.getLandingRow(this.activeTile.col);
+        for (let i = this.activeTiles.length - 1; i >= 0; i--) {
+          const tile = this.activeTiles[i];
+          if (!tile || tile.destroyed || !tile.active) {
+            this.activeTiles.splice(i, 1);
+            continue;
+          }
+          const landingRow = this.getLandingRow(tile.col);
           if (landingRow < 0) {
-            this.settleActiveTile();
-            return;
+            this.settleActiveTile(tile, i);
+            continue;
           }
-          const targetY = this.getCellCenter(this.activeTile.col, landingRow).y;
-          this.activeTile.y += this.fallSpeed * dt;
-          if (this.activeTile.shadow && !this.activeTile.shadow.destroyed) this.activeTile.shadow.y = this.activeTile.y + 8;
-          if (this.activeTile.innerShadow && !this.activeTile.innerShadow.destroyed) this.activeTile.innerShadow.y = this.activeTile.y;
-          if (this.activeTile.y >= targetY) {
-            this.settleActiveTile();
+          const targetY = this.getCellCenter(tile.col, landingRow).y;
+          tile.y += this.fallSpeed * dt;
+          if (tile.shadow && !tile.shadow.destroyed) tile.shadow.y = tile.y + 8;
+          if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.y = tile.y;
+          if (tile.y >= targetY) {
+            this.settleActiveTile(tile, i);
           }
-        } else if (!this.activeTile && Date.now() >= this.nextSpawnAt) {
+        }
+
+        const now = Date.now();
+        let spawnAttempts = 0;
+        while (
+          now >= this.nextSpawnAt &&
+          !this.isPaused &&
+          this.activeTiles.length < this.activeSpawnCap &&
+          spawnAttempts < this.activeSpawnCap
+        ) {
+          const previousCount = this.activeTiles.length;
           this.spawnNextActiveTile();
+          if (this.activeTiles.length === previousCount) {
+            this.nextSpawnAt = now + 120;
+            break;
+          }
+          spawnAttempts++;
         }
       }
       
       getAllTiles() {
-        return this.getSelectableTiles().concat(this.activeTile ? [this.activeTile] : []);
+        return this.getSelectableTiles().concat(this.activeTiles.filter(Boolean));
       }
 
       getSelectableTiles() {
@@ -1032,10 +1054,8 @@
         }
         
         this.gridTiles = Array.from({ length: this.rows }, () => Array(this.columns).fill(null));
-        if (this.activeTile) {
-          this.destroyTile(this.activeTile);
-          this.activeTile = null;
-        }
+        this.activeTiles.forEach(tile => this.destroyTile(tile));
+        this.activeTiles = [];
         this.nextLetters = [];
         this.fillQueue();
       }
@@ -1054,13 +1074,13 @@
       
       startSpawning() {
         this.isPaused = false;
-        this.nextSpawnAt = Date.now() + 250;
+        this.nextSpawnAt = Date.now() + 80;
         this.fillQueue();
       }
       
       resume() {
         this.isPaused = false;
-        this.nextSpawnAt = Date.now() + 250;
+        this.nextSpawnAt = Date.now() + 80;
       }
     }
 
