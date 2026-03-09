@@ -285,6 +285,7 @@ canvas {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
 }
 
 .submit-word-btn {
@@ -303,6 +304,12 @@ canvas {
   transform: none;
 }
 
+.submit-word-btn.secondary-action {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
 .progress-shell {
   height: 12px;
   margin-top: 16px;
@@ -317,6 +324,31 @@ canvas {
   border-radius: inherit;
   background: linear-gradient(90deg, var(--gold) 0%, var(--gold-soft) 100%);
   transition: width 160ms ease;
+}
+
+.next-preview {
+  margin-top: 10px;
+}
+
+.next-letters-display {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.next-letter-chip {
+  min-width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #fbf4e2 0%, #ead7ae 100%);
+  color: var(--ink);
+  font-family: "Roboto Slab", Georgia, serif;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 #playfield-container {

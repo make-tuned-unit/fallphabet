@@ -59,13 +59,8 @@
             <span id="speed-display" class="stat-value">1x</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">
-              <svg class="clock-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </span>
-            <span id="time-display" class="stat-value">5.0s</span>
+            <span class="stat-label">Danger:</span>
+            <span id="danger-display" class="stat-value">Low</span>
           </div>
         </div>
       </div>
@@ -76,7 +71,7 @@
       <!-- Mode Selector -->
       <div id="mode-selector" class="mode-selector">
         <button id="daily-mode-btn" class="mode-btn active" data-mode="daily">Daily</button>
-        <button id="taptile-mode-btn" class="mode-btn" data-mode="taptile">Taptile</button>
+        <button id="taptile-mode-btn" class="mode-btn" data-mode="taptile">Arcade</button>
       </div>
       
       <div class="menu-buttons">
@@ -105,6 +100,7 @@
       </div>
       <div class="status-actions">
         <button id="submit-word-btn" class="submit-word-btn" type="button">Bank Word</button>
+        <button id="clear-word-btn" class="submit-word-btn secondary-action" type="button">Clear</button>
       </div>
       <div class="status-side">
         <div id="progress-headline" class="status-headline">Reach 250 points in as few words as possible.</div>
@@ -112,11 +108,15 @@
           <div id="progress-fill" class="progress-fill"></div>
         </div>
         <div id="progress-caption" class="status-meta">0 / 250 points</div>
-        <div id="event-feed" class="event-feed">Chain starts at x1. Speed rises over time in Taptile.</div>
+        <div class="next-preview">
+          <span class="status-kicker">Next</span>
+          <div id="next-letters-display" class="next-letters-display"></div>
+        </div>
+        <div id="event-feed" class="event-feed">Chain starts at x1. Speed rises over time in Arcade.</div>
         <div class="status-footnotes">
           <span id="daily-seed-display">Edition seed: ---</span>
           <span id="streak-display">Streak: 0 days • Best solve: --</span>
-          <span id="unlock-display">Taptile unlocks: none yet</span>
+          <span id="unlock-display">Arcade unlocks: none yet</span>
         </div>
       </div>
     </section>
@@ -187,15 +187,13 @@
           <p>• No time limit - make words as long as possible</p>
         </div>
         <div id="taptile-goal" style="display: none;">
-          <h4>Continuous Run Mode</h4>
-          <p>• Survive as long as possible with increasing speed</p>
-          <p>• Make a new word within the time window or lose</p>
-          <p>• Time window shrinks as speed increases</p>
-          <p>• Speed increases every 90 seconds</p>
-          <p>• Time window decreases from 5.0s to 1.5s</p>
-          <p>• Get extra time after submitting words</p>
-          <p>• Compete globally on the leaderboard!</p>
-          <p>• Your personal best is saved locally</p>
+          <h4>Arcade Mode</h4>
+          <p>• Letters fall into a shared board and stack upward</p>
+          <p>• Spell words from touching tiles anywhere on the pile</p>
+          <p>• Valid words clear and the board collapses downward</p>
+          <p>• Survive as the drop speed rises in stages</p>
+          <p>• If the stack reaches the top danger band, the run ends</p>
+          <p>• Long clears earn breathing room and stronger combos</p>
         </div>
       </div>
     </div>
@@ -472,9 +470,9 @@
             leaderboard: false
           },
           taptile: {
-            name: 'Fallphabet Taptile',
+            name: 'Fallphabet Arcade',
             goal: null,
-            timeLimit: 5.0,
+            timeLimit: null,
             speedIncrease: true,
             leaderboard: true
           }
@@ -531,94 +529,45 @@
     // Taptile Speed Manager
     class TaptileSpeedManager {
       constructor() {
-        this.baseSpeed = 60; // Reduced from 100 for much slower initial speed
+        this.baseSpeed = 150;
         this.currentSpeed = this.baseSpeed;
         this.speedMultiplier = 1.0;
-        this.timeWindow = 5.0;
-        this.lastWordTime = 0;
-        this.speedIncreaseInterval = 90; // Increase speed every 90 seconds (was 60) - even more gradual
-        this.speedIncreaseAmount = 0.06; // 6% increase (was 8%) - more gradual progression
-        this.timeWindowDecrease = 0.2; // 0.2 second decrease (was 0.25) - more gradual
-        this.minTimeWindow = 1.5; // Minimum 1.5 seconds (was 1.0) - more forgiving
-        this.maxSpeedMultiplier = 2.0; // Maximum 2.0x speed (was 2.5)
-        this.speedTimer = null;
-        this.gracePeriodMultiplier = 2.0; // Grace period is 2x the time window
-        this.lastTimeWindow = 5.0; // Track previous time window for speed up messages
+        this.spawnInterval = 1400;
+        this.stageDuration = 30000;
+        this.currentStage = 0;
+        this.pauseUntil = 0;
       }
       
       start() {
         this.currentSpeed = this.baseSpeed;
         this.speedMultiplier = 1.0;
-        this.timeWindow = 5.0;
-        this.lastTimeWindow = 5.0; // Initialize last time window
-        this.lastWordTime = Date.now(); // Set to current time so first word has full time window
-        this.gracePeriod = false; // Initialize grace period
-        this.startSpeedTimer();
+        this.spawnInterval = 1400;
+        this.currentStage = 0;
+        this.pauseUntil = 0;
         this.updateUI();
       }
-      
-      startSpeedTimer() {
-        this.speedTimer = setInterval(() => {
-          this.increaseSpeed();
-        }, this.speedIncreaseInterval * 1000);
-      }
-      
-      increaseSpeed() {
-        this.speedMultiplier = Math.min(this.speedMultiplier + this.speedIncreaseAmount, this.maxSpeedMultiplier);
-        this.currentSpeed = Math.max(this.baseSpeed * this.speedMultiplier, this.baseSpeed); // Never below base speed
-        
-        // Store the previous time window before decreasing
-        this.lastTimeWindow = this.timeWindow;
-        this.timeWindow = Math.max(this.timeWindow - this.timeWindowDecrease, this.minTimeWindow);
-        
-        // Show "Speeding up!" message if time window decreased
-        if (this.timeWindow < this.lastTimeWindow) {
+
+      update(elapsedMs) {
+        const nextStage = Math.floor(elapsedMs / this.stageDuration);
+        if (nextStage > this.currentStage) {
+          this.currentStage = nextStage;
+          this.speedMultiplier = 1 + this.currentStage * 0.12;
+          this.currentSpeed = this.baseSpeed * this.speedMultiplier;
+          this.spawnInterval = Math.max(520, 1400 - this.currentStage * 110);
           this.showSpeedUpMessage();
+          pulseStat('speed-display');
+          this.updateUI();
         }
-        
-        pulseStat('speed-display');
-        pulseStat('time-display');
-        this.updateUI();
       }
-      
-      onWordSubmitted() {
-        // Reset the timer when a word is submitted to give player time to start next word
-        this.lastWordTime = Date.now();
-        // Add a grace period to prevent immediate game over - use extended grace period
-        this.gracePeriod = true;
-        const gracePeriodDuration = this.timeWindow * this.gracePeriodMultiplier * 1000; // 2x the time window
-        setTimeout(() => {
-          this.gracePeriod = false;
-        }, gracePeriodDuration);
-      }
-      
-      onWordStarted() {
-        // Reset the timer when player starts working on a new word
-        this.lastWordTime = Date.now();
-      }
-      
-      checkTimeWindow() {
-        // Always allow time window check since lastWordTime is set on start
-        // But respect grace period after word submission
-        if (this.gracePeriod) {
-          console.log('checkTimeWindow: Grace period active, allowing time window');
-          return true;
+
+      onWordSubmitted(wordLength) {
+        if (wordLength >= 7) {
+          this.pauseUntil = Date.now() + 1500;
         }
-        const now = Date.now();
-        const timeSinceLastWord = (now - this.lastWordTime) / 1000;
-        const isWithinWindow = timeSinceLastWord <= this.timeWindow;
-        
-        // Debug logging for time window issues
-        if (!isWithinWindow && this.wordsUsed > 0) {
-          console.log('checkTimeWindow: Time window exceeded!', {
-            timeSinceLastWord: timeSinceLastWord.toFixed(2),
-            timeWindow: this.timeWindow.toFixed(2),
-            lastWordTime: new Date(this.lastWordTime).toLocaleTimeString(),
-            now: new Date(now).toLocaleTimeString()
-          });
-        }
-        
-        return isWithinWindow;
+      }
+
+      canSpawn() {
+        return Date.now() >= this.pauseUntil;
       }
       
       getCurrentSpeed() {
@@ -629,43 +578,26 @@
         return this.speedMultiplier;
       }
       
-      getTimeWindow() {
-        return this.timeWindow;
-      }
-
-      getRemainingWindow() {
-        if (this.gracePeriod) return this.timeWindow;
-        const elapsed = (Date.now() - this.lastWordTime) / 1000;
-        return Math.max(0, this.timeWindow - elapsed);
+      getSpawnInterval() {
+        return this.spawnInterval;
       }
       
       updateUI() {
         const speedDisplay = document.getElementById('speed-display');
-        const timeDisplay = document.getElementById('time-display');
         if (speedDisplay) {
           speedDisplay.textContent = `${Math.max(this.speedMultiplier, 1.0).toFixed(1)}x`;
-        }
-        if (timeDisplay) {
-          timeDisplay.textContent = `${Math.max(this.timeWindow, 1.0).toFixed(1)}s`;
         }
       }
       
       stop() {
-        if (this.speedTimer) {
-          clearInterval(this.speedTimer);
-          this.speedTimer = null;
-        }
-        // Show last valid values instead of zero
         const speedDisplay = document.getElementById('speed-display');
-        const timeDisplay = document.getElementById('time-display');
         if (speedDisplay) speedDisplay.textContent = `${Math.max(this.speedMultiplier, 1.0).toFixed(1)}x`;
-        if (timeDisplay) timeDisplay.textContent = `${Math.max(this.timeWindow, 1.0).toFixed(1)}s`;
       }
       
       getStats() {
         return {
           maxSpeed: this.speedMultiplier,
-          timeSurvived: (Date.now() - this.lastWordTime) / 1000
+          timeSurvived: 0
         };
       }
       
@@ -677,7 +609,7 @@
             scene.showFlashMessage(`Speed up! ${this.speedMultiplier.toFixed(1)}x`, '#ffcf7d');
           }
           if (scene.announceGameEvent) {
-            scene.announceGameEvent(`Speed up: ${this.speedMultiplier.toFixed(1)}x speed, ${this.timeWindow.toFixed(1)}s to start the next word.`);
+            scene.announceGameEvent(`Speed up: ${this.speedMultiplier.toFixed(1)}x pace. Letters are dropping faster now.`);
           }
         }
       }
@@ -708,69 +640,18 @@
         this.buildLetterPool();
         this.useDailySeed = !!(window.gameModeManager && window.gameModeManager.currentMode === 'daily');
         this.random = this.useDailySeed ? createSeededRandom(scene.dailySeed || getCurrentDailySeed()) : Math.random;
-        // Each column has a queue of falling tiles
         this.columnsTiles = Array.from({length: columns}, () => []);
+        this.gridTiles = Array.from({ length: rows }, () => Array(columns).fill(null));
         this.columnX = [];
         for (let i = 0; i < columns; i++) {
           this.columnX.push(gridX + (i + 0.5) * (gridWidth / columns));
         }
-        // Set up per-column spawn timers for a steady cascade
         this.columnTimers = [];
-        this.baseSpawnInterval = 1500; // ms, increased from 1000 for slower spawning
         this.isPaused = false; // Track pause state
-        // Store spawn functions for each column to start them when the game begins
-        this.columnSpawnFunctions = [];
-        for (let col = 0; col < this.columns; col++) {
-          let initialDelay = 200 + col * 180;
-          let spawned = 0;
-          const spawnNext = () => {
-            // Don't spawn if the game is paused
-            if (this.isPaused) {
-              // Retry after a short delay
-              this.columnTimers[col] = this.scene.time.addEvent({
-                delay: 100,
-                callback: spawnNext,
-                callbackScope: this
-              });
-              return;
-            }
-            // Only spawn if last tile is far enough down
-            const colTiles = this.columnsTiles[col];
-            const lastTile = colTiles.length > 0 ? colTiles[colTiles.length - 1] : null;
-            const spawnY = this.gridY - this.tileSize / 2 - (spawned < 2 ? spawned * (this.tileSize + this.tileSpacing) : 0);
-            let requiredSpacing = this.tileSize + this.tileSpacing;
-            if (lastTile && lastTile.y < spawnY + requiredSpacing) {
-              // Not enough space, retry soon
-              this.columnTimers[col] = this.scene.time.addEvent({
-                delay: 100,
-                callback: spawnNext,
-                callbackScope: this
-              });
-              return;
-            }
-            const tile = this.spawnTile(col, spawnY);
-            this.columnsTiles[col].push(tile);
-            spawned++;
-            // Schedule the next spawn with dynamic interval based on speed
-            const currentSpeed = this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease
-              ? this.scene.taptileSpeedManager.getCurrentSpeed()
-              : this.fallSpeed;
-            const delay = Math.max(150, ((this.tileSize + this.tileSpacing) / currentSpeed) * 1000);
-            this.columnTimers[col] = this.scene.time.addEvent({
-              delay: delay,
-              callback: spawnNext,
-              callbackScope: this
-            });
-          };
-          // Store the spawn function to start it when the game begins
-          this.columnSpawnFunctions[col] = () => {
-            this.scene.time.addEvent({
-              delay: initialDelay,
-              callback: spawnNext,
-              callbackScope: this
-            });
-          };
-        }
+        this.activeTile = null;
+        this.nextLetters = [];
+        this.nextSpawnAt = 0;
+        this.fillQueue();
       }
       
       buildLetterPool() {
@@ -785,6 +666,34 @@
       
       getRandomLetter() {
         return this.letterPool[Math.floor(this.random() * this.letterPool.length)];
+      }
+
+      fillQueue() {
+        while (this.nextLetters.length < 3) {
+          this.nextLetters.push(this.getRandomLetter());
+        }
+        if (this.scene.updateQueueUI) this.scene.updateQueueUI(this.nextLetters);
+      }
+
+      dequeueLetter() {
+        this.fillQueue();
+        const next = this.nextLetters.shift();
+        this.fillQueue();
+        return next;
+      }
+
+      getCellCenter(col, row) {
+        return {
+          x: this.gridX + (col + 0.5) * (this.gridWidth / this.columns),
+          y: this.gridY + (row + 0.5) * (this.gridHeight / this.rows)
+        };
+      }
+
+      getLandingRow(col) {
+        for (let row = this.rows - 1; row >= 0; row--) {
+          if (!this.gridTiles[row][col]) return row;
+        }
+        return -1;
       }
       
       createTileTexture(letter, letterScore) {
@@ -887,8 +796,7 @@
         return canvas;
       }
       
-      spawnTile(col, y) {
-        const letter = this.getRandomLetter();
+      spawnTile(col, y, letter = this.getRandomLetter()) {
         const x = this.columnX[col];
         
         // Get letter score
@@ -906,8 +814,8 @@
         // Main tile using custom texture
         const tile = this.scene.add.image(x, y, tileTexture.key);
         tile.setDepth(1);
-        tile.setInteractive();
         tile.isScrabbleTile = true;
+        tile.isSelectable = false;
         
         // Inner shadow (drawn as a slightly smaller, semi-transparent rectangle)
         const innerShadow = this.scene.add.rectangle(x, y, this.tileSize - 10, this.tileSize - 10, 0xffffff, 0.09);
@@ -921,6 +829,7 @@
         
         tile.letter = letter;
         tile.col = col;
+        tile.row = null;
         tile.falling = true;
         tile.fallVelocity = this.fallSpeed;
         tile.shadow = shadow;
@@ -941,6 +850,110 @@
         });
         return tile;
       }
+
+      destroyTile(tile) {
+        if (!tile) return;
+        if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
+        if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
+        if (tile && !tile.destroyed) tile.destroy();
+        if (
+          this.scene &&
+          this.scene.textures &&
+          tile.textureKey &&
+          this.scene.textures.exists(tile.textureKey)
+        ) {
+          this.scene.textures.remove(tile.textureKey);
+        }
+      }
+
+      spawnNextActiveTile() {
+        if (this.activeTile || this.isPaused) return;
+        if (this.scene.gameModeManager.getCurrentMode().speedIncrease && this.scene.taptileSpeedManager && !this.scene.taptileSpeedManager.canSpawn()) {
+          return;
+        }
+        const availableColumns = [];
+        for (let col = 0; col < this.columns; col++) {
+          if (this.getLandingRow(col) >= 0) availableColumns.push(col);
+        }
+        if (!availableColumns.length) {
+          this.scene.endGame();
+          return;
+        }
+        const col = availableColumns[this.randomBetween(0, availableColumns.length - 1)];
+        const letter = this.dequeueLetter();
+        const spawnY = this.gridY - this.tileSize * 0.8;
+        this.activeTile = this.spawnTile(col, spawnY, letter);
+      }
+
+      settleActiveTile() {
+        if (!this.activeTile) return;
+        const tile = this.activeTile;
+        const landingRow = this.getLandingRow(tile.col);
+        if (landingRow < 0) {
+          this.destroyTile(tile);
+          this.activeTile = null;
+          this.scene.endGame();
+          return;
+        }
+        const cell = this.getCellCenter(tile.col, landingRow);
+        tile.y = cell.y;
+        tile.row = landingRow;
+        tile.falling = false;
+        tile.isSelectable = true;
+        tile.setInteractive();
+        if (tile.shadow && !tile.shadow.destroyed) tile.shadow.y = tile.y + 8;
+        if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.y = tile.y;
+        this.gridTiles[landingRow][tile.col] = tile;
+        this.columnsTiles[tile.col].push(tile);
+        this.activeTile = null;
+        this.nextSpawnAt = Date.now() + (this.scene.taptileSpeedManager ? this.scene.taptileSpeedManager.getSpawnInterval() : 1400);
+        if (landingRow <= 1) {
+          this.scene.endGame();
+        }
+      }
+
+      removeTiles(tiles) {
+        tiles.forEach(tile => {
+          if (!tile || tile.row === null || tile.col === null) return;
+          if (this.gridTiles[tile.row] && this.gridTiles[tile.row][tile.col] === tile) {
+            this.gridTiles[tile.row][tile.col] = null;
+          }
+          const colTiles = this.columnsTiles[tile.col];
+          const idx = colTiles.indexOf(tile);
+          if (idx >= 0) colTiles.splice(idx, 1);
+          this.destroyTile(tile);
+        });
+        this.collapseBoard();
+      }
+
+      collapseBoard() {
+        for (let col = 0; col < this.columns; col++) {
+          const survivors = [];
+          for (let row = this.rows - 1; row >= 0; row--) {
+            const tile = this.gridTiles[row][col];
+            if (tile) survivors.push(tile);
+            this.gridTiles[row][col] = null;
+          }
+          let targetRow = this.rows - 1;
+          survivors.forEach(tile => {
+            const cell = this.getCellCenter(col, targetRow);
+            tile.row = targetRow;
+            tile.col = col;
+            this.gridTiles[targetRow][col] = tile;
+            this.scene.tweens.add({ targets: tile, y: cell.y, duration: 140, ease: 'Quad.easeIn' });
+            if (tile.shadow && !tile.shadow.destroyed) {
+              this.scene.tweens.add({ targets: tile.shadow, y: cell.y + 8, duration: 140, ease: 'Quad.easeIn' });
+            }
+            if (tile.innerShadow && !tile.innerShadow.destroyed) {
+              this.scene.tweens.add({ targets: tile.innerShadow, y: cell.y, duration: 140, ease: 'Quad.easeIn' });
+            }
+            targetRow--;
+          });
+          this.columnsTiles[col] = survivors
+            .slice()
+            .sort((a, b) => a.row - b.row);
+        }
+      }
       
       update(dt) {
         // Don't update if paused
@@ -950,61 +963,40 @@
         if (this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease) {
           this.fallSpeed = this.scene.taptileSpeedManager.getCurrentSpeed();
         }
-        
-        for (let col = 0; col < this.columns; col++) {
-          let colTiles = this.columnsTiles[col];
-          for (let i = 0; i < colTiles.length; i++) {
-            const tile = colTiles[i];
-            if (!tile || tile.destroyed || !tile.active) {
-              colTiles.splice(i, 1);
-              i--;
-              continue;
-            }
-            if (!tile.falling) continue;
-            tile.fallVelocity = this.fallSpeed;
-            tile.y += tile.fallVelocity * dt;
-            if (tile.shadow && !tile.shadow.destroyed && tile.shadow.active) tile.shadow.y = tile.y + 8;
-            if (tile.innerShadow && !tile.innerShadow.destroyed && tile.innerShadow.active) tile.innerShadow.y = tile.y;
+
+        if (this.activeTile && !this.activeTile.destroyed && this.activeTile.active) {
+          const landingRow = this.getLandingRow(this.activeTile.col);
+          if (landingRow < 0) {
+            this.settleActiveTile();
+            return;
           }
-          // Remove tiles with smooth slide-out animation
-          for (let i = colTiles.length - 1; i >= 0; i--) {
-            const tile = colTiles[i];
-            if (!tile || tile.destroyed || !tile.active) {
-              colTiles.splice(i, 1);
-              continue;
-            }
-            if (tile.y + this.tileSize / 2 >= this.scene.playfieldBottomY) {
-              const scene = this.scene;
-              this.scene.tweens.add({
-                targets: [tile, tile.shadow, tile.innerShadow].filter(Boolean),
-                scaleX: 0.8,
-                scaleY: 0.8,
-                alpha: 0,
-                duration: 200,
-                ease: 'Power2',
-                onComplete: () => {
-                  tile.destroy();
-                  if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
-                  if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
-                  // Clean up texture
-                  if (
-                    scene &&
-                    scene.textures &&
-                    tile.textureKey &&
-                    scene.textures.exists(tile.textureKey)
-                  ) {
-                    scene.textures.remove(tile.textureKey);
-                  }
-                }
-              });
-              colTiles.splice(i, 1);
-            }
+          const targetY = this.getCellCenter(this.activeTile.col, landingRow).y;
+          this.activeTile.y += this.fallSpeed * dt;
+          if (this.activeTile.shadow && !this.activeTile.shadow.destroyed) this.activeTile.shadow.y = this.activeTile.y + 8;
+          if (this.activeTile.innerShadow && !this.activeTile.innerShadow.destroyed) this.activeTile.innerShadow.y = this.activeTile.y;
+          if (this.activeTile.y >= targetY) {
+            this.settleActiveTile();
           }
+        } else if (!this.activeTile && Date.now() >= this.nextSpawnAt) {
+          this.spawnNextActiveTile();
         }
       }
       
       getAllTiles() {
-        return this.columnsTiles.flat();
+        return this.getSelectableTiles().concat(this.activeTile ? [this.activeTile] : []);
+      }
+
+      getSelectableTiles() {
+        return this.gridTiles.flat().filter(Boolean);
+      }
+
+      getTopOccupiedRow() {
+        for (let row = 0; row < this.rows; row++) {
+          for (let col = 0; col < this.columns; col++) {
+            if (this.gridTiles[row][col]) return row;
+          }
+        }
+        return null;
       }
       
       clearAllTiles() {
@@ -1031,16 +1023,13 @@
           this.columnsTiles[col] = [];
         }
         
-        // Clear all timers
-        if (this.columnTimers) {
-          this.columnTimers.forEach(timer => {
-            if (timer) {
-              timer.paused = true;
-              timer.remove();
-            }
-          });
-          this.columnTimers = [];
+        this.gridTiles = Array.from({ length: this.rows }, () => Array(this.columns).fill(null));
+        if (this.activeTile) {
+          this.destroyTile(this.activeTile);
+          this.activeTile = null;
         }
+        this.nextLetters = [];
+        this.fillQueue();
       }
       
       pause() {
@@ -1056,39 +1045,14 @@
       }
       
       startSpawning() {
-        // Unpause the spawner first
         this.isPaused = false;
-        
-        // Start spawning for all columns with staggered timing
-        if (this.columnSpawnFunctions) {
-          this.columnSpawnFunctions.forEach((spawnFunc, col) => {
-            if (spawnFunc) {
-              // Add staggered delay based on column to maintain natural flow
-              const staggerDelay = col * 500; // 500ms delay between columns for more spread
-              this.scene.time.delayedCall(staggerDelay, () => {
-                spawnFunc();
-              });
-            }
-          });
-        }
+        this.nextSpawnAt = Date.now() + 250;
+        this.fillQueue();
       }
       
       resume() {
-        // Resume all column timers with staggered timing
-        if (this.columnTimers) {
-          this.columnTimers.forEach((timer, col) => {
-            if (timer) {
-              // Add staggered delay based on column to maintain natural flow
-              const staggerDelay = col * 500; // 500ms delay between columns for more spread
-              this.scene.time.delayedCall(staggerDelay, () => {
-                if (timer && timer.paused) {
-                  timer.paused = false;
-                }
-              });
-            }
-          });
-        }
         this.isPaused = false;
+        this.nextSpawnAt = Date.now() + 250;
       }
     }
 
@@ -1183,10 +1147,6 @@
               if (this.scene.chainTracker) {
                 this.scene.pendingChainCarry = this.scene.chainTracker.consumeWindow();
               }
-              // Reset the taptile timer when starting a new word
-              if (this.scene.taptileSpeedManager) {
-                this.scene.taptileSpeedManager.onWordStarted();
-              }
             }
           }
         }
@@ -1200,22 +1160,17 @@
       }
       
       selectTileAt(x, y) {
-        const tiles = this.tileSpawner.getAllTiles();
+        const tiles = this.tileSpawner.getSelectableTiles();
         for (const tile of tiles) {
-          if (!tile || tile.destroyed || !tile.isScrabbleTile) continue;
+          if (!tile || tile.destroyed || !tile.isScrabbleTile || !tile.isSelectable) continue;
           const distance = Phaser.Math.Distance.Between(x, y, tile.x, tile.y);
           // Increase hit detection area by 20% for better touch responsiveness
           const hitRadius = (tile.width / 2) * 1.2;
           if (distance <= hitRadius) {
             if (this.lastTile && tile !== this.lastTile) {
-              // Check if this tile is adjacent to the last selected tile
-              const lastCol = this.lastTile.col;
-              const currentCol = tile.col;
-              const lastIndex = this.tileSpawner.columnsTiles[lastCol].indexOf(this.lastTile);
-              const currentIndex = this.tileSpawner.columnsTiles[currentCol].indexOf(tile);
               const isAdjacent = (
-                (Math.abs(currentCol - lastCol) === 1 && Math.abs(currentIndex - lastIndex) <= 1) ||
-                (currentCol === lastCol && Math.abs(currentIndex - lastIndex) === 1)
+                Math.abs(tile.col - this.lastTile.col) <= 1 &&
+                Math.abs(tile.row - this.lastTile.row) <= 1
               );
               if (!isAdjacent) continue;
             }
@@ -1226,9 +1181,6 @@
               this.highlightTile(tile, true);
               if (isFirstTile && this.scene.chainTracker) {
                 this.scene.pendingChainCarry = this.scene.chainTracker.consumeWindow();
-              }
-              if (isFirstTile && this.scene.taptileSpeedManager) {
-                this.scene.taptileSpeedManager.onWordStarted();
               }
               if (this.scene.updateComposerUI) this.scene.updateComposerUI();
             }
@@ -1351,7 +1303,7 @@
       constructor() {
         this.chainLevel = 1;
         this.highestChain = 1;
-        this.chainWindowDuration = 2000; // 2.0 seconds
+        this.chainWindowDuration = 2500;
         this.chainWindowTimeout = null;
         this.chainWindowActive = false;
         this.windowExpiresAt = 0;
@@ -1462,14 +1414,11 @@
         this.gridHeight = boardFrameHeight - innerInset * 2;
         this.playfieldBottomY = this.gridY + this.gridHeight;
         
-        // Change columns to 5 for a 5-column grid
-        this.columns = 5;
+        this.columns = 8;
         this.rows = 12;
         
-        // Recalculate tile size and margin for 5 columns, keeping the same margin formula
-        this.tileSize = (this.gridWidth / this.columns) * 0.75; // Keep the same 75% sizing
+        this.tileSize = (this.gridWidth / this.columns) * 0.76;
         this.tileMargin = (this.gridWidth / this.columns - this.tileSize) / 2;
-        // Recalculate column positions for 5 columns
         this.columnX = [];
         for (let i = 0; i < this.columns; i++) {
           this.columnX.push(this.gridX + (i + 0.5) * (this.gridWidth / this.columns));
@@ -1581,6 +1530,14 @@
         setTextContent('current-word-meta', currentMeta);
         const submitButton = document.getElementById('submit-word-btn');
         if (submitButton) submitButton.disabled = letters.length < 3 || this.gameOver || !this.gameStarted;
+        const clearButton = document.getElementById('clear-word-btn');
+        if (clearButton) clearButton.disabled = letters.length === 0;
+      }
+
+      updateQueueUI(queue = []) {
+        const preview = document.getElementById('next-letters-display');
+        if (!preview) return;
+        preview.innerHTML = queue.map(letter => `<span class="next-letter-chip">${letter}</span>`).join('');
       }
 
       updateProgressUI() {
@@ -1592,19 +1549,24 @@
         const dailySeedDisplay = document.getElementById('daily-seed-display');
         const summary = getDailyProgressSummary();
         const unlocks = getTaptileUnlocks();
+        const dangerDisplay = document.getElementById('danger-display');
         let ratio = 0;
 
         if (currentMode.speedIncrease) {
-          const remaining = this.taptileSpeedManager ? this.taptileSpeedManager.getRemainingWindow() : 0;
-          const totalWindow = this.taptileSpeedManager ? this.taptileSpeedManager.getTimeWindow() : 1;
-          ratio = totalWindow ? Math.max(0, Math.min(1, remaining / totalWindow)) : 0;
-          if (progressHeadline) progressHeadline.textContent = 'Stay ahead of the deadline and extend the run.';
+          const topOccupiedRow = this.tileSpawner ? this.tileSpawner.getTopOccupiedRow() : this.rows - 1;
+          const filledRows = topOccupiedRow === null ? 0 : this.rows - topOccupiedRow;
+          ratio = Math.max(0, Math.min(1, filledRows / this.rows));
+          if (progressHeadline) progressHeadline.textContent = 'Clear words to keep the stack below the danger line.';
           if (progressCaption) {
             const speed = this.taptileSpeedManager ? this.taptileSpeedManager.getSpeedMultiplier() : 1;
-            progressCaption.textContent = `${remaining.toFixed(1)}s window • ${speed.toFixed(1)}x speed`;
+            progressCaption.textContent = `${filledRows} rows active • ${speed.toFixed(1)}x speed`;
           }
           if (dailySeedDisplay) {
             dailySeedDisplay.textContent = `Weekly notebook: ${summary.weeklyRuns} daily clears this week`;
+          }
+          if (dangerDisplay) {
+            const label = ratio > 0.8 ? 'Critical' : ratio > 0.6 ? 'High' : ratio > 0.35 ? 'Rising' : 'Low';
+            dangerDisplay.textContent = label;
           }
         } else {
           ratio = Math.max(0, Math.min(1, score / currentMode.goal));
@@ -1613,6 +1575,7 @@
           if (dailySeedDisplay) {
             dailySeedDisplay.textContent = `Edition seed: ${this.dailySeed.replace('fallphabet-', '')}`;
           }
+          if (dangerDisplay) dangerDisplay.textContent = 'Low';
         }
 
         if (progressFill) {
@@ -1623,7 +1586,7 @@
           'streak-display',
           `Streak: ${summary.streak} day${summary.streak === 1 ? '' : 's'} • Best solve: ${summary.bestWords ?? '--'} words`
         );
-        setTextContent('unlock-display', `Taptile unlocks: ${describeUnlocks(unlocks)}`);
+        setTextContent('unlock-display', `Arcade unlocks: ${describeUnlocks(unlocks)}`);
       }
 
       setEncouragement(tier, note) {
@@ -1692,7 +1655,7 @@
             timeSurvived: stats.timeSurvived,
             highestChain: stats.highestChain
           });
-          setTextContent('unlock-display', `Taptile unlocks: ${describeUnlocks(unlockSummary.unlocks)}`);
+          setTextContent('unlock-display', `Arcade unlocks: ${describeUnlocks(unlockSummary.unlocks)}`);
           const unlockCopy = unlockSummary.changed
             ? `New desk tool unlocked: ${describeUnlocks(unlockSummary.unlocks)}.`
             : `Active desk tools: ${describeUnlocks(unlockSummary.unlocks)}.`;
@@ -1846,17 +1809,11 @@
       update(time, delta) {
         if (this.gameOver || !this.gameStarted) return;
         const dt = delta / 1000;
+        if (this.gameModeManager && this.gameModeManager.getCurrentMode().speedIncrease && this.taptileSpeedManager) {
+          this.taptileSpeedManager.update(Date.now() - this.gameStartTime);
+        }
         this.tileSpawner.update(dt);
         this.inputHandler.update();
-        
-        // Check taptile time window
-        if (this.gameModeManager && this.gameModeManager.getCurrentMode().speedIncrease) {
-          if (!this.taptileSpeedManager.checkTimeWindow() && this.wordsUsed > 0) {
-            this.endGame();
-            return;
-          }
-        }
-        
         this.updateUI();
       }
       
@@ -1918,38 +1875,7 @@
         }
         this.scoredWords.push({ word, score });
 
-        tiles.forEach(tile => {
-          if (tile && tile.col !== undefined && this.tileSpawner.columnsTiles[tile.col]) {
-            const colIndex = this.tileSpawner.columnsTiles[tile.col].indexOf(tile);
-            if (colIndex > -1) {
-              this.tileSpawner.columnsTiles[tile.col].splice(colIndex, 1);
-            }
-          }
-        });
-        tiles.forEach(tile => {
-          const scene = this.scene;
-          this.tweens.add({
-            targets: [tile, tile.shadow, tile.innerShadow],
-            scaleX: 0,
-            scaleY: 0,
-            duration: 300,
-            ease: 'Power2',
-            onComplete: () => {
-              tile.destroy();
-              if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
-              if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
-              // Clean up texture
-              if (
-                this.scene &&
-                this.scene.textures &&
-                tile.textureKey &&
-                this.scene.textures.exists(tile.textureKey)
-              ) {
-                this.scene.textures.remove(tile.textureKey);
-              }
-            }
-          });
-        });
+        this.tileSpawner.removeTiles(tiles);
         // Check for game over based on mode
         const currentMode = this.gameModeManager.getCurrentMode();
         if (currentMode.goal && this.scoreManager.getTotalScore() >= currentMode.goal) {
@@ -1958,14 +1884,11 @@
         
         // Update taptile speed manager
         if (currentMode.speedIncrease) {
-          this.taptileSpeedManager.onWordSubmitted();
+          this.taptileSpeedManager.onWordSubmitted(word.length);
         }
         
         // Always start chain window after word submission
-        const chainWindowMs = currentMode.speedIncrease && this.taptileSpeedManager
-          ? this.taptileSpeedManager.getTimeWindow() * 1000
-          : this.chainTracker.chainWindowDuration;
-        let adjustedChainWindowMs = chainWindowMs;
+        let adjustedChainWindowMs = 2500;
         if (currentMode.speedIncrease && unlocks.graceExtension && word.length >= 6) {
           adjustedChainWindowMs += 600;
         }
@@ -2903,7 +2826,7 @@
         'streak-display',
         `Streak: ${summary.streak} day${summary.streak === 1 ? '' : 's'} • Best solve: ${summary.bestWords ?? '--'} words`
       );
-      setTextContent('unlock-display', `Taptile unlocks: ${describeUnlocks(getTaptileUnlocks())}`);
+      setTextContent('unlock-display', `Arcade unlocks: ${describeUnlocks(getTaptileUnlocks())}`);
       setTextContent('daily-seed-display', `Edition seed: ${getCurrentDailySeed().replace('fallphabet-', '')}`);
       
       // Initialize global game mode manager
@@ -3097,6 +3020,17 @@
               : null;
             if (scene && scene.inputHandler) {
               scene.inputHandler.submitWord();
+            }
+          });
+        }
+        const clearWordBtn = document.getElementById('clear-word-btn');
+        if (clearWordBtn) {
+          clearWordBtn.addEventListener('click', () => {
+            const scene = window.game && window.game.scene && window.game.scene.keys
+              ? window.game.scene.keys['GameScene']
+              : null;
+            if (scene && scene.inputHandler) {
+              scene.inputHandler.clearBuffer();
             }
           });
         }
