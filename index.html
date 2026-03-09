@@ -150,7 +150,12 @@
   <div id="main-content">
     <!-- Header Section -->
     <header class="game-header" style="margin-top: 0px !important; padding-top: 0px !important; margin-bottom: 0px !important; padding-bottom: 0px !important;">
+      <div class="edition-bar">
+        <span class="edition-label">Games</span>
+        <span id="today-label" class="edition-date"></span>
+      </div>
       <h1 class="game-title" style="margin: 0px 0 5px 0 !important; padding: 0px !important; line-height: 0.9 !important;">FALLPHABET</h1>
+      <p class="game-subtitle">A daily word descent with newsroom polish: bank elegant words, build a live chain, and chase a cleaner finish.</p>
       <div class="game-stats">
         <div class="stat-item">
           <span class="stat-label" style="font-family: 'Arial', 'Helvetica', sans-serif;">Pts:</span>
@@ -207,6 +212,31 @@
       </div>
     </div>
 
+    <section class="briefing-strip">
+      <div class="briefing-card primary">
+        <div class="briefing-label">Current Word</div>
+        <div id="current-word-display" class="current-word-display">Tap tiles to compose a word.</div>
+        <div id="current-word-meta" class="current-word-meta">Minimum 3 letters. Double-tap the last tile or use Bank Word.</div>
+        <button id="submit-word-btn" class="submit-word-btn" type="button">Bank Word</button>
+      </div>
+      <div class="briefing-card">
+        <div class="briefing-label">Daily Brief</div>
+        <div id="progress-headline" class="progress-headline">Reach 250 points in as few words as possible.</div>
+        <div class="progress-shell">
+          <div id="progress-fill" class="progress-fill"></div>
+        </div>
+        <div id="progress-caption" class="progress-caption">0 / 250 points</div>
+        <div id="daily-seed-display" class="supporting-meta">Edition seed: ---</div>
+      </div>
+      <div class="briefing-card accent">
+        <div class="briefing-label">Word Desk</div>
+        <div id="encouragement-note" class="encouragement-note">Open with a sturdy 5-letter word and keep your chain alive.</div>
+        <div id="encouragement-tier" class="encouragement-tier">Awaiting your first standout word</div>
+        <div id="streak-display" class="supporting-meta inverse">Streak: 0 days • Best solve: --</div>
+        <div id="unlock-display" class="supporting-meta inverse">Taptile unlocks: none yet</div>
+      </div>
+    </section>
+      
     <!-- Playfield Container (only one, centered) -->
     <div id="playfield-container"></div>
   </div>
@@ -234,6 +264,7 @@
           <div><strong>Time Survived:</strong> <span id="modal-time-survived">0s</span></div>
         </div>
       </div>
+      <div id="modal-recap" class="modal-recap"></div>
       <div class="modal-actions">
         <button id="modal-share-btn" class="modal-btn primary">Share</button>
         <button id="modal-restart-btn" class="modal-btn" style="display:none;"></button>
@@ -254,13 +285,14 @@
       <div class="instructions-text">
         <h3>How to Play</h3>
         <p>• Tap tiles in sequence to build words</p>
-        <p>• Double-tap last letter to submit</p>
+        <p>• Bank words with 3+ letters</p>
+        <p>• Double-tap the last tile or use Bank Word to submit</p>
         <p>• Tap outside grid to reset current word</p>
         <p>• Selection auto-clears after 2.0 seconds</p>
         
         <h3>Scoring & Chains</h3>
         <p>• Letters have point values (like Scrabble)</p>
-        <p>• Longer words = more points</p>
+        <p>• Longer words and rare letters add bonuses</p>
         <p>• Start new word within 2.0 seconds to build chain</p>
         <p>• Chain multiplier: 2nd word 2, 3rd word 3, etc.</p>
         <p>• Miss timing = chain resets to 1</p>
@@ -318,6 +350,218 @@
   </div>
   
   <script>
+    const COMMON_WORD_FALLBACKS = new Set([
+      'able', 'about', 'above', 'ache', 'acid', 'acorn', 'acre', 'act', 'actor', 'adapt', 'adder', 'after', 'again', 'aged', 'agent',
+      'air', 'alert', 'align', 'alive', 'alone', 'along', 'amber', 'angel', 'angle', 'ant', 'apple', 'apron', 'arch', 'area', 'argue',
+      'arm', 'arrow', 'ash', 'atom', 'attic', 'audio', 'aunt', 'awake', 'award', 'aware', 'baker', 'bale', 'ball', 'band', 'bank',
+      'basic', 'beach', 'beam', 'bear', 'beard', 'beast', 'become', 'bell', 'below', 'bench', 'berry', 'best', 'better', 'blade',
+      'blank', 'bleak', 'blend', 'bless', 'bloom', 'board', 'boast', 'body', 'bonus', 'book', 'boost', 'border', 'borne', 'bottle',
+      'brave', 'bread', 'break', 'brick', 'bright', 'bring', 'broad', 'brown', 'brush', 'build', 'burst', 'cabin', 'cable', 'cactus',
+      'camel', 'candy', 'canoe', 'caper', 'carry', 'carve', 'case', 'catch', 'cause', 'cedar', 'chain', 'chair', 'chalk', 'charm',
+      'chart', 'chase', 'cheap', 'check', 'cheer', 'chess', 'chief', 'child', 'choir', 'chord', 'cider', 'cigar', 'claim', 'clasp',
+      'clean', 'clear', 'clerk', 'cliff', 'climb', 'clock', 'close', 'cloud', 'coach', 'coast', 'cocoa', 'color', 'comic', 'copper',
+      'cord', 'corner', 'count', 'court', 'cover', 'craft', 'crane', 'crash', 'crate', 'cream', 'creek', 'crest', 'crisp', 'crown',
+      'daily', 'dance', 'daring', 'dawn', 'deal', 'dear', 'debut', 'decay', 'decent', 'deep', 'delta', 'dense', 'desert', 'design',
+      'dial', 'diner', 'dirt', 'dodge', 'doing', 'donor', 'door', 'doubt', 'draft', 'drama', 'dream', 'dress', 'drift', 'drink',
+      'drive', 'dune', 'eager', 'early', 'earth', 'easel', 'echo', 'edge', 'edit', 'elder', 'elect', 'elite', 'ember', 'empty',
+      'enjoy', 'enter', 'equal', 'equip', 'essay', 'ether', 'even', 'event', 'every', 'exact', 'exist', 'extra', 'fable', 'facet',
+      'fair', 'faith', 'false', 'fancy', 'feast', 'fence', 'fever', 'fiber', 'field', 'fierce', 'final', 'finder', 'flame', 'flare',
+      'flash', 'fleet', 'flesh', 'float', 'flock', 'flora', 'fluent', 'focus', 'force', 'forge', 'formal', 'frame', 'fresh', 'front',
+      'frost', 'fruit', 'giant', 'glade', 'glass', 'gleam', 'glide', 'glory', 'grace', 'grade', 'grain', 'grand', 'grant', 'grape',
+      'graph', 'grasp', 'great', 'green', 'grind', 'group', 'guard', 'guest', 'guide', 'habit', 'harbor', 'harmony', 'heart', 'hedge',
+      'honor', 'house', 'ideal', 'image', 'index', 'inner', 'ivory', 'jewel', 'judge', 'jumbo', 'knead', 'known', 'label', 'labor',
+      'laser', 'later', 'laugh', 'learn', 'lemon', 'level', 'light', 'linen', 'lively', 'lodge', 'logic', 'loyal', 'lunar', 'magic',
+      'maker', 'maple', 'march', 'match', 'medal', 'merit', 'metal', 'might', 'mild', 'miner', 'model', 'moment', 'moral', 'motor',
+      'mount', 'music', 'narrow', 'native', 'nerve', 'noble', 'novel', 'nylon', 'ocean', 'offer', 'olive', 'omega', 'onion', 'orbit',
+      'order', 'organ', 'origin', 'other', 'outer', 'paint', 'panel', 'paper', 'party', 'pearl', 'piano', 'piece', 'pilot', 'pitch',
+      'plain', 'plane', 'plant', 'plate', 'plead', 'plume', 'poem', 'point', 'polar', 'porch', 'power', 'press', 'price', 'prime',
+      'print', 'prism', 'prize', 'proof', 'proud', 'quiet', 'radio', 'raise', 'rally', 'range', 'rapid', 'ratio', 'reach', 'react',
+      'reader', 'realm', 'reason', 'record', 'refine', 'reign', 'relay', 'renew', 'reply', 'ribbon', 'ridge', 'river', 'roman', 'route',
+      'royal', 'rural', 'sable', 'scale', 'scene', 'score', 'script', 'search', 'serve', 'shade', 'shape', 'share', 'sharp', 'shift',
+      'shore', 'short', 'sight', 'signal', 'silver', 'skill', 'slate', 'slice', 'slope', 'smart', 'smile', 'sound', 'spark', 'spear',
+      'spice', 'spine', 'spoke', 'sport', 'sprout', 'stage', 'stair', 'stamp', 'stand', 'stare', 'start', 'state', 'steam', 'steel',
+      'steep', 'still', 'stone', 'storm', 'story', 'streak', 'stream', 'street', 'strict', 'strike', 'string', 'strong', 'studio',
+      'style', 'sugar', 'sunny', 'super', 'sweep', 'sweet', 'swell', 'swing', 'table', 'taste', 'teach', 'tempo', 'thank', 'their',
+      'theme', 'thick', 'thing', 'thorn', 'three', 'tiger', 'title', 'toast', 'today', 'token', 'topic', 'torch', 'total', 'touch',
+      'tower', 'trace', 'track', 'trade', 'trail', 'train', 'treat', 'trend', 'trial', 'tribe', 'trick', 'trophy', 'trust', 'truth',
+      'ultra', 'under', 'union', 'unity', 'upper', 'urban', 'usage', 'usual', 'vapor', 'velvet', 'vivid', 'vocal', 'voice', 'voter',
+      'wager', 'waste', 'watch', 'water', 'weave', 'whale', 'wheat', 'wheel', 'where', 'while', 'white', 'whole', 'woman', 'world',
+      'woven', 'writer', 'yacht', 'yearn', 'young', 'youth', 'zebra', 'zesty'
+    ]);
+
+    function formatEditionDate() {
+      return new Date().toLocaleDateString(undefined, {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+
+    function classifyWordMoment(word, score, chainLevel) {
+      const upperWord = word.toUpperCase();
+      const rareHits = (upperWord.match(/[QZXJKV]/g) || []).length;
+      const length = upperWord.length;
+
+      if (length >= 8 || score >= 45 || rareHits >= 2) {
+        return {
+          tier: 'Front Page',
+          note: `Front-page find: ${upperWord} lands with authority.`
+        };
+      }
+
+      if (length >= 6 || score >= 28 || chainLevel >= 4) {
+        return {
+          tier: 'Strong Column',
+          note: `${upperWord} keeps the desk hot. Press the advantage.`
+        };
+      }
+
+      if (length >= 5 || score >= 18) {
+        return {
+          tier: 'Clean Hit',
+          note: `${upperWord} is sturdy scoring. Build from it quickly.`
+        };
+      }
+
+      return {
+        tier: 'On The Board',
+        note: `${upperWord} gets ink. Keep shaping longer words.`
+      };
+    }
+
+    function setTextContent(id, value) {
+      const node = document.getElementById(id);
+      if (node) node.textContent = value;
+    }
+
+    function hashSeed(input) {
+      let hash = 1779033703 ^ input.length;
+      for (let i = 0; i < input.length; i++) {
+        hash = Math.imul(hash ^ input.charCodeAt(i), 3432918353);
+        hash = (hash << 13) | (hash >>> 19);
+      }
+      return () => {
+        hash = Math.imul(hash ^ (hash >>> 16), 2246822507);
+        hash = Math.imul(hash ^ (hash >>> 13), 3266489909);
+        return (hash ^= hash >>> 16) >>> 0;
+      };
+    }
+
+    function createSeededRandom(seed) {
+      const next = hashSeed(seed);
+      return () => next() / 4294967296;
+    }
+
+    function getCurrentDailySeed() {
+      return `fallphabet-${new Date().toISOString().split('T')[0]}`;
+    }
+
+    function getStoredRuns() {
+      return JSON.parse(localStorage.getItem('fallphabet_daily_runs_v2') || '[]');
+    }
+
+    function saveStoredRuns(runs) {
+      localStorage.setItem('fallphabet_daily_runs_v2', JSON.stringify(runs));
+    }
+
+    function getCurrentWeekKey(date = new Date()) {
+      const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+      const day = utcDate.getUTCDay() || 7;
+      utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
+      const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+      const weekNo = Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+      return `${utcDate.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+    }
+
+    function getDailyProgressSummary() {
+      const runs = getStoredRuns().sort((a, b) => a.date.localeCompare(b.date));
+      let streak = 0;
+      let bestWords = Infinity;
+      let latestDate = null;
+      const today = new Date(new Date().toISOString().split('T')[0]);
+
+      runs.forEach(run => {
+        if (run.completed) {
+          bestWords = Math.min(bestWords, run.wordsUsed || Infinity);
+        }
+      });
+
+      for (let i = runs.length - 1; i >= 0; i--) {
+        const run = runs[i];
+        if (!run.completed) continue;
+        const runDate = new Date(run.date);
+        if (!latestDate) {
+          const diff = Math.round((today - runDate) / 86400000);
+          if (diff > 1) break;
+          latestDate = runDate;
+          streak = 1;
+          continue;
+        }
+        const expected = new Date(latestDate);
+        expected.setUTCDate(expected.getUTCDate() - 1);
+        if (runDate.toISOString().split('T')[0] === expected.toISOString().split('T')[0]) {
+          streak += 1;
+          latestDate = runDate;
+        } else {
+          break;
+        }
+      }
+
+      return {
+        streak,
+        bestWords: Number.isFinite(bestWords) ? bestWords : null,
+        weekKey: getCurrentWeekKey(),
+        weeklyRuns: runs.filter(run => run.weekKey === getCurrentWeekKey() && run.completed).length
+      };
+    }
+
+    function upsertDailyRun(run) {
+      const runs = getStoredRuns();
+      const index = runs.findIndex(entry => entry.date === run.date);
+      if (index >= 0) {
+        runs[index] = { ...runs[index], ...run };
+      } else {
+        runs.push(run);
+      }
+      saveStoredRuns(runs);
+      return getDailyProgressSummary();
+    }
+
+    function getTaptileUnlocks() {
+      return JSON.parse(localStorage.getItem('fallphabet_taptile_unlocks_v1') || '{"frontPageBonus":false,"graceExtension":false,"comboShield":false}');
+    }
+
+    function saveTaptileUnlocks(unlocks) {
+      localStorage.setItem('fallphabet_taptile_unlocks_v1', JSON.stringify(unlocks));
+    }
+
+    function describeUnlocks(unlocks) {
+      const labels = [];
+      if (unlocks.frontPageBonus) labels.push('Front Page Bonus');
+      if (unlocks.graceExtension) labels.push('Editor Grace');
+      if (unlocks.comboShield) labels.push('Combo Shield');
+      return labels.length ? labels.join(' • ') : 'none yet';
+    }
+
+    function evaluateTaptileUnlocks(stats) {
+      const unlocks = getTaptileUnlocks();
+      let changed = false;
+      if (stats.score >= 120 && !unlocks.frontPageBonus) {
+        unlocks.frontPageBonus = true;
+        changed = true;
+      }
+      if (stats.timeSurvived >= 120 && !unlocks.graceExtension) {
+        unlocks.graceExtension = true;
+        changed = true;
+      }
+      if (stats.highestChain >= 5 && !unlocks.comboShield) {
+        unlocks.comboShield = true;
+        changed = true;
+      }
+      if (changed) saveTaptileUnlocks(unlocks);
+      return { unlocks, changed };
+    }
+
     // Game Mode Manager
     class GameModeManager {
       constructor() {
@@ -491,6 +735,12 @@
       getTimeWindow() {
         return this.timeWindow;
       }
+
+      getRemainingWindow() {
+        if (this.gracePeriod) return this.timeWindow;
+        const elapsed = (Date.now() - this.lastWordTime) / 1000;
+        return Math.max(0, this.timeWindow - elapsed);
+      }
       
       updateUI() {
         const speedDisplay = document.getElementById('speed-display');
@@ -557,6 +807,8 @@
         };
         this.letterPool = [];
         this.buildLetterPool();
+        this.useDailySeed = !!(window.gameModeManager && window.gameModeManager.currentMode === 'daily');
+        this.random = this.useDailySeed ? createSeededRandom(scene.dailySeed || getCurrentDailySeed()) : Math.random;
         // Each column has a queue of falling tiles
         this.columnsTiles = Array.from({length: columns}, () => []);
         this.columnX = [];
@@ -572,9 +824,9 @@
         for (let col = 0; col < this.columns; col++) {
           // Staggered, randomized initial spawn for each column
           let isFirstSpawn = true;
-          let initialDelay = Phaser.Math.Between(0, 1200) + col * Phaser.Math.Between(100, 400);
+          let initialDelay = this.randomBetween(0, 1200) + col * this.randomBetween(100, 400);
           // For the first 2-3 tiles, randomize their spawn times and vertical positions
-          let initialTiles = Phaser.Math.Between(2, 3);
+          let initialTiles = this.randomBetween(2, 3);
           let spawned = 0;
           const spawnNext = () => {
             // Don't spawn if the game is paused
@@ -593,7 +845,7 @@
             // For the first few tiles, randomize their Y position so they don't align
             let spawnY;
             if (spawned < initialTiles) {
-              spawnY = this.gridY - this.tileSize / 2 - Phaser.Math.Between(0, 120) * spawned;
+              spawnY = this.gridY - this.tileSize / 2 - this.randomBetween(0, 120) * spawned;
             } else {
               spawnY = this.gridY - this.tileSize / 2;
             }
@@ -613,9 +865,9 @@
             // Schedule the next spawn with dynamic interval based on speed
             let delay;
             if (spawned < initialTiles) {
-              delay = Phaser.Math.Between(300, 700);
+              delay = this.randomBetween(300, 700);
             } else if (isFirstSpawn) {
-              delay = Phaser.Math.Between(900, 1200);
+              delay = this.randomBetween(900, 1200);
               isFirstSpawn = false;
             } else {
               // Calculate spawn interval based on current fall speed to maintain consistent spacing
@@ -647,9 +899,13 @@
           for (let i = 0; i < freq; i++) this.letterPool.push(letter);
         }
       }
+
+      randomBetween(min, max) {
+        return Math.floor(this.random() * (max - min + 1)) + min;
+      }
       
       getRandomLetter() {
-        return this.letterPool[Math.floor(Math.random() * this.letterPool.length)];
+        return this.letterPool[Math.floor(this.random() * this.letterPool.length)];
       }
       
       createTileTexture(letter, letterScore) {
@@ -658,9 +914,11 @@
         canvas.width = this.tileSize;
         canvas.height = this.tileSize;
         
-        // Draw rounded rectangle background
-        ctx.fillStyle = '#FFF5E1';
-        ctx.strokeStyle = '#B8860B';
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        gradient.addColorStop(0, '#fff8ea');
+        gradient.addColorStop(1, '#ead8b3');
+        ctx.fillStyle = gradient;
+        ctx.strokeStyle = '#6a4b17';
         ctx.lineWidth = 3;
         
         // Create rounded rectangle path
@@ -680,8 +938,7 @@
         ctx.fill();
         ctx.stroke();
         
-        // Draw inner shadow
-        ctx.fillStyle = 'rgba(139, 107, 47, 0.08)';
+        ctx.fillStyle = 'rgba(120, 85, 24, 0.08)';
         ctx.beginPath();
         ctx.moveTo(radius - 3, 3);
         ctx.lineTo(canvas.width - radius + 3, 3);
@@ -696,13 +953,12 @@
         ctx.fill();
         
         // Draw letter
-        ctx.fillStyle = '#222';
-        ctx.font = 'bold 64px Inter';
+        ctx.fillStyle = '#171717';
+        ctx.font = 'bold 60px Roboto Slab';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
-        // Add letter shadow
-        ctx.shadowColor = '#B8860B';
+        ctx.shadowColor = 'rgba(106, 75, 23, 0.35)';
         ctx.shadowBlur = 2;
         ctx.shadowOffsetX = 2;
         ctx.shadowOffsetY = 3;
@@ -715,13 +971,12 @@
         ctx.shadowOffsetY = 0;
         
         // Draw point value in bottom right corner
-        ctx.fillStyle = '#B8860B';
+        ctx.fillStyle = '#7a2d22';
         ctx.font = 'bold 22px Inter';
         ctx.textAlign = 'right';
         ctx.textBaseline = 'bottom';
         
-        // Add white stroke to point value
-        ctx.strokeStyle = '#FFF5E1';
+        ctx.strokeStyle = '#fff8ea';
         ctx.lineWidth = 3;
         ctx.strokeText(letterScore.toString(), canvas.width - 8, canvas.height - 8);
         ctx.fillText(letterScore.toString(), canvas.width - 8, canvas.height - 8);
@@ -1004,15 +1259,14 @@
           }
         } else {
           if (!this.selectedTiles.includes(actualTile)) {
+            const isFirstTile = this.selectedTiles.length === 0;
             this.selectedTiles.push(actualTile);
             this.buffer.push(actualTile.letter);
             this.highlightTile(actualTile, true);
             this.lastTile = actualTile;
-            // If this is the first tile of a new word, handle chain increment and reset taptile timer
-            if (this.selectedTiles.length === 1) {
-              if (this.scene.chainTracker && this.scene.chainTracker.chainWindowActive) {
-                this.scene.chainTracker.shouldIncrementChain = true;
-                this.scene.chainTracker.clearChainWindow();
+            if (isFirstTile) {
+              if (this.scene.chainTracker) {
+                this.scene.pendingChainCarry = this.scene.chainTracker.consumeWindow();
               }
               // Reset the taptile timer when starting a new word
               if (this.scene.taptileSpeedManager) {
@@ -1024,6 +1278,7 @@
         this.lastTappedTile = actualTile;
         this.lastTapTime = now;
         this.resetAutoClearTimer();
+        if (this.scene.updateComposerUI) this.scene.updateComposerUI();
         if (this.scene && this.scene.gameModeManager && this.scene.gameModeManager.getCurrentMode().speedIncrease) {
           if (this.scene.registerInteraction) this.scene.registerInteraction();
         }
@@ -1050,9 +1305,17 @@
               if (!isAdjacent) continue;
             }
             if (!this.selectedTiles.includes(tile)) {
+              const isFirstTile = this.selectedTiles.length === 0;
               this.selectedTiles.push(tile);
               this.buffer.push(tile.letter);
               this.highlightTile(tile, true);
+              if (isFirstTile && this.scene.chainTracker) {
+                this.scene.pendingChainCarry = this.scene.chainTracker.consumeWindow();
+              }
+              if (isFirstTile && this.scene.taptileSpeedManager) {
+                this.scene.taptileSpeedManager.onWordStarted();
+              }
+              if (this.scene.updateComposerUI) this.scene.updateComposerUI();
             }
             this.lastTile = tile;
             break;
@@ -1063,11 +1326,13 @@
       highlightTile(tile, highlight) {
         if (!tile || tile.destroyed) return;
         if (highlight) {
-          // For image-based tiles, use tint for highlighting
-          tile.setTint(0x90EE90); // Light green tint
+          tile.setTint(0xf4d58d);
+          tile.setScale(1.06);
+          if (tile.shadow) tile.shadow.setAlpha(0.28);
         } else {
-          // Remove tint to return to original appearance
           tile.clearTint();
+          tile.setScale(1);
+          if (tile.shadow) tile.shadow.setAlpha(0.18);
         }
       }
       
@@ -1086,34 +1351,25 @@
       }
 
       clearBuffer(skipDestruction = false) {
-        this.selectedTiles.forEach((tile, index) => {
-          // Only destroy tiles when clearing buffer for unsuccessful selections
-          if (!skipDestruction && tile && !tile.destroyed) {
-            tile.destroy();
-            if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
-            if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
-            // Clean up texture
-            if (
-              this.scene &&
-              this.scene.textures &&
-              tile.textureKey &&
-              this.scene.textures.exists(tile.textureKey)
-            ) {
-              this.scene.textures.remove(tile.textureKey);
-            }
+        this.selectedTiles.forEach((tile) => {
+          if (tile && !tile.destroyed) {
+            this.highlightTile(tile, false);
           }
         });
         this.selectedTiles = [];
         this.buffer = [];
         this.lastTile = null;
         this.clearAutoClearTimer();
+        if (!skipDestruction) {
+          this.scene.pendingChainCarry = false;
+        }
+        if (this.scene.updateComposerUI) this.scene.updateComposerUI();
       }
       
       submitWord() {
-        if (this.buffer.length < 2) return;
+        if (this.buffer.length < 3) return;
         const word = this.buffer.join('');
         const tiles = [...this.selectedTiles];
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
         // Clear buffer immediately to prevent word combination
         this.clearBuffer(true);
@@ -1144,11 +1400,22 @@
       }
       
       calculateScore(word, chainMultiplier = 1) {
-        let score = 0;
+        let baseScore = 0;
         for (const letter of word.toUpperCase()) {
-          score += this.letterScores[letter] || 0;
+          baseScore += this.letterScores[letter] || 0;
         }
-        return score * chainMultiplier;
+
+        const lengthBonus = word.length >= 5 ? (word.length - 4) * 4 : 0;
+        const rareLetterBonus = ((word.toUpperCase().match(/[QZXJKV]/g) || []).length) * 3;
+        const subtotal = baseScore + lengthBonus + rareLetterBonus;
+
+        return {
+          baseScore,
+          lengthBonus,
+          rareLetterBonus,
+          chainMultiplier,
+          total: subtotal * chainMultiplier
+        };
       }
       
       addScore(points) {
@@ -1169,31 +1436,20 @@
       constructor() {
         this.chainLevel = 1;
         this.highestChain = 1;
-        this.lastWordTime = 0;
         this.chainWindowDuration = 2000; // 2.0 seconds
         this.chainWindowTimeout = null;
         this.chainWindowActive = false;
-        this.shouldIncrementChain = false;
+        this.windowExpiresAt = 0;
       }
       
-      startChainWindow() {
+      startChainWindow(durationOverride) {
         this.clearChainWindow();
         this.chainWindowActive = true;
-        this.shouldIncrementChain = false;
-        let duration = this.chainWindowDuration;
-        // Use taptileSpeedManager's timeWindow if in Taptile mode
-        if (
-          this.scene &&
-          this.scene.gameModeManager &&
-          this.scene.gameModeManager.getCurrentMode().speedIncrease &&
-          this.scene.taptileSpeedManager
-        ) {
-          duration = this.scene.taptileSpeedManager.timeWindow * 1000;
-        }
+        const duration = durationOverride || this.chainWindowDuration;
+        this.windowExpiresAt = Date.now() + duration;
         this.chainWindowTimeout = setTimeout(() => {
           this.resetChain();
           this.chainWindowActive = false;
-          this.shouldIncrementChain = false;
           if (window && window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
             const scene = window.game.scene.keys['GameScene'];
             if (scene.updateUI) scene.updateUI();
@@ -1207,12 +1463,23 @@
           this.chainWindowTimeout = null;
         }
         this.chainWindowActive = false;
+        this.windowExpiresAt = 0;
       }
       
-      incrementOnNextWord() {
-        this.chainLevel++;
-        if (this.chainLevel > this.highestChain) this.highestChain = this.chainLevel;
+      consumeWindow() {
+        if (!this.chainWindowActive) return false;
+        if (this.windowExpiresAt && Date.now() > this.windowExpiresAt) {
+          this.resetChain();
+          return false;
+        }
         this.clearChainWindow();
+        return true;
+      }
+
+      registerValidWord(startedInWindow) {
+        this.chainLevel = startedInWindow ? this.chainLevel + 1 : 1;
+        if (this.chainLevel > this.highestChain) this.highestChain = this.chainLevel;
+        return this.chainLevel;
       }
       
       resetChain() {
@@ -1252,6 +1519,8 @@
         this.scoredWords = [];
         this.inactivityTimeout = null;
         this.hasInteracted = false;
+        this.pendingChainCarry = false;
+        this.wordValidationCache = new Map();
       }
       
       preload() {
@@ -1285,6 +1554,7 @@
         }
         
         console.log('Creating GameScene...');
+        this.dailySeed = getCurrentDailySeed();
         
         // Create grid outline
         this.grid = this.add.rectangle(
@@ -1292,10 +1562,10 @@
           this.gridY + this.gridHeight / 2,
           this.gridWidth,
           this.gridHeight,
-          0xFFFFFF,
-          0
+          0xf8f1e3,
+          0.92
         );
-        this.grid.setStrokeStyle(3, 0x000000);
+        this.grid.setStrokeStyle(3, 0x2a241d, 0.9);
         
         // Create a geometry mask for the playfield
         const maskShape = this.add.graphics();
@@ -1306,7 +1576,7 @@
         // Add column dividers for better visual separation
         for (let i = 1; i < this.columns; i++) {
           const dividerX = this.gridX + (i * this.gridWidth / this.columns);
-          this.add.line(dividerX, this.gridY, dividerX, this.gridY + this.gridHeight, 0x8B4513, 2);
+          this.add.line(dividerX, this.gridY, dividerX, this.gridY + this.gridHeight, 0xd9bd7a, 0.55);
         }
         
         // Initialize modules
@@ -1352,6 +1622,7 @@
         if (scoreDisplay) scoreDisplay.textContent = '0';
         const chainDisplay = document.getElementById('chain-display');
         if (chainDisplay) chainDisplay.textContent = '1';
+        setTextContent('today-label', formatEditionDate());
 
         // In GameScene create() or init(), clear any word buffer and selected tiles
         if (this.inputHandler) {
@@ -1359,6 +1630,9 @@
         }
         this.hasInteracted = false;
         this.clearInactivityTimeout();
+        this.updateComposerUI();
+        this.updateProgressUI();
+        this.setEncouragement('Awaiting your first standout word', 'Open with a sturdy 5-letter word and keep your chain alive.');
         
         // Create "Tap to Play" overlay
         this.createTapToPlayOverlay();
@@ -1366,32 +1640,191 @@
         // Set up tap to start functionality
         this.input.on('pointerdown', this.onTapToStart, this);
       }
+
+      updateComposerUI() {
+        const letters = this.inputHandler ? this.inputHandler.buffer : [];
+        const currentWord = letters.length ? letters.join('') : 'Tap tiles to compose a word.';
+        const currentMeta = letters.length
+          ? `${letters.length} letters selected${letters.length >= 3 ? ' • ready to bank' : ' • need at least 3'}`
+          : 'Minimum 3 letters. Double-tap the last tile or use Bank Word.';
+        setTextContent('current-word-display', currentWord);
+        setTextContent('current-word-meta', currentMeta);
+        const submitButton = document.getElementById('submit-word-btn');
+        if (submitButton) submitButton.disabled = letters.length < 3 || this.gameOver || !this.gameStarted;
+      }
+
+      updateProgressUI() {
+        const currentMode = this.gameModeManager.getCurrentMode();
+        const score = this.scoreManager.getTotalScore();
+        const progressFill = document.getElementById('progress-fill');
+        const progressHeadline = document.getElementById('progress-headline');
+        const progressCaption = document.getElementById('progress-caption');
+        const dailySeedDisplay = document.getElementById('daily-seed-display');
+        const summary = getDailyProgressSummary();
+        const unlocks = getTaptileUnlocks();
+        let ratio = 0;
+
+        if (currentMode.speedIncrease) {
+          const remaining = this.taptileSpeedManager ? this.taptileSpeedManager.getRemainingWindow() : 0;
+          const totalWindow = this.taptileSpeedManager ? this.taptileSpeedManager.getTimeWindow() : 1;
+          ratio = totalWindow ? Math.max(0, Math.min(1, remaining / totalWindow)) : 0;
+          if (progressHeadline) progressHeadline.textContent = 'Stay ahead of the deadline and extend the run.';
+          if (progressCaption) {
+            const speed = this.taptileSpeedManager ? this.taptileSpeedManager.getSpeedMultiplier() : 1;
+            progressCaption.textContent = `${remaining.toFixed(1)}s window • ${speed.toFixed(1)}x speed`;
+          }
+          if (dailySeedDisplay) {
+            dailySeedDisplay.textContent = `Weekly notebook: ${summary.weeklyRuns} daily clears this week`;
+          }
+        } else {
+          ratio = Math.max(0, Math.min(1, score / currentMode.goal));
+          if (progressHeadline) progressHeadline.textContent = 'Reach 250 points in as few words as possible.';
+          if (progressCaption) progressCaption.textContent = `${score} / ${currentMode.goal} points`;
+          if (dailySeedDisplay) {
+            dailySeedDisplay.textContent = `Edition seed: ${this.dailySeed.replace('fallphabet-', '')}`;
+          }
+        }
+
+        if (progressFill) {
+          progressFill.style.width = `${Math.max(3, ratio * 100)}%`;
+        }
+
+        setTextContent(
+          'streak-display',
+          `Streak: ${summary.streak} day${summary.streak === 1 ? '' : 's'} • Best solve: ${summary.bestWords ?? '--'} words`
+        );
+        setTextContent('unlock-display', `Taptile unlocks: ${describeUnlocks(unlocks)}`);
+      }
+
+      setEncouragement(tier, note) {
+        setTextContent('encouragement-tier', tier);
+        setTextContent('encouragement-note', note);
+      }
+
+      async validateWord(word) {
+        const normalized = word.toLowerCase();
+        if (this.wordValidationCache.has(normalized)) {
+          return this.wordValidationCache.get(normalized);
+        }
+
+        let result = { isValid: false, isProper: false, source: 'api' };
+
+        try {
+          const controller = new AbortController();
+          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+          const timeout = isMobile ? 10000 : 5000;
+          const timeoutId = setTimeout(() => controller.abort(), timeout);
+          const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${normalized}`, {
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) {
+              const isProper = data.some(entry =>
+                entry.meanings && entry.meanings.some(meaning =>
+                  meaning.partOfSpeech && meaning.partOfSpeech.toLowerCase().includes('proper')
+                )
+              );
+              result = { isValid: true, isProper, source: 'api' };
+            }
+          }
+        } catch (error) {
+          result = { isValid: false, isProper: false, source: 'fallback' };
+        }
+
+        if (!result.isValid && COMMON_WORD_FALLBACKS.has(normalized)) {
+          result = { isValid: true, isProper: false, source: 'fallback' };
+        }
+
+        this.wordValidationCache.set(normalized, result);
+        return result;
+      }
+
+      getParResult(wordsUsed) {
+        if (wordsUsed <= 6) return 'Genius';
+        if (wordsUsed <= 8) return 'Excellent';
+        if (wordsUsed <= 10) return 'Solid';
+        return 'Completed';
+      }
+
+      renderModalRecap(currentMode, stats) {
+        const recap = document.getElementById('modal-recap');
+        if (!recap) return;
+
+        if (currentMode.speedIncrease) {
+          const unlockSummary = evaluateTaptileUnlocks({
+            score: stats.finalScore,
+            timeSurvived: stats.timeSurvived,
+            highestChain: stats.highestChain
+          });
+          setTextContent('unlock-display', `Taptile unlocks: ${describeUnlocks(unlockSummary.unlocks)}`);
+          const unlockCopy = unlockSummary.changed
+            ? `New desk tool unlocked: ${describeUnlocks(unlockSummary.unlocks)}.`
+            : `Active desk tools: ${describeUnlocks(unlockSummary.unlocks)}.`;
+          recap.innerHTML = `
+            <strong>Run recap:</strong> ${stats.topWord || '-'} was your headline word, and your recommended next target is
+            <strong>${Math.max(stats.finalScore + 40, 120)} points</strong> with a <strong>x${Math.max(stats.highestChain, 4)}</strong> chain.<br><br>
+            ${unlockCopy}
+          `;
+          return;
+        }
+
+        const summary = upsertDailyRun({
+          date: new Date().toISOString().split('T')[0],
+          weekKey: getCurrentWeekKey(),
+          completed: stats.finalScore >= 250,
+          wordsUsed: stats.wordsUsed,
+          topWord: stats.topWord,
+          topWordScore: stats.topWordScore,
+          highestChain: stats.highestChain,
+          score: stats.finalScore,
+          seed: this.dailySeed
+        });
+        setTextContent(
+          'streak-display',
+          `Streak: ${summary.streak} day${summary.streak === 1 ? '' : 's'} • Best solve: ${summary.bestWords ?? '--'} words`
+        );
+        const par = stats.finalScore >= 250 ? this.getParResult(stats.wordsUsed) : 'Incomplete';
+        recap.innerHTML = `
+          <strong>Edition recap:</strong> ${par} result. ${summary.streak} day${summary.streak === 1 ? '' : 's'} on streak, ${summary.weeklyRuns} clears this week.<br><br>
+          Tomorrow's target: beat <strong>${summary.bestWords ?? stats.wordsUsed}</strong> words and keep your chain above <strong>x${Math.max(stats.highestChain, 3)}</strong>.
+        `;
+      }
       
       createTapToPlayOverlay() {
-        // Create semi-transparent purple overlay (matching .game-title color #7c3aed at 20% opacity)
+        // Create paper-toned overlay
         this.tapToPlayOverlay = this.add.rectangle(
           this.cameras.main.centerX,
           this.cameras.main.centerY,
           this.cameras.main.width,
           this.cameras.main.height,
-          0x7c3aed,
-          0.2
+          0x171717,
+          0.18
         );
         this.tapToPlayOverlay.setDepth(1000);
         
-        // Create "Tap to Play" text higher up
-        this.tapToPlayText = this.add.text(400, 350, 'TAP TO PLAY', {
-          fontFamily: 'Inter',
+        this.tapToPlayText = this.add.text(400, 340, 'TAP TO PLAY', {
+          fontFamily: 'Roboto Slab',
           fontSize: '48px',
-          color: '#FFFFFF',
+          color: '#FFF7E8',
           fontStyle: 'bold',
-          stroke: '#000000',
-          strokeThickness: 3
+          stroke: '#171717',
+          strokeThickness: 2
         }).setOrigin(0.5);
         this.tapToPlayText.setDepth(1001);
+
+        this.tapToPlaySubtext = this.add.text(400, 405, 'Build polished words before the column fills.', {
+          fontFamily: 'Inter',
+          fontSize: '22px',
+          color: '#FFF7E8',
+          align: 'center'
+        }).setOrigin(0.5);
+        this.tapToPlaySubtext.setDepth(1001);
         
         // Add PNG pointer icon below the text (no SVG logic) - set to 30x30 px
-        this.playIcon = this.add.image(400, 600, 'pointer-finger').setDisplaySize(30, 30).setOrigin(0.5);
+        this.playIcon = this.add.image(400, 560, 'pointer-finger').setDisplaySize(30, 30).setOrigin(0.5);
         this.playIcon.setDepth(1001);
         
         // Pulse only the text, keep icon static
@@ -1427,6 +1860,9 @@
         if (this.tapToPlayText) {
           this.tapToPlayText.destroy();
         }
+        if (this.tapToPlaySubtext) {
+          this.tapToPlaySubtext.destroy();
+        }
         if (this.playIcon) {
           this.playIcon.destroy();
         }
@@ -1436,6 +1872,8 @@
         
         // Start the game
         this.tileSpawner.startSpawning();
+        this.updateComposerUI();
+        this.updateProgressUI();
         
         // Start taptile mode if active
         if (this.gameModeManager.getCurrentMode().speedIncrease) {
@@ -1492,7 +1930,56 @@
       async handleWordSubmission(data) {
         if (this.gameOver) return;
         const { word, tiles } = data;
-        // Always clean up tiles from spawner tracking, regardless of validation result
+        const validation = await this.validateWord(word);
+
+        if (!validation.isValid) {
+          this.showFlashMessage(`"${word.toUpperCase()}" didn't make the dictionary cut.`, '#ff8b5c');
+          this.setEncouragement('Needs Work', 'That pick does not score. Try a cleaner, more common construction.');
+          tiles.forEach(tile => {
+            if (!tile || tile.destroyed) return;
+            this.tweens.add({
+              targets: [tile, tile.shadow, tile.innerShadow].filter(Boolean),
+              x: tile.x + 10,
+              duration: 70,
+              yoyo: true,
+              repeat: 3,
+              ease: 'Sine.easeInOut',
+              onComplete: () => {
+                tile.x -= 0;
+              }
+            });
+          });
+          return;
+        }
+        if (validation.isProper) {
+          this.showFlashMessage(`"${word.toUpperCase()}" reads like a proper name.`, '#ff8b5c');
+          this.setEncouragement('House Style', 'Proper names stay off the puzzle page. Find a common word instead.');
+          return;
+        }
+
+        // If valid and not a proper noun, continue with scoring and animation
+        const unlocks = getTaptileUnlocks();
+        const chainLevel = this.chainTracker.registerValidWord(this.pendingChainCarry);
+        this.pendingChainCarry = false;
+        const scoreBreakdown = this.scoreManager.calculateScore(word, chainLevel);
+        let score = scoreBreakdown.total;
+        const moment = classifyWordMoment(word, score, chainLevel);
+        if (unlocks.frontPageBonus && moment.tier === 'Front Page') {
+          score += 12;
+        }
+        this.scoreManager.addScore(score);
+        this.wordsUsed++;
+        if (score > this.topWordScore) {
+          this.topWordScore = score;
+          this.topWord = word;
+        }
+        const chainText = chainLevel > 1 ? ` • x${chainLevel} chain` : '';
+        const sourceText = validation.source === 'fallback' ? ' • offline list' : '';
+        const unlockText = unlocks.frontPageBonus && moment.tier === 'Front Page' ? ' • unlock bonus' : '';
+        this.showFlashMessage(`${moment.tier}: ${word.toUpperCase()} for ${score} pts${chainText}${sourceText}${unlockText}`, '#f4d58d');
+        this.setEncouragement(moment.tier, moment.note);
+        this.scoredWords.push({ word, score });
+
         tiles.forEach(tile => {
           if (tile && tile.col !== undefined && this.tileSpawner.columnsTiles[tile.col]) {
             const colIndex = this.tileSpawner.columnsTiles[tile.col].indexOf(tile);
@@ -1501,115 +1988,6 @@
             }
           }
         });
-        // Strict English word validation
-        let isValid = false;
-        let isProper = false;
-        let apiFailed = false;
-        
-        try {
-          const controller = new AbortController();
-          // Longer timeout for mobile devices
-          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-          const timeout = isMobile ? 10000 : 5000; // 10 seconds on mobile, 5 on desktop
-          const timeoutId = setTimeout(() => controller.abort(), timeout);
-          
-          const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`, {
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-          
-          if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data)) {
-              // Check all meanings for proper noun
-              isProper = data.some(entry =>
-                entry.meanings && entry.meanings.some(meaning =>
-                  meaning.partOfSpeech && meaning.partOfSpeech.toLowerCase().includes('proper')
-                )
-              );
-              isValid = true;
-            }
-          }
-        } catch (e) {
-          apiFailed = true;
-        }
-        
-        // No fallback - only use the free dictionary API
-        if (apiFailed) {
-          isValid = false;
-        }
-        if (!isValid) {
-          this.showFlashMessage(`"${word}" - Not a valid English word!`, '#ff6b6b');
-          // Destroy tiles for invalid words with animation
-          tiles.forEach(tile => {
-            const scene = this.scene;
-            this.tweens.add({
-              targets: [tile, tile.shadow, tile.innerShadow],
-              scaleX: 0,
-              scaleY: 0,
-              duration: 300,
-              ease: 'Power2',
-              onComplete: () => {
-                tile.destroy();
-                if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
-                if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
-                // Clean up texture
-                if (
-                  scene &&
-                  scene.textures &&
-                  tile.textureKey &&
-                  scene.textures.exists(tile.textureKey)
-                ) {
-                  scene.textures.remove(tile.textureKey);
-                }
-              }
-            });
-          });
-          return;
-        }
-        if (isProper) {
-          this.showFlashMessage(`"${word}" is a proper name. No proper names allowed!`, '#ff6b6b');
-          // Destroy tiles for invalid words with animation
-          tiles.forEach(tile => {
-            const scene = this.scene;
-            this.tweens.add({
-              targets: [tile, tile.shadow, tile.innerShadow],
-              scaleX: 0,
-              scaleY: 0,
-              duration: 300,
-              ease: 'Power2',
-              onComplete: () => {
-                tile.destroy();
-                if (tile.shadow && !tile.shadow.destroyed) tile.shadow.destroy();
-                if (tile.innerShadow && !tile.innerShadow.destroyed) tile.innerShadow.destroy();
-                // Clean up texture
-                if (
-                  scene &&
-                  scene.textures &&
-                  tile.textureKey &&
-                  scene.textures.exists(tile.textureKey)
-                ) {
-                  scene.textures.remove(tile.textureKey);
-                }
-              }
-            });
-          });
-          return;
-        }
-        
-        // If valid and not a proper noun, continue with scoring and animation
-        const chainLevel = this.chainTracker.getChainLevel();
-        const score = this.scoreManager.calculateScore(word, chainLevel);
-        this.scoreManager.addScore(score);
-        this.wordsUsed++;
-        if (score > this.topWordScore) {
-          this.topWordScore = score;
-          this.topWord = word;
-        }
-        this.chainTracker.incrementOnNextWord();
-        const chainText = chainLevel > 1 ? ` (x${chainLevel} chain!)` : '';
-        this.showFlashMessage(`"${word}" - ${score} pts${chainText}`, '#51cf66');
-        this.scoredWords.push({ word, score });
         tiles.forEach(tile => {
           const scene = this.scene;
           this.tweens.add({
@@ -1646,7 +2024,19 @@
         }
         
         // Always start chain window after word submission
-        this.chainTracker.startChainWindow();
+        const chainWindowMs = currentMode.speedIncrease && this.taptileSpeedManager
+          ? this.taptileSpeedManager.getTimeWindow() * 1000
+          : this.chainTracker.chainWindowDuration;
+        let adjustedChainWindowMs = chainWindowMs;
+        if (currentMode.speedIncrease && unlocks.graceExtension && word.length >= 6) {
+          adjustedChainWindowMs += 600;
+        }
+        if (currentMode.speedIncrease && unlocks.comboShield && chainLevel >= 4) {
+          adjustedChainWindowMs += 750;
+        }
+        this.chainTracker.startChainWindow(adjustedChainWindowMs);
+        this.updateComposerUI();
+        this.updateProgressUI();
       }
       
       showFlashMessage(message, color = '#fff') {
@@ -1673,6 +2063,8 @@
         
         chainDisplay.textContent = `${currentChain}`;
         chainDisplay.style.fontFamily = 'Arial, Helvetica, sans-serif';
+        this.updateComposerUI();
+        this.updateProgressUI();
         
         // Check for game over based on mode (only for Daily Challenge reaching 250+ points)
         const currentMode = this.gameModeManager.getCurrentMode();
@@ -1873,6 +2265,14 @@
             }
           };
         }
+        const closeHighScoreBtn = modal.querySelector('#close-high-score-btn');
+        if (closeHighScoreBtn) {
+          closeHighScoreBtn.onclick = () => {
+            if (modal.parentNode) modal.parentNode.removeChild(modal);
+          };
+        }
+        document.body.appendChild(modal);
+        requestAnimationFrame(() => modal.classList.add('show'));
       }
 
       endGame() {
@@ -2104,6 +2504,14 @@
             topWordScore: topWordScore,
             highestChain: highestChain,
             timestamp: Date.now()
+          });
+          this.renderModalRecap(currentMode, {
+            finalScore,
+            wordsUsed,
+            topWord,
+            topWordScore,
+            highestChain,
+            timeSurvived
           });
           
         } else {
@@ -2346,6 +2754,13 @@
           // Save game stats to localStorage
           const today = new Date().toLocaleDateString();
           saveGameToHistory({ date: today, wordsUsed, topWord, topWordScore, highestChain, score: finalScore, longestWord: this.topWord });
+          this.renderModalRecap(currentMode, {
+            finalScore,
+            wordsUsed,
+            topWord,
+            topWordScore,
+            highestChain
+          });
         }
         
         // Ensure modal is visible and properly positioned
@@ -2574,6 +2989,14 @@
     // Start the game
     window.addEventListener('DOMContentLoaded', async () => {
       console.log('DOM loaded, checking Daily Challenge status first...');
+      setTextContent('today-label', formatEditionDate());
+      const summary = getDailyProgressSummary();
+      setTextContent(
+        'streak-display',
+        `Streak: ${summary.streak} day${summary.streak === 1 ? '' : 's'} • Best solve: ${summary.bestWords ?? '--'} words`
+      );
+      setTextContent('unlock-display', `Taptile unlocks: ${describeUnlocks(getTaptileUnlocks())}`);
+      setTextContent('daily-seed-display', `Edition seed: ${getCurrentDailySeed().replace('fallphabet-', '')}`);
       
       // Initialize global game mode manager
       window.gameModeManager = new GameModeManager();
@@ -2757,6 +3180,18 @@
       try {
         window.game = new Phaser.Game(config);
         console.log('Phaser game created successfully');
+
+        const submitWordBtn = document.getElementById('submit-word-btn');
+        if (submitWordBtn) {
+          submitWordBtn.addEventListener('click', () => {
+            const scene = window.game && window.game.scene && window.game.scene.keys
+              ? window.game.scene.keys['GameScene']
+              : null;
+            if (scene && scene.inputHandler) {
+              scene.inputHandler.submitWord();
+            }
+          });
+        }
         
         // Mode switching functionality
         const modeButtons = document.querySelectorAll('.mode-btn');
@@ -3028,9 +3463,14 @@
             // Create share text based on mode
             let shareText;
             if (isTaptileMode) {
-              shareText = `I got ${totalScore} points today with ${wordsUsed} words used! Think you can beat me? Try now to join the leaderboard`;
+              const unlocks = describeUnlocks(getTaptileUnlocks());
+              shareText = `I posted ${totalScore} points in Fallphabet Taptile with ${wordsUsed} words and a x${highestChain} chain. Active desk tools: ${unlocks}.`;
             } else {
-              shareText = `It took me ${wordsUsed} words with a top chain of ${highestChain} to beat the Fallphabet today! Think you can beat me?`;
+              const summary = getDailyProgressSummary();
+              const par = window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']
+                ? window.game.scene.keys['GameScene'].getParResult(Number(wordsUsed))
+                : 'Completed';
+              shareText = `Fallphabet ${getCurrentDailySeed().replace('fallphabet-', '')}: ${wordsUsed} words, x${highestChain} chain, ${par} result. Current streak: ${summary.streak}.`;
             }
             
             // Try Web Share API first
@@ -3088,72 +3528,6 @@
       }
     });
 
-    // --- Clean, robust chain logic for unlimited chaining ---
-    // Patch ChainTracker.resetChain to always set chainLevel = 1 and update UI
-    ChainTracker.prototype.resetChain = function() {
-      this.chainLevel = 1;
-      this.clearChainWindow();
-      if (window && window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
-        const scene = window.game.scene.keys['GameScene'];
-        if (scene.updateUI) scene.updateUI();
-      }
-    };
-    // Patch ChainTracker.startChainWindow to always reset flag and start timer
-    ChainTracker.prototype.startChainWindow = function() {
-      this.clearChainWindow();
-      this.chainWindowActive = true;
-      this.shouldIncrementChain = false;
-      let duration = this.chainWindowDuration;
-      // Use taptileSpeedManager's timeWindow if in Taptile mode
-      if (
-        this.scene &&
-        this.scene.gameModeManager &&
-        this.scene.gameModeManager.getCurrentMode().speedIncrease &&
-        this.scene.taptileSpeedManager
-      ) {
-        duration = this.scene.taptileSpeedManager.timeWindow * 1000;
-      }
-      this.chainWindowTimeout = setTimeout(() => {
-        this.resetChain();
-        this.chainWindowActive = false;
-        this.shouldIncrementChain = false;
-        if (window && window.game && window.game.scene && window.game.scene.keys && window.game.scene.keys['GameScene']) {
-          const scene = window.game.scene.keys['GameScene'];
-          if (scene.updateUI) scene.updateUI();
-        }
-      }, duration);
-    };
-    // Patch ChainTracker.clearChainWindow to always clear timer and active state
-    ChainTracker.prototype.clearChainWindow = function() {
-      if (this.chainWindowTimeout) {
-        clearTimeout(this.chainWindowTimeout);
-        this.chainWindowTimeout = null;
-      }
-      this.chainWindowActive = false;
-    };
-    // Patch InputHandler.onTileTap to set flag and clear timer on first tile of new word
-    const origOnTileTapFinal = InputHandler.prototype.onTileTap;
-    InputHandler.prototype.onTileTap = function(pointer, tile) {
-      if (!tile || !tile.isScrabbleTile) return origOnTileTapFinal.call(this, pointer, tile);
-      if (this.selectedTiles.length === 0 && this.scene.chainTracker && this.scene.chainTracker.chainWindowActive) {
-        this.scene.chainTracker.shouldIncrementChain = true;
-        this.scene.chainTracker.clearChainWindow();
-      }
-      return origOnTileTapFinal.call(this, pointer, tile);
-    };
-    // Patch GameScene.handleWordSubmission to increment chain if flag is set, always clear flag, always start new window
-    const origHandleWordSubmissionFinal = GameScene.prototype.handleWordSubmission;
-    GameScene.prototype.handleWordSubmission = async function(data) {
-      if (this.gameOver) return;
-      await origHandleWordSubmissionFinal.call(this, data);
-      if (this.chainTracker.shouldIncrementChain) {
-        this.chainTracker.chainLevel++;
-        if (this.chainTracker.chainLevel > this.chainTracker.highestChain) this.chainTracker.highestChain = this.chainTracker.chainLevel;
-        this.chainTracker.shouldIncrementChain = false;
-      }
-      this.chainTracker.startChainWindow();
-    };
-
     // Find the container width dynamically for gridWidth
     const getPlayfieldWidth = () => {
       const container = document.getElementById('playfield-container');
@@ -3182,6 +3556,7 @@
     
     function renderTaptileStats(statsDiv) {
       const taptileHistory = JSON.parse(localStorage.getItem('fallphabet_taptile_history') || '[]');
+      const unlocks = getTaptileUnlocks();
       
       if (!taptileHistory.length) {
         statsDiv.innerHTML = '<p>No Taptile games played yet.</p>';
@@ -3206,7 +3581,8 @@
             <strong>Best Score:</strong> <span style='color:#7c3aed;font-weight:bold;'>${bestScore}</span><br/>
             <strong>Longest Survival:</strong> <span style='color:#7c3aed;font-weight:bold;'>${bestTime.toFixed(1)}s</span><br/>
             <strong>Highest Speed Reached:</strong> <span style='color:#7c3aed;font-weight:bold;'>${bestSpeed.toFixed(1)}x</span><br/>
-            <strong>Total Games:</strong> ${totalGames}
+            <strong>Total Games:</strong> ${totalGames}<br/>
+            <strong>Desk Tools:</strong> ${describeUnlocks(unlocks)}
           </div>
         </div>
         <div style='font-size:1.05rem;margin-bottom:8px;'><strong>Recent Runs:</strong></div>
@@ -3224,6 +3600,7 @@
     
     function renderDailyStats(statsDiv) {
       const history = JSON.parse(localStorage.getItem('fallphabetHistory') || '[]');
+      const summary = getDailyProgressSummary();
       
       if (!history.length) {
         statsDiv.innerHTML = '<p>No daily challenge games played yet.</p>';
@@ -3244,7 +3621,9 @@
           <div style='background:#fff9ef;padding:12px;border-radius:8px;border:1px solid #e5c9a8;'>
             <strong>Best (fewest) words to win:</strong> ${fewestWords}<br/>
             <strong>Highest score:</strong> ${highestScore}<br/>
-            <strong>Longest word ever:</strong> <span style='color:#7c3aed;font-weight:bold;'>${longestWord || '-'}</span>
+            <strong>Longest word ever:</strong> <span style='color:#7c3aed;font-weight:bold;'>${longestWord || '-'}</span><br/>
+            <strong>Current streak:</strong> ${summary.streak} day${summary.streak === 1 ? '' : 's'}<br/>
+            <strong>This week:</strong> ${summary.weeklyRuns} clears
           </div>
         </div>
         <div style='font-size:1.05rem;margin-bottom:8px;'><strong>Recent Games:</strong></div>
@@ -3307,6 +3686,7 @@
       this.gameStarted = false;
       this.tileSpawner.pause();
       this.createTapToPlayOverlay();
+      this.updateComposerUI();
       this.input.on('pointerdown', this.onTapToStart, this);
     };
     
