@@ -482,8 +482,8 @@
             timeLimit: null,
             speedIncrease: false,
             leaderboard: false,
-            rampRate: 0.08,
-            minSpawnInterval: 300
+            rampRate: 0.06,
+            minSpawnInterval: 360
           },
           taptile: {
             name: 'Fallphabet Arcade',
@@ -491,8 +491,8 @@
             timeLimit: null,
             speedIncrease: true,
             leaderboard: true,
-            rampRate: 0.16,
-            minSpawnInterval: 220
+            rampRate: 0.11,
+            minSpawnInterval: 300
           }
         };
       }
@@ -547,11 +547,11 @@
     // Taptile Speed Manager
     class TaptileSpeedManager {
       constructor() {
-        this.baseSpeed = 270;
+        this.baseSpeed = 220;
         this.currentSpeed = this.baseSpeed;
         this.speedMultiplier = 1.0;
-        this.spawnInterval = 460;
-        this.stageDuration = 22000;
+        this.spawnInterval = 600;
+        this.stageDuration = 28000;
         this.currentStage = 0;
         this.pauseUntil = 0;
       }
@@ -559,7 +559,7 @@
       start() {
         this.currentSpeed = this.baseSpeed;
         this.speedMultiplier = 1.0;
-        this.spawnInterval = 460;
+        this.spawnInterval = 600;
         this.currentStage = 0;
         this.pauseUntil = 0;
         this.updateUI();
@@ -568,11 +568,11 @@
       update(elapsedMs) {
         const nextStage = Math.floor(elapsedMs / this.stageDuration);
         if (nextStage > this.currentStage) {
-          const currentMode = window.gameModeManager ? window.gameModeManager.getCurrentMode() : { rampRate: 0.16, minSpawnInterval: 220 };
+          const currentMode = window.gameModeManager ? window.gameModeManager.getCurrentMode() : { rampRate: 0.11, minSpawnInterval: 300 };
           this.currentStage = nextStage;
           this.speedMultiplier = 1 + this.currentStage * (currentMode.rampRate || 0.2);
           this.currentSpeed = this.baseSpeed * this.speedMultiplier;
-          this.spawnInterval = Math.max(currentMode.minSpawnInterval || 220, 460 - this.currentStage * 24);
+          this.spawnInterval = Math.max(currentMode.minSpawnInterval || 300, 600 - this.currentStage * 18);
           this.showSpeedUpMessage();
           pulseStat('speed-display');
           this.updateUI();
@@ -649,10 +649,10 @@
         this.tileSize = (this.gridWidth / this.columns) * 0.92;
         this.tileMargin = (this.gridWidth / this.columns - this.tileSize) / 2;
         this.tileSpacing = 8;
-        this.baseFallSpeed = 150;
-        this.arcadeOpeningFallSpeed = 130;
+        this.baseFallSpeed = 118;
+        this.arcadeOpeningFallSpeed = 108;
         this.fallSpeed = this.baseFallSpeed;
-        this.baseSpawnInterval = 460;
+        this.baseSpawnInterval = 600;
         this.letters = {
           'E': 15, 'A': 12, 'I': 10, 'O': 10, 'U': 7, 'Y': 4,
           'R': 9, 'S': 9, 'T': 9, 'N': 8, 'L': 7, 'D': 6, 'C': 5, 'M': 5, 'P': 4, 'H': 4,
@@ -1184,7 +1184,7 @@
       
       startSpawning() {
         this.isPaused = false;
-        this.nextSpawnAt = Date.now() + 160;
+        this.nextSpawnAt = Date.now() + 260;
         this.fillQueue();
         this.fallSpeed = this.scene.taptileSpeedManager ? this.arcadeOpeningFallSpeed : this.baseFallSpeed;
         for (let i = 0; i < 4; i++) {
@@ -1194,7 +1194,7 @@
       
       resume() {
         this.isPaused = false;
-        this.nextSpawnAt = Date.now() + 160;
+        this.nextSpawnAt = Date.now() + 260;
       }
     }
 
